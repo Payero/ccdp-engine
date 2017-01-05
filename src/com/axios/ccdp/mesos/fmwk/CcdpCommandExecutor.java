@@ -1,0 +1,222 @@
+package com.axios.ccdp.mesos.fmwk;
+
+import java.util.HashMap;
+
+import org.apache.log4j.Logger;
+import org.apache.mesos.Executor;
+import org.apache.mesos.ExecutorDriver;
+import org.apache.mesos.MesosExecutorDriver;
+import org.apache.mesos.Protos.ExecutorInfo;
+import org.apache.mesos.Protos.FrameworkInfo;
+import org.apache.mesos.Protos.SlaveInfo;
+import org.apache.mesos.Protos.TaskID;
+import org.apache.mesos.Protos.TaskInfo;
+import org.apache.mesos.Protos.TaskState;
+import org.apache.mesos.Protos.TaskStatus;
+
+import com.axios.ccdp.mesos.utils.CcdpUtils;
+
+public class CcdpCommandExecutor implements Executor
+{
+
+  /**
+   * Generates debug print statements based on the verbosity level.
+   */
+  private Logger logger = Logger.getLogger(CcdpCommandExecutor.class.getName());
+  /**
+   * Stores all the tasks assigned to this executor
+   */
+  private HashMap<TaskID, CcdpTask> tasks = new HashMap<TaskID, CcdpTask>();
+  
+  /**
+   * Stores a reference to the Mesos Driver requesting the task execution
+   */
+  private ExecutorDriver driver;
+  
+  /**
+   * Instantiates a new instance of the agent responsible for running all the
+   * tasks on a particular Mesos Agent
+   */
+  public CcdpCommandExecutor()
+  {
+    this.logger.info("Running the Executor");
+  }
+
+  /**
+   * Sends an update to the ExecutorDriver with the status change provided
+   * as an argument.  If the message is not null then is set using the 
+   * setMessage() method in the TaskStatus.Builder object
+   * 
+   * @param taskId the task unique identifier
+   * @param state the current state of the task
+   * @param message a message (optional) to be sent back to the ExecutorDriver
+   */
+  public void statusUpdate(TaskID taskId, TaskState state, String message)
+  {
+    this.logger.debug("Setting the status to " + state);
+    TaskStatus.Builder bldr = TaskStatus.newBuilder();
+    bldr.setTaskId(taskId);
+    bldr.setState(state);
+    // if we have a message, send it
+    if( message != null )
+      bldr.setMessage(message);
+    
+    TaskStatus status  = bldr.build();
+    this.driver.sendStatusUpdate(status);
+  }
+  
+  /**
+   * This is invoked when the slave disconnects from the executor, which 
+   * typically indicates a slave restart.  Rarely should an executor need to do 
+   * anything special here
+   * 
+   * @param driver
+   */
+  @Override
+  public void disconnected(ExecutorDriver driver)
+  {
+    this.logger.info("Disconnecting");
+  }
+
+  /**
+   * This callback is invoked after a fatal error occurs.  When this callback is
+   * invoked the driver is no longer running.
+   * 
+   * @param driver
+   * @param errorMsg
+   */
+  @Override
+  public void error(ExecutorDriver driver, String errorMsg)
+  {
+    this.logger.error("Gont an error: " + errorMsg);
+  }
+
+  /**
+   * Framework messages are a simple (but not guaranteed) way to communicate 
+   * between the scheduler and its executors by sending arbitrary data 
+   * serialized as bytes.  
+   * 
+   * Note that framework messages are not routed to particular tasks
+   * 
+   * @param driver
+   * @param msg serialized message as bytes
+   * 
+   */
+  @Override
+  public void frameworkMessage(ExecutorDriver driver, byte[] msg)
+  {
+    this.logger.info("Got a message from the Framework, not too reliable...");
+    this.logger.info("The Message: " + new String(msg) );
+
+  }
+
+  /**
+   * Kills the task referenced by the taskId argument if is running.
+   * 
+   * @param driver the executor sending the request
+   * @param taskId the object containing enough information to identify the
+   *        task
+   */
+  @Override
+  public void killTask(ExecutorDriver driver, TaskID taskId)
+  {
+    this.logger.info("Killing Task: " + taskId.toString());
+    
+    synchronized( this )
+    {
+      CcdpTask task = this.tasks.get(taskId);
+      if( task != null )
+      {
+        task.killTask();
+      }
+    }
+  }
+
+  @Override
+  public void launchTask(ExecutorDriver driver, TaskInfo task)
+  {
+    this.logger.info("Launching Task: " + task.toString());
+    // mutex to protect all global variables
+    synchronized( this )
+    {
+      try
+      {
+        
+        TaskID taskId = task.getTaskId();
+        CcdpTask ccdpTask = new CcdpTask(task, this);
+        this.tasks.put(taskId, ccdpTask);
+        
+        this.driver = driver;
+        
+        this.statusUpdate(taskId, TaskState.TASK_STARTING, null);
+        
+        ccdpTask.start();
+        
+        this.statusUpdate(taskId, TaskState.TASK_RUNNING, null);
+      }
+      catch( Exception e )
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+      }
+    }
+  }
+
+  /**
+   * This is invoked the first time that an executor connects to the slave.  The
+   * most common thing to do is get data from the ExecutorInfo since that can 
+   * carry executor configuration information in its data field which contain
+   * arbitrary bytes
+   * 
+   * @param driver
+   * @param exec
+   * @param fmwk
+   * @param slave
+   */
+  @Override
+  public void registered(ExecutorDriver driver, ExecutorInfo exec,
+      FrameworkInfo fmwk, SlaveInfo slave)
+  {
+    this.logger.info("Executor Registered: " + exec.toString() + " in " + slave.toString() );
+  }
+
+  /**
+   * This callback is invoked after a successful slave restart.  It contains the 
+   * new slave's information
+   * 
+   * @param driver
+   * @param slave
+   */
+  @Override
+  public void reregistered(ExecutorDriver driver, SlaveInfo slave)
+  {
+    this.logger.info("Executor Re-registered: " + slave.toString() );
+  }
+
+  /**
+   * This callback informs the executor to gracefully shut down.  It is called 
+   * when a slave restart fails to complete within the grace period or when the
+   * executor's framework completes.  The executor will be forcibly killed if 
+   * shutdown doesn't complete within 5 seconds (the default, configurable on 
+   * the slave command line with --executor_shutdown_grace_period).
+   * 
+   * @param driver
+   */
+  @Override
+  public void shutdown(ExecutorDriver driver)
+  {
+    this.logger.info("Shuting Down Executor");
+    
+  }
+
+  public static void main(String[] args) throws Exception
+  {
+    CcdpUtils.configureProperties();
+    CcdpUtils.configLogger();
+    
+    System.out.println("Creating a new Executor from main");
+    System.err.println("Creating a new Executor from main");
+    Executor executor = new CcdpCommandExecutor();
+    ExecutorDriver driver = new MesosExecutorDriver(executor);
+    driver.run();
+  }
+}

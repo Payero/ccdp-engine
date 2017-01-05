@@ -1,0 +1,58 @@
+[
+  {
+    "name": "cpus",
+    "type": "SCALAR",
+    "scalar": {
+      "value": 24
+    }
+  },
+  {
+    "name": "gpus",
+    "type": "SCALAR",
+    "scalar": {
+      "value": 2
+    }
+  },
+  {
+    "name": "mem",
+    "type": "SCALAR",
+    "scalar": {
+      "value": 24576
+    }
+  },
+  {
+    "name": "disk",
+    "type": "SCALAR",
+    "scalar": {
+      "value": 409600
+    }
+  },
+  {
+    "name": "ports",
+    "type": "RANGES",
+    "ranges": {
+      "range": [
+        {
+          "begin": 21000,
+          "end": 24000
+        },
+        {
+          "begin": 30000,
+          "end": 34000
+        }
+      ]
+    }
+  },
+  {
+    "name": "bugs",
+    "type": "SET",
+    "set": {
+      "item": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    "role": "debug_role"
+  }
+]

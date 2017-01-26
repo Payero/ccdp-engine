@@ -3,17 +3,15 @@ package com.axios.ccdp.mesos.fmwk;
 import java.io.File;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import javax.sound.midi.MidiDevice.Info;
 
 import org.apache.log4j.Logger;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
-import org.apache.mesos.Protos.TaskStatus;
-import org.json.JSONObject;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Simple class that is used by a Mesos Executor and is intended to run on a 
@@ -23,19 +21,16 @@ import org.json.JSONObject;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpTask extends Thread
+public class CcdpTaskRunner extends Thread
 {
-
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(CcdpTask.class.getName());
-
+  private Logger logger = Logger.getLogger(CcdpTaskRunner.class.getName());
   /**
    * Stores the object requesting the task execution
    */
   private CcdpCommandExecutor executor = null;
-  
   /**
   * Stores a reference to the process we launched so that we can wait for it 
   * to complete
@@ -46,12 +41,10 @@ public class CcdpTask extends Thread
   * communicate with the scheduler requires the TaskID as an argument
   */
   private TaskID taskId;
-  
   /**
    * Stores all the information related to this task
    */
   private TaskInfo taskInfo;
-  
   /**
    * Contains all the initial commands to be able to run in a bash shell.  The
    * actual command is added in the startProcess()
@@ -60,7 +53,7 @@ public class CcdpTask extends Thread
   /**
    * Creates a new Task to be executed by a Mesos Executor 
    */
-  public CcdpTask(TaskInfo taskInfo, CcdpCommandExecutor executor)
+  public CcdpTaskRunner(TaskInfo taskInfo, CcdpCommandExecutor executor)
   {
     this.taskId = taskInfo.getTaskId();
     this.logger.info("Creating a new CCDP Task: " + this.taskId.getValue());
@@ -72,6 +65,9 @@ public class CcdpTask extends Thread
     this.cmdArgs.add("-c");
   }
 
+  /**
+   * Runs the actual command.
+   */
   @Override
   public void run()
   {
@@ -81,7 +77,10 @@ public class CcdpTask extends Thread
       byte[] taskData = this.taskInfo.getData().toByteArray();
       String msg = "The Task JSON Configuration: " + new String(taskData);
       this.logger.debug(msg);
-      JSONObject cfg = new JSONObject( new String( taskData, "UTF-8") );
+      JsonParser parser = new JsonParser();
+      
+      JsonObject cfg = 
+          (JsonObject)parser.parse( new String( taskData, "UTF-8") );
       this.process = this.startProcess(cfg);
       
       int exitCode;
@@ -106,7 +105,8 @@ public class CcdpTask extends Thread
         if( exitCode == 0 )
         {
           this.logger.info("Task Finished properly");
-          this.executor.statusUpdate(this.taskId, TaskState.TASK_FINISHED, null);
+          this.executor.statusUpdate(this.taskId, TaskState.TASK_FINISHED, 
+                                     null);
         }
         else
         {
@@ -120,12 +120,14 @@ public class CcdpTask extends Thread
     catch( Exception e )
     {
       this.logger.error("Message: " + e.getMessage(), e);
+      this.executor.statusUpdate(this.taskId, TaskState.TASK_ERROR, 
+                                 e.getMessage());
     }
   }
   
   /**
    * Starts a new Process by executing the command stored in the 'cmd' key in
-   * the given JSONObject.  The final command would look as follow:
+   * the given JsonObject.  The final command would look as follow:
    * 
    *    bash -c <command to run>
    *    
@@ -138,11 +140,11 @@ public class CcdpTask extends Thread
    * @throws Exception an exception is thrown if an error is found while 
    *         attempting to execute the command
    */
-  private Process startProcess( JSONObject job  ) throws Exception
+  private Process startProcess( JsonObject job  ) throws Exception
   {
     this.logger.info("Launching a new Process: " + job);
     
-    this.cmdArgs.add(job.getString("cmd"));
+    this.cmdArgs.add(job.get("cmd").getAsString());
     String mesosDir = System.getenv("MESOS_DIRECTORY");
     
     ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);

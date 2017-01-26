@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 import org.apache.mesos.Protos.ExecutorID;
@@ -25,21 +27,38 @@ import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.Protos.TaskStatus.Reason;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
-import org.json.JSONObject;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpObejctFactoryAbs;
+import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
-import com.axios.ccdp.mesos.factory.CcdpObejctFactoryIntf;
-import com.axios.ccdp.mesos.factory.CcdpStorageControllerIntf;
-import com.axios.ccdp.mesos.factory.CcdpVMControllerIntf;
-import com.axios.ccdp.mesos.fmwk.Job.JobState;
+import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
+import com.axios.ccdp.mesos.fmwk.CcdpJob.JobState;
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
- * @author oeg
+ * Class used to coordinate the tasking among multiple Virtual Machines.  It 
+ * uses the information on the task to make determinations regarding where to 
+ * execute the task.  Information affecting the task execution includes, but 
+ * not limited, the following fields:
+ * 
+ *  - NodeType: Based on the node type, it can run on a simple EC2 instance or
+ *              a cluster such as EMR, Hadoop, etc.
+ *  - CPU:  The CPU value determines the schema to use as follow:
+ *      CPU = 0:        Let the Scheduler decide where to run it
+ *      0 > CPU < 100:  Use the first VM with enough resources to run the task
+ *      CPU = 100:      Run this task by itself on a new VM
+ *  
+ * @author Oscar E. Ganteaume
  *
  */
-public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
+public class CcdpRemoteScheduler 
+              implements Scheduler, CcdpEventConsumerIntf, CcdpTaskConsumerIntf
 {
   /**
    * Stores the Framework Unique ID this Scheduler is running under
@@ -58,14 +77,24 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
    */
   private Logger logger = 
       Logger.getLogger(CcdpRemoteScheduler.class.getName());
+  
   /**
-   * Stores all the jobs assigned to this Scheduler
+   * Stores a list of requests to process.  Each request is a processing thread
+   * containing one or more processing task.
    */
-  private List<Job> jobs = new ArrayList<Job>();
+  private ConcurrentLinkedQueue<CcdpThreadRequest> 
+                requests = new ConcurrentLinkedQueue<CcdpThreadRequest>();
+  
+  /**
+   * Stores all the jobs assigned to this Scheduler.  Each job matches one 
+   * processing task request contained in the processing thread
+   */
+  private List<CcdpJob> jobs = new ArrayList<CcdpJob>();
+  
   /**
    * Stores the object responsible for creating all interfaces
    */
-  private CcdpObejctFactoryIntf factory = null;
+  private CcdpObejctFactoryAbs factory = null;
   /**
    * Stores the object responsible for sending and receiving tasking information
    */
@@ -79,6 +108,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
    */
   private CcdpStorageControllerIntf storage = null;
   
+  
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
    * argument.  If the jobs is null then it ignores them
@@ -86,28 +116,29 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
    * @param execInfo the name of the executor to use to execute the tasks
    * @param jobs an optional list of jobs
    */
-  public CcdpRemoteScheduler( ExecutorInfo execInfo, List<Job> jobs)
+  public CcdpRemoteScheduler( ExecutorInfo execInfo, List<CcdpThreadRequest> jobs)
   {
     this.logger.debug("Creating a new CCDP Remote Scheduler");
+    this.executor = execInfo;
+    
     if( jobs != null )
     {
-      this.jobs = jobs;
-      this.executor = execInfo;
-      
-      Iterator<Job> items = this.jobs.iterator();
+      Iterator<CcdpThreadRequest> items = jobs.iterator();
       while( items.hasNext() )
       {
-        Job job = items.next();
-        this.logger.debug("Tasked with " + job.getCommand());
+        CcdpThreadRequest request = items.next();
+        this.onTask(request);
       }
     }
+    
     // creating the factory that generates the objects used by the scheduler
     String clazz = CcdpUtils.getProperty(CcdpUtils.KEY_FACTORY_IMPL);
     if( clazz != null )
     {
-      this.factory = CcdpObejctFactoryIntf.newInstance(clazz);
+      this.factory = CcdpObejctFactoryAbs.newInstance(clazz);
       this.taskingInf = this.factory.getCcdpTaskingInterface();
-      this.storage = this.factory.getCcdpStorageControllerIntf(new JSONObject());
+      this.storage = 
+          this.factory.getCcdpStorageControllerIntf(new JsonObject());
     }
     else
     {
@@ -138,7 +169,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
     this.fmwkId = fmwkId;
     this.driver = driver;
     
-    this.taskingInf.setEventConsumer(this);
+    this.taskingInf.setTaskConsumer(this);
     String channel = CcdpUtils.getProperty(CcdpUtils.KEY_TASKING_CHANNEL);
     this.logger.info("Registering to " + channel);
     
@@ -200,8 +231,8 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
     
     synchronized( this.jobs )
     {
-      List<Job> pendingJobs = new ArrayList<>();
-      for( Job j : this.jobs )
+      List<CcdpJob> pendingJobs = new ArrayList<>();
+      for( CcdpJob j : this.jobs )
       {
         this.logger.debug("Adding Job: " + j.getId());
         if( !j.isSubmitted() )
@@ -251,7 +282,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
       if( reason.equals( Reason.REASON_RECONCILIATION) )
         this.logger.warn("Got a reconciliation, want to do something?");
       // we'll see if we can find a job this corresponds to
-      for( Job job : this.jobs )
+      for( CcdpJob job : this.jobs )
       {
         String jid = job.getId();
         String tid = status.getTaskId().getValue();
@@ -291,7 +322,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
   public void reconcileTasks()
   {
     List<TaskStatus> runningTasks = new ArrayList<>();
-    for( Job job : this.jobs )
+    for( CcdpJob job : this.jobs )
     {
       if( job.getStatus() == JobState.RUNNING )
       {
@@ -314,13 +345,22 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
     this.driver.reconcileTasks(runningTasks);
   }
   
+  /**
+   * Implementation of the TaskingIntf interface used to receive event 
+   * asynchronously.
+   * 
+   * @param event the event to pass to the framework
+   * 
+   */
   public void onEvent( Object event )
   {
     this.logger.info("Got a new Event: " + event.toString() );
     try
     {
-      JSONObject json = new JSONObject(event.toString());
-      Job job = Job.fromJSON(json);
+      JsonParser parser = new JsonParser();
+      
+      JsonObject json = (JsonObject)parser.parse(event.toString());
+      CcdpJob job = CcdpJob.fromJSON(json);
       synchronized( this.jobs )
       {
         this.logger.info("Adding Job: " + job);
@@ -332,6 +372,46 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
       this.logger.error("Message: " + e.getMessage(), e);
     }
   }
+
+  /**
+   * Implementation of the TaskingIntf interface used to receive event 
+   * asynchronously.
+   * 
+   * @param event the event to pass to the framework
+   * 
+   */
+  public void onTask( CcdpThreadRequest request )
+  {
+    this.logger.info("Got a new Request: " + request.toString() );
+    synchronized( this.requests )
+    {
+      this.requests.add(request);
+      Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
+      while( tasks.hasNext() )
+      {
+        CcdpTaskRequest task = tasks.next();
+        CcdpJob job = new CcdpJob( task.getTaskId() );
+        job.setCpus( task.getCPU() );
+        job.setMemory( task.getMEM() );
+        job.setCommand(String.join(" ", task.getCommand()));
+        JsonObject config = new JsonObject();
+        Map<String, String> map = task.getConfiguration();
+        Iterator<String> keys = map.keySet().iterator();
+        while( keys.hasNext() )
+        {
+          String key = keys.next();
+          config.addProperty(key, map.get(key));
+        }
+        job.setConfig(config);
+        synchronized( this.jobs )
+        {
+          this.jobs.add(job);
+        }
+      }
+    }
+  }
+  
+  
   
   /**
    * Checks the amount of CPU and memory available in the offer and starts 
@@ -343,11 +423,11 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
    * 
    * @return a list of TaskInfo objects that were launched on this offer
    */
-  public List<TaskInfo> doFirstFit( Offer offer, List<Job> jobs )
+  public List<TaskInfo> doFirstFit( Offer offer, List<CcdpJob> jobs )
   {
     this.logger.debug("Running First Fit");
     List<TaskInfo> toLaunch = new ArrayList<>();
-    List<Job> launchedJobs = new ArrayList<>();
+    List<CcdpJob> launchedJobs = new ArrayList<>();
     
     double offerCpus = 0;
     double offerMem = 0;
@@ -375,7 +455,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
     this.logger.debug(str);
     
     // Now we will pack jobs into the offer
-    for( Job job : jobs )
+    for( CcdpJob job : jobs )
     {
       if( job.isSubmitted() )
       {
@@ -401,7 +481,7 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
       }
     }
     // launch each task
-    for( Job job : launchedJobs )
+    for( CcdpJob job : launchedJobs )
     {
       this.logger.info("Launching " + job );
       job.launch();
@@ -515,4 +595,22 @@ public class CcdpRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
                       " SlaveId: " + slvId.toString() );
    }
    
+   private List<CcdpJob> getJobs()
+   {
+     List<CcdpJob> jobs = new ArrayList<CcdpJob>();
+     Iterator<CcdpThreadRequest> threads = this.requests.iterator();
+     while( threads.hasNext() )
+     {
+       CcdpThreadRequest request = threads.next();
+       Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
+       while( tasks.hasNext() )
+       {
+         CcdpTaskRequest task = tasks.next();
+         CcdpJob job = new CcdpJob();
+         
+         
+       }
+     }
+     return jobs;
+   }
 }

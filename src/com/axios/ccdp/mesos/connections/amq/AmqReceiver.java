@@ -11,6 +11,8 @@ import javax.jms.TextMessage;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
 
 /**
@@ -124,29 +126,9 @@ class Driver implements CcdpEventConsumerIntf
 
   }
   
-  public void onEvent(Object event)
+  public void onEvent(Object request)
   {
-    try
-    {
-      if( event instanceof TextMessage )
-      {
-        TextMessage txt = (TextMessage)event;
-        @SuppressWarnings("unchecked")
-        Enumeration<String> keys = txt.getPropertyNames();
-        while( keys.hasMoreElements() )
-        {
-          String key = keys.nextElement();
-          String val = txt.getStringProperty(key);
-          this.logger.debug("Message[" + key + "] = " + val );
-        }
-        this.logger.debug("Body: " + txt.getText() );
-      }
-    }
-    catch( JMSException e )
-    {
-      this.logger.error("Message: " + e.getMessage(), e);
-      
-    }
+    this.logger.debug("Got a new Request: " + request.toString());
   }
   
   public void stop()

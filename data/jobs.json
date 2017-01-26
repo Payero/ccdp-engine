@@ -1,9 +1,7 @@
 {
-  "jobs": 
+  "Jobs": 
     [
-      
-      {"cpus": 0.5, "mem": 100, "command": "docker run ubuntu /bin/echo 'Hello world' >> /tmp/docker.txt"},
-      {"cpus": 0.5, "mem": 100, "command": "/bin/echo 'Hello world' >> /tmp/hello.txt"},
-
+      {"CPU": 0.01, "MEM": 0.0000000001, "Command": ["docker", "run ubuntu", "/bin/echo", "'Hello world'", ">>", "/tmp/docker.txt"]},
+      {"CPU": 0.01, "MEM": 0.0000000001, "Command": ["/bin/echo", "'Hello world'", ">>", "/tmp/hello.txt"]}
     ]
 }

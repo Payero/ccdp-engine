@@ -16,7 +16,7 @@ public interface CcdpTaskingIntf
    * 
    * @param consumer the object interested on receiving external events
    */
-  public void setEventConsumer( CcdpEventConsumerIntf consumer );
+  public void setTaskConsumer( CcdpTaskConsumerIntf consumer );
   
   /**
    * Registers a unique identifier with a specific channels.  

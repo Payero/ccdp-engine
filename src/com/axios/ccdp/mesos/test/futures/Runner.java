@@ -7,9 +7,9 @@ import java.util.concurrent.Executors;
 import java.util.function.BiFunction;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
 
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.google.gson.JsonObject;
 
 
 public class Runner
@@ -31,13 +31,13 @@ public class Runner
       Thread t = new Thread(task);
       t.start();
       CcdpUtils.pause(5);
-      this.logger.debug("The Task " + task.get());
+      this.logger.debug("The Task " + task.getName());
     }
     else
     {
       Executor exec = Executors.newFixedThreadPool(2);
       TaskRunner task = new TaskRunner("One");
-      CompletableFuture<JSONObject> 
+      CompletableFuture<JsonObject> 
                         future = CompletableFuture.supplyAsync(task, exec);
      
       
@@ -56,13 +56,13 @@ public class Runner
         e.printStackTrace();
       }
       
-      JSONObject json = future.join();
+      JsonObject json = future.join();
      
       this.logger.debug("The Task: " + json );
     }
     
   }
-  public void handleTask( BiFunction<JSONObject, Throwable, Void> a )
+  public void handleTask( BiFunction<JsonObject, Throwable, Void> a )
   {
     
   }

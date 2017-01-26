@@ -2,7 +2,6 @@ package com.axios.ccdp.mesos.fmwk;
 
 import java.util.UUID;
 
-
 import org.apache.log4j.Logger;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.CommandInfo;
@@ -12,9 +11,8 @@ import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.Value;
-import org.json.JSONException;
-import org.json.JSONObject;
 
+import com.google.gson.JsonObject;
 import com.google.protobuf.ByteString;
 
 /**
@@ -27,12 +25,12 @@ import com.google.protobuf.ByteString;
  * @author Oscar E. Ganteaume
  *
  */
-public class Job
+public class CcdpJob
 {
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(Job.class.getName());
+  private Logger logger = Logger.getLogger(CcdpJob.class.getName());
   /**
    * All the different states the job can be at any given time
    */
@@ -56,11 +54,11 @@ public class Job
   /**
    * The amount of CPU required to run this task
    */
-  private double cpus;
+  private double cpus = 0.0;
   /**
    * The amount of memory required to run this task
    */
-  private double mem;
+  private double mem = 0.0;
   /**
    * The command to execute
    */
@@ -72,14 +70,28 @@ public class Job
   /**
    * Stores the configuration for this job
    */
-  private JSONObject config = new JSONObject();
+  private JsonObject config = new JsonObject();
   
   /**
    * Instantiates a new object and sets its status to PENDING, and the number
    * of retries to 3.  The number of retries can be changed in the configuration
-   * portion of the JSON command.
+   * portion of the JSON command.  It uses a random UUID as the ID for this job
+   * 
    */
-  private Job( )
+  public CcdpJob( )
+  {
+    this( UUID.randomUUID().toString() );
+  }
+  
+  /**
+   * Instantiates a new object and sets its status to PENDING, and the number
+   * of retries to 3.  The number of retries can be changed in the configuration
+   * portion of the JSON command.  The UUID is assigned to this Job to identify
+   * it.
+   * 
+   * @param uuid The unique identifier for this object
+   */
+  public CcdpJob( String uuid )
   {
     this.logger.debug("Setting up a new Job");
     this.status = JobState.PENDING;
@@ -99,18 +111,23 @@ public class Job
   }
   
   /**
-   * Sets the amount of CPU this job requires to run.  If the amount is less or
-   * equal to zero then it throw an InvalidArgumentException
+   * Sets the amount of CPU this job requires to run.  If the amount is less 
+   * than zero then it throw an InvalidArgumentException.  The values of the 
+   * CPU influence the behavior of the system as follow:
+   * 
+   *  - CPU = 0:        Let the Scheduler decide where to run it
+   *  - 0 > CPU < 100:  Use the first VM with enough resources to run the task
+   *  - CPU = 100:      Run this task by itself on a new VM
    * 
    * @param cpus the amount of CPU this job requires to run
    * 
    * @throws InvalidArgumentException an InvalidArgumentException is thrown if
-   *         the value for this resource is less or equal to zero
+   *         the value for this resource is less than zero
    */
   public void setCpus(double cpus) throws IllegalArgumentException
   {
-    if( cpus <= 0 )
-      throw new IllegalArgumentException("The CPUS cannot be less or equal to zero");
+    if( cpus < 0 )
+      throw new IllegalArgumentException("The CPUS cannot be less than zero");
     this.cpus = cpus;
   }
 
@@ -126,17 +143,17 @@ public class Job
 
   /**
    * Sets the amount of memory this job requires to run.  If the amount is less
-   * or equal to zero then it throw an InvalidArgumentException
+   * than zero then it throw an InvalidArgumentException
    * 
    * @param mem the amount of memory this job requires to run
    * 
    * @throws InvalidArgumentException an InvalidArgumentException is thrown if
-   *         the value for this resource is less or equal to zero
+   *         the value for this resource is less than zero
    */
   public void setMemory(double mem) throws IllegalArgumentException
   {
-    if( mem <= 0 )
-      throw new IllegalArgumentException("The memory cannot be less or equal to zero");
+    if( mem < 0 )
+      throw new IllegalArgumentException("The memory cannot be less than zero");
     this.mem = mem;
   }
 
@@ -171,7 +188,7 @@ public class Job
    * 
    * @return the optional configuration to pass to the Mesos Executor
    */
-  public JSONObject getConfig()
+  public JsonObject getConfig()
   {
     return config;
   }
@@ -180,7 +197,7 @@ public class Job
    * Sets the optional configuration to be executed by this task.  
    * 
    */
-  public void setConfig(JSONObject config)
+  public void setConfig(JsonObject config)
   {
     this.config = config;
   }
@@ -261,11 +278,11 @@ public class Job
     this.slaveId = targetSlave;
     
     bldr.setExecutor(exec);
-    JSONObject json = new JSONObject();
-    json.put("cmd", this.command);
+    JsonObject json = new JsonObject();
+    json.addProperty("cmd", this.command);
     // if there is a configuration, add it
     if( this.config != null )
-      json.put("cfg", this.config);
+      json.add("cfg", this.config);
     
     bldr.setData(ByteString.copyFrom(json.toString().getBytes()));
     return bldr.build();
@@ -281,14 +298,14 @@ public class Job
    * @throws JSONException a JSONException is thrown if there is a problem 
    *         parsing the JSON object
    */
-  public static Job fromJSON( JSONObject obj) throws JSONException
+  public static CcdpJob fromJSON( JsonObject obj) 
   {
-    Job job = new Job();
-    job.cpus = obj.getDouble("cpus");
-    job.mem = obj.getDouble("mem");
-    job.command = obj.getString("command");
+    CcdpJob job = new CcdpJob();
+    job.cpus = obj.get("cpus").getAsDouble();
+    job.mem = obj.get("mem").getAsDouble();
+    job.command = obj.get("command").getAsString();
     if( obj.has("cfg") )
-      job.setConfig(obj.getJSONObject("cfg"));
+      job.setConfig((JsonObject)obj.get("cfg"));
     
     return job;
   }
@@ -300,25 +317,25 @@ public class Job
    * @throws JSONException a JSONException is thrown if there is a problem 
    *         generating the JSON object
    */
-  private void saveState() throws JSONException
+  private void saveState() 
   {
     //TODO Is this function really needed?????
     
     this.logger.info("Saving State");
-    JSONObject obj = new JSONObject();
-    obj.put("id", this.id);
+    JsonObject obj = new JsonObject();
+    obj.addProperty("id", this.id);
     if( this.status == JobState.STAGING )
-      obj.put("status", JobState.RUNNING.toString() );
+      obj.addProperty("status", JobState.RUNNING.toString() );
     else
-      obj.put("status", this.status.toString() );
+      obj.addProperty("status", this.status.toString() );
     
     // storing all other fields
-    obj.put("cpus", this.cpus);
-    obj.put("mem", this.mem);
-    obj.put("command", this.command);
-    obj.put("retries", this.retries);
-    obj.put("submitted", this.submitted);
-    obj.put("slave-id", this.slaveId.toString());
+    obj.addProperty("cpus", this.cpus);
+    obj.addProperty("mem", this.mem);
+    obj.addProperty("command", this.command);
+    obj.addProperty("retries", this.retries);
+    obj.addProperty("submitted", this.submitted);
+    obj.addProperty("slave-id", this.slaveId.toString());
     
   }
   

@@ -5,12 +5,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.Test;
 
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 public class AWSControlerUnitTest
 {
@@ -22,7 +22,7 @@ public class AWSControlerUnitTest
       .getLogger(AWSControlerUnitTest.class.getName());
 
   AWSCcdpVMControllerImpl aws = null;
-  JSONObject jsonCfg = new JSONObject();
+  JsonObject jsonCfg = new JsonObject();
   
   
   public AWSControlerUnitTest()
@@ -30,9 +30,9 @@ public class AWSControlerUnitTest
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-b28aafcf");
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-7c6dfc51");
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
+    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-b28aafcf");
+    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-7c6dfc51");
+    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
   }
   
@@ -47,7 +47,7 @@ public class AWSControlerUnitTest
   public void testConfigFail()
   {
     this.logger.debug("Testing a field missing JSON Object");
-    JSONObject json = new JSONObject();
+    JsonObject json = new JsonObject();
     this.aws.configure(json);
   }
   
@@ -65,17 +65,17 @@ public class AWSControlerUnitTest
     this.aws.configure(this.jsonCfg);
     
     
-    JSONObject json = new JSONObject();
-    json.put("server-id", "1");
-    json.put("mesos-type", "SLAVE");
-    json.put("session-id", "oeg-1");
-    JSONObject master = new JSONObject();
-    master.put("server-id", "1");
-    master.put("ip-address", "10.0.2.135");
-    master.put("port", "23888:3888");
-    JSONArray masters = new JSONArray();
-    masters.put(master);
-    json.put("masters", masters);
+    JsonObject json = new JsonObject();
+    json.addProperty("server-id", "1");
+    json.addProperty("mesos-type", "SLAVE");
+    json.addProperty("session-id", "oeg-1");
+    JsonObject master = new JsonObject();
+    master.addProperty("server-id", "1");
+    master.addProperty("ip-address", "10.0.2.135");
+    master.addProperty("port", "23888:3888");
+    JsonArray masters = new JsonArray();
+    masters.add(master);
+    json.add("masters", masters);
     
     
     String user_data = "#!/bin/bash\n\n " +
@@ -118,7 +118,7 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    JSONObject items = this.aws.getAllInstanceStatus();
+    JsonObject items = this.aws.getAllInstanceStatus();
     this.logger.debug("Items: " + items);
     
   }
@@ -128,9 +128,9 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    JSONObject filter = new JSONObject();
-    filter.put("Name", "CCDP-Server");
-    JSONObject items = this.aws.getStatusFilteredByTags(filter);
+    JsonObject filter = new JsonObject();
+    filter.addProperty("Name", "CCDP-Server");
+    JsonObject items = this.aws.getStatusFilteredByTags(filter);
     this.logger.debug("Items: " + items);
   }
   

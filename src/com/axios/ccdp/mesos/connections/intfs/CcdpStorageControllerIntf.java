@@ -1,10 +1,10 @@
-package com.axios.ccdp.mesos.factory;
+package com.axios.ccdp.mesos.connections.intfs;
 
 import java.io.File;
 import java.io.InputStream;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 /**
  * Interface used to manage data being stored in a specific location.  This is
@@ -27,7 +27,7 @@ public interface CcdpStorageControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( JSONObject config );
+  public void configure( JsonObject config );
   
   /**
    * Creates a new storage location using the given argument.  If the storage 
@@ -81,7 +81,7 @@ public interface CcdpStorageControllerIntf
    * @return a list of dictionaries containing the name of the storage and the
    *         creation time.
    */
-  public JSONArray listAllStorages();
+  public JsonArray listAllStorages();
   /**
    * Lists all the files stored in ALL the storage locations.  For instance it 
    * will return all the objects created in S3 buckets or file in directories 
@@ -103,7 +103,7 @@ public interface CcdpStorageControllerIntf
    * @return a list of dictionaries containing the name of the storage and the
    *         creation time.
    */
-  public JSONArray listAllFiles(String root);
+  public JsonArray listAllFiles(String root);
   /**
    * Lists only the files stored in ALL the storage locations whose filename 
    * starts with the give prefix.  For instance it will return all the objects 
@@ -121,7 +121,7 @@ public interface CcdpStorageControllerIntf
    * @return a list of dictionaries containing the name of the files matching 
    *         the criteria and the creation time
    */
-  public JSONArray listAllFilesWithPrefix( String root, String prefix);
+  public JsonArray listAllFilesWithPrefix( String root, String prefix);
   /**
    * Deletes the storage location and all its contents.  It returns true if the
    * operation was successful or false otherwise

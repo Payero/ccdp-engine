@@ -6,14 +6,25 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.log4j.BasicConfigurator;
+import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * Simple utility class used to perform different tasks by multiple objects
@@ -52,6 +63,8 @@ public class CcdpUtils
    * Stores all the properties used by the system
    */
   private static Properties properties = System.getProperties();
+  
+  private static Logger logger = Logger.getLogger(CcdpUtils.class);
   
   /**
    * Configures the running environment using the properties file whose name
@@ -95,17 +108,17 @@ public class CcdpUtils
       // making sure it was found
       if( url != null )
       {
-        System.out.println("Configuring CCDP using URL: " + url);
+        logger.debug("Configuring CCDP using URL: " + url);
         CcdpUtils.loadProperties( url.openStream() );
       }
       else
       {
-        System.err.println("Could not find " + name + " file");
+        logger.error("Could not find " + name + " file");
       }
     }
     else
     {
-      System.out.println("Configuring CCDP using file: " + cfgFile);
+      logger.debug("Configuring CCDP using file: " + cfgFile);
       CcdpUtils.loadProperties(cfgFile);
     }
   }
@@ -144,19 +157,19 @@ public class CcdpUtils
       // making sure it was found
       if( url != null )
       {
-        System.out.println("Configuring Logger using URL: " + url);
         PropertyConfigurator.configure(url);
+        logger.debug("Configuring Logger using URL: " + url);
       }
       else
       {
-        System.out.println("Configuring Logger using BasicConfigurator ");
         BasicConfigurator.configure();
+        logger.debug("Configuring Logger using BasicConfigurator ");
       }
     }
     else
     {
-      System.out.println("Configuring Logger using file: " + cfgFile);
       PropertyConfigurator.configure(cfgFile);
+      logger.debug("Configuring Logger using file: " + cfgFile);
     }
   }
   
@@ -219,6 +232,7 @@ public class CcdpUtils
     {
       String err = "The configuration file " + file.getAbsolutePath() +
                    " was not found";
+      System.err.println(err);
       throw new IllegalArgumentException(err);
     }
   }
@@ -288,7 +302,7 @@ public class CcdpUtils
       {
         String txt = "The environment variable " + envVarName + 
             " is used, but not defined, please check your configuration";
-        System.err.println(txt);
+        logger.error(txt);
       }
       else
       {
@@ -299,5 +313,141 @@ public class CcdpUtils
     m.appendTail(sb);
     // now replace all the System Properties
     return StrSubstitutor.replaceSystemProperties(sb.toString());
+  }
+  
+  /**
+   * Uses the incoming JSON representation of a tasking job to generate a list 
+   * of CcdpThreadRequest.  The data needs to have an array of either Threads,
+   * Tasks, or Jobs.  If neither of the three types of tasking is found, then
+   * it will throw an IllegalArgumentException.
+   * 
+   * This method essentially generates a JsonObject and returns the value from
+   * invoking the toCcdpThreadRequest( json ) method.
+   * 
+   * @param data the string representation of the tasking to generate
+   * 
+   * @return an object containing all the information needed to run a task or
+   *         a processing Thread
+   * 
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
+   *         none of the three options are found in the JSON data
+   */
+  public static List<CcdpThreadRequest> toCcdpThreadRequest( String data )
+  {
+    JsonParser parser = new JsonParser();
+    JsonObject json = parser.parse( data ).getAsJsonObject();    
+    
+    return CcdpUtils.toCcdpThreadRequest(json);
+  }
+  
+  /**
+   * Uses the incoming JSON representation of a tasking job to generate a list
+   * of CcdpThreadRequest.  The data needs to have an array of either Threads,
+   * Tasks, or Jobs.  If neither of the three types of tasking is found, then
+   * it will throw an IllegalArgumentException.
+   * 
+   * 
+   * @param json a JsonObject representing the tasking to generate
+   * 
+   * @return an object containing all the information needed to run a task or
+   *         a processing Thread
+   * 
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
+   *         none of the three options are found in the JSON data
+   */
+  public static List<CcdpThreadRequest> toCcdpThreadRequest( JsonObject json )
+  {
+    List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
+    
+    Gson gson = new Gson();
+    // first let's look for Threads; the simplest case
+    if( json.has("Threads"))
+    {
+      logger.debug("Processing Threads");
+      JsonArray threads = json.getAsJsonArray("Threads");
+      
+      for( int i=0; i < threads.size(); i++ )
+      {
+        JsonObject obj = (JsonObject)threads.get(i);
+        CcdpThreadRequest req = gson.fromJson(obj, CcdpThreadRequest.class); 
+        requests.add(req);
+      }      
+    }
+    
+    // In case there are some Tasks without a Thread information
+    if( json.has("Tasks"))
+    {
+      logger.debug("Processing Tasks");
+      
+      JsonArray tasks = json.getAsJsonArray("Tasks");
+      
+      for( int i=0; i < tasks.size(); i++ )
+      {
+        CcdpThreadRequest request = new CcdpThreadRequest();
+        String uuid = UUID.randomUUID().toString();
+        request.setThreadId(uuid);
+
+        JsonObject obj = (JsonObject)tasks.get(i);
+        CcdpTaskRequest task = gson.fromJson(obj, CcdpTaskRequest.class);
+        if( i == 0 )
+          request.setStartingTask(task.getTaskId());
+        request.getTasks().add(task);
+        requests.add(request);
+      }    
+    }
+    
+    // Need to create a Task for each Job and then attach them to a Thread so
+    // it can be added to the Thread list.  If they are just jobs then need to 
+    // be treated as separate threads so they can run in parallel
+    if( json.has("Jobs"))
+    {
+      logger.debug("Processing Jobs");
+      
+      JsonArray jobs = json.getAsJsonArray("Jobs");
+      
+      for( int i=0; i < jobs.size(); i++ )
+      {
+        CcdpThreadRequest request = new CcdpThreadRequest();
+        
+        request.setThreadId( UUID.randomUUID().toString() );
+        
+        CcdpTaskRequest task = new CcdpTaskRequest();
+        task.setTaskId( UUID.randomUUID().toString() );
+        
+        if( i == 0 )
+          request.setStartingTask(task.getTaskId());
+        
+        JsonObject job = (JsonObject)jobs.get(i);
+        double cpu = 0;
+        double mem = 0;
+        JsonArray cmd = new JsonArray();
+        
+        if( job.has("CPU") )
+          cpu = job.get("CPU").getAsDouble();
+        if( job.has("MEM") )
+          mem = job.get("MEM").getAsDouble();
+        if( job.has("Command") )
+          cmd = job.get("Command").getAsJsonArray();
+        List<String> args = new ArrayList<String>();
+        for(int n = 0; n < cmd.size(); n++ )
+          args.add( cmd.get(n).getAsString() );
+        
+        task.setCPU(cpu);
+        task.setMEM(mem);
+        task.setCommand(args);
+        
+        request.getTasks().add(task);
+        requests.add(request);
+      }
+    }
+    
+    if( requests.size() == 0 )
+    {
+      String txt = "Could not find neither Threads, Tasks, or Jobs.  Please"
+          + " make sure the tasking configuration is properly set";
+      throw new IllegalArgumentException(txt);
+    }
+    
+    return requests;
   }
 }

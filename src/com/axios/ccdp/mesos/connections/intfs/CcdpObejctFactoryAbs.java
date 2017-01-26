@@ -1,8 +1,6 @@
-package com.axios.ccdp.mesos.factory;
+package com.axios.ccdp.mesos.connections.intfs;
 
-import org.json.JSONObject;
-
-import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
+import com.google.gson.JsonObject;
 
 /**
  * Factory Pattern class that is used to generate all the objects used by the 
@@ -13,18 +11,18 @@ import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
  * @author Oscar E. Ganteaume
  *
  */
-public abstract class CcdpObejctFactoryIntf
+public abstract class CcdpObejctFactoryAbs
 {
   /**
    * A singleton object used to create the objects
    */
-  protected static CcdpObejctFactoryIntf factory = null;
+  protected static CcdpObejctFactoryAbs factory = null;
   
   /**
    * Limiting access to this constructor is intentional in order to inforce the
    * use of a single factory object
    */
-  protected CcdpObejctFactoryIntf()
+  protected CcdpObejctFactoryAbs()
   {
 
   }
@@ -41,17 +39,17 @@ public abstract class CcdpObejctFactoryIntf
    *        
    * @return an instance of the Class specified by the clazz argument
    */
-  public static CcdpObejctFactoryIntf newInstance(String clazz)
+  public static CcdpObejctFactoryAbs newInstance(String clazz)
   {
     // if we have not created a factory before do it, otherwise just return it
-    if( CcdpObejctFactoryIntf.factory == null )
+    if( CcdpObejctFactoryAbs.factory == null )
     {
       try
       {
         Class<?> instantation = Class.forName(clazz);
     
-        CcdpObejctFactoryIntf.factory = 
-                        (CcdpObejctFactoryIntf) instantation.newInstance();
+        CcdpObejctFactoryAbs.factory = 
+                        (CcdpObejctFactoryAbs) instantation.newInstance();
       }
       catch( Exception e)
       {
@@ -61,7 +59,7 @@ public abstract class CcdpObejctFactoryIntf
       }
     }
     
-    return CcdpObejctFactoryIntf.factory;
+    return CcdpObejctFactoryAbs.factory;
   }
   
   /**
@@ -82,7 +80,7 @@ public abstract class CcdpObejctFactoryIntf
    *         to manipulate the resources
    */
   public abstract CcdpVMControllerIntf 
-                            getCcdpResourceController(JSONObject config);
+                            getCcdpResourceController(JsonObject config);
 
   
   /**
@@ -96,5 +94,5 @@ public abstract class CcdpObejctFactoryIntf
    *         to manipulate the storage resources
    */
   public abstract CcdpStorageControllerIntf 
-                            getCcdpStorageControllerIntf(JSONObject config);
+                            getCcdpStorageControllerIntf(JsonObject config);
 }

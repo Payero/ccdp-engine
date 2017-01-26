@@ -18,7 +18,6 @@ import com.axios.ccdp.mesos.utils.CcdpUtils;
 
 public class CcdpCommandExecutor implements Executor
 {
-
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -26,13 +25,12 @@ public class CcdpCommandExecutor implements Executor
   /**
    * Stores all the tasks assigned to this executor
    */
-  private HashMap<TaskID, CcdpTask> tasks = new HashMap<TaskID, CcdpTask>();
-  
+  private HashMap<TaskID, CcdpTaskRunner> 
+                              tasks = new HashMap<TaskID, CcdpTaskRunner>();
   /**
    * Stores a reference to the Mesos Driver requesting the task execution
    */
   private ExecutorDriver driver;
-  
   /**
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
@@ -76,6 +74,8 @@ public class CcdpCommandExecutor implements Executor
   public void disconnected(ExecutorDriver driver)
   {
     this.logger.info("Disconnecting");
+    String msg = "ERROR: Slave was disconnected";
+    this.driver.sendFrameworkMessage(msg.getBytes());
   }
 
   /**
@@ -88,7 +88,7 @@ public class CcdpCommandExecutor implements Executor
   @Override
   public void error(ExecutorDriver driver, String errorMsg)
   {
-    this.logger.error("Gont an error: " + errorMsg);
+    this.logger.error("Driver no longer running, got an error: " + errorMsg);
   }
 
   /**
@@ -107,7 +107,6 @@ public class CcdpCommandExecutor implements Executor
   {
     this.logger.info("Got a message from the Framework, not too reliable...");
     this.logger.info("The Message: " + new String(msg) );
-
   }
 
   /**
@@ -124,7 +123,7 @@ public class CcdpCommandExecutor implements Executor
     
     synchronized( this )
     {
-      CcdpTask task = this.tasks.get(taskId);
+      CcdpTaskRunner task = this.tasks.get(taskId);
       if( task != null )
       {
         task.killTask();
@@ -132,6 +131,17 @@ public class CcdpCommandExecutor implements Executor
     }
   }
 
+  /**
+   * Invoked when a task has been launched on this executor (initiated via 
+   * SchedulerDriver.launchTasks(OfferID>, TaskInfo>, Filters). Note that this 
+   * task can be realized with a thread, a process, or some simple computation, 
+   * however, no other callbacks will be invoked on this executor until this 
+   * callback has returned.
+   * 
+   * @param driver The executor driver that launched the task.
+   * @param task Desribes the task that was launched
+   * 
+   */
   @Override
   public void launchTask(ExecutorDriver driver, TaskInfo task)
   {
@@ -141,9 +151,8 @@ public class CcdpCommandExecutor implements Executor
     {
       try
       {
-        
         TaskID taskId = task.getTaskId();
-        CcdpTask ccdpTask = new CcdpTask(task, this);
+        CcdpTaskRunner ccdpTask = new CcdpTaskRunner(task, this);
         this.tasks.put(taskId, ccdpTask);
         
         this.driver = driver;
@@ -167,24 +176,30 @@ public class CcdpCommandExecutor implements Executor
    * carry executor configuration information in its data field which contain
    * arbitrary bytes
    * 
-   * @param driver
-   * @param exec
-   * @param fmwk
-   * @param slave
+   * @param driver The executor driver that was registered and connected to the 
+   *        Mesos cluster.
+   * @param exec Describes information about the executor that was registered.
+   * @param fmwk Describes the framework that was registered.
+   * @param slave Describes the slave that will be used to launch the tasks for 
+   *        this executor.
    */
   @Override
   public void registered(ExecutorDriver driver, ExecutorInfo exec,
       FrameworkInfo fmwk, SlaveInfo slave)
   {
-    this.logger.info("Executor Registered: " + exec.toString() + " in " + slave.toString() );
+    String msg = "Executor Registered: " + exec.toString() + " in " + 
+                 slave.toString();
+    this.logger.info(msg);
   }
 
   /**
    * This callback is invoked after a successful slave restart.  It contains the 
    * new slave's information
    * 
-   * @param driver
-   * @param slave
+   * @param driver The executor driver that was re-registered and connected to 
+   *        the Mesos cluster.
+   * @param slave slave Describes the slave that will be used to launch the 
+   *        tasks for this executor.
    */
   @Override
   public void reregistered(ExecutorDriver driver, SlaveInfo slave)

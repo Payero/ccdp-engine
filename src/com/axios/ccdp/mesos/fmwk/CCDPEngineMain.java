@@ -6,6 +6,13 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.HelpFormatter;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 import org.apache.mesos.MesosSchedulerDriver;
 import org.apache.mesos.Protos.CommandInfo;
@@ -15,9 +22,8 @@ import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.Status;
 import org.apache.mesos.Scheduler;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
 
 /**
@@ -96,34 +102,31 @@ public class CCDPEngineMain
       this.logger.info("Enabling checkpoint for the framework");
       frameworkBuilder.setCheckpoint(true);
     }
-
-    List<Job> jobs = new ArrayList<Job>();
     
-    File json_jobs = new File(json_file);
-    this.logger.debug("Loading File: " + json_file);
-    
-    // loading Jobs from the command line
-    if( json_jobs.isFile() )
+    List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
+    if( json_file != null )
     {
-      this.logger.debug("Is a valid file");
-      byte[] data = Files.readAllBytes( Paths.get( json_file ) );
-      JSONObject cfg = new JSONObject( new String( data, "UTF-8") );
-      JSONArray jobsArray = cfg.getJSONArray("jobs");
+      File json_jobs = new File(json_file);
+      this.logger.debug("Loading File: " + json_file);
       
-      for( int i=0; i < jobsArray.length(); i++ )
+      
+      // loading Jobs from the command line
+      if( json_jobs.isFile() )
       {
-        jobs.add( Job.fromJSON(jobsArray.getJSONObject(i) ) );
+        this.logger.debug("Is a valid file");
+        byte[] data = Files.readAllBytes( Paths.get( json_file ) );
+        requests = CcdpUtils.toCcdpThreadRequest(new String( data, "UTF-8"));
+        
+        this.logger.debug("Number of Jobs: " + requests.size() );
       }
-      this.logger.debug("Jobs:\n" + jobs );
+      else
+      {
+        String msg = "The Json Jobs file (" + json_file + ") is invalid";
+        this.logger.error(msg);
+        CCDPEngineMain.usage(msg);
+      }
     }
-    else
-    {
-      String msg = "The Json Jobs file (" + json_file + ") is invalid";
-      this.logger.error(msg);
-      CCDPEngineMain.usage(msg);
-    }
-
-    Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, jobs );
+    Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
     // Running Mesos Specific stuff
     MesosSchedulerDriver driver = null;
     String master = CcdpUtils.getProperty(CcdpUtils.KEY_MESOS_MASTER_URI);
@@ -188,57 +191,99 @@ public class CCDPEngineMain
   }
 
   /**
-   * Runs the show, it requires the URL for the Mesos Master and a json file
-   * containing the jobs to run
+   * Runs the CCDP Framework using the provided configuration file.  The 
+   * configuration file can be passed either as an argument or using the Java
+   * System Property 'ccdp.config.file'.  This property is defined in the 
+   * CcdpUtils.KEY_CFG_FILE variable.  The configuration file is required and 
+   * must be provided either way.  
    * 
-   * @param args
-   * @throws Exception
+   * In addition to the configuration file, this class can be launched with an 
+   * additional file containing jobs to be executed after initialization. 
+   * 
+   * Running the class with -h produces the following message:
+   * 
+   * usage: class com.axios.ccdp.mesos.fmwk.CCDPEngineMain
+   * -c,--config-file <arg>   Path to the configuration file.  This can also
+   *                           be set using the System Property
+   *                           'ccdp.config.file'
+   *  -h,--help                Shows this message
+   *  -j,--jobs <arg>          Optional JSON file with the jobs to run
+   * 
+   * @param args the command line arguments
+   * @throws Exception throws an Exception if the class has problems parsing 
+   *         the command line arguments
    */
   public static void main(String[] args) throws Exception 
   {
-    if (args.length < 1 || args.length > 2) 
+    // building all the options available
+    Options options = new Options();
+    String txt = "Path to the configuration file.  This can also be set using "
+        + "the System Property 'ccdp.config.file'";
+    Option config = new Option("c", "config-file", true, txt);
+    config.setRequired(false);
+    options.addOption(config);
+
+    Option jobs = new Option("j", "jobs", true, 
+        "Optional JSON file with the jobs to run");
+    jobs.setRequired(false);
+    options.addOption(jobs);
+    
+    Option help = new Option("h", "help", false, "Shows this message");
+    help.setRequired(false);
+    options.addOption(help);
+
+    CommandLineParser parser = new DefaultParser();
+    HelpFormatter formatter = new HelpFormatter();
+    
+    CommandLine cmd;
+
+    try 
     {
-      usage("Wrong number of arguments");
-      
+      cmd = parser.parse(options, args);
+    } 
+    catch (ParseException e) 
+    {
+      System.out.println(e.getMessage());
+      formatter.printHelp("utility-name", options);
+
+      System.exit(1);
+      return;
+    }
+    // if help is requested, print it an quit
+    if( cmd.hasOption('h') )
+    {
+      formatter.printHelp(CCDPEngineMain.class.toString(), options);
+      System.exit(0);
     }
     String cfg_file = null;
     String jobs_file = null;
-    
-    int sz = args.length;
     String key = CcdpUtils.KEY_CFG_FILE;
     
-    switch( sz )
+    // do we have a configuration file? if not search for the System Property
+    if( cmd.hasOption('c') )
     {
-      case 0:
-        usage("The jobs file is required");
-        break;
-      case 1:
-        if( System.getProperty( key ) != null )
-        {
-          String fname = CcdpUtils.expandVars(System.getProperty(key));
-          File file = new File( fname );
-          if( file.isFile() )
-          {
-            cfg_file = fname;
-            jobs_file = args[0];
-          } 
-          else
-            usage("The config file (" + fname + ") is invalid");
-        }
-        break;
-      case 2:
-        File file = new File( args[1] );
-        if( file.isFile() )
-        {
-         cfg_file = args[1];
-         jobs_file = args[0];
-        }
-        else
-          usage("The config file (" + args[1] + ") is invalid");
-        break;
-      default:
-        usage(null);
-    }// end of switch statement
+      cfg_file = cmd.getOptionValue('c');
+    }
+    else if( System.getProperty( key ) != null )
+    {
+      String fname = CcdpUtils.expandVars(System.getProperty(key));
+      File file = new File( fname );
+      if( file.isFile() )
+        cfg_file = fname;
+      else
+        usage("The config file (" + fname + ") is invalid");
+    }
+    
+    // do we have a valid job file?
+    if( cmd.hasOption('j') )
+    {
+      String fname = CcdpUtils.expandVars( cmd.getOptionValue('j') );
+      File file = new File( fname );
+      if( file.isFile() )
+        jobs_file = fname;
+      else
+        usage("The jobs file (" + fname + ") was provided, but is invalid");
+    }
     
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();

@@ -1,0 +1,53 @@
+{"Threads":
+  [
+    {"ThreadId": "thread-1",
+         "Name": "PI Estmator",
+         "StartingTask": "cycles_selector",
+         "ReplyTo": "The Sender",
+         "Description": "Estimates the value of PI",
+         "Tasks": 
+           [
+              {"TaskId": "cycles_selector",
+               "Name": "Cycles Selector",
+               "ClassName": "tasks.emr_demo.CyclesSelector",
+               "NodeType": "ec2",
+               "ReplyTo": "The Sender",
+               "CPU": "10",
+               "MEM": "128",
+               "Command": ["python", "/opt/modules/CsvReader.python", "${CCDP_HOME}/data/csv_test_file.csv"],
+               "Configuration": { "number-cycles": "10000", "wait-time": "5" },
+               "InputPorts": [],
+               "OutputPorts": [ 
+                                {"PortId": "cycles_selector-1", "ToPort": [ "pi_estimator_input-1" ] }
+                              ]
+             },
+          {"TaskId": "pi_estimator",
+           "Name": "PI Estimator",
+           "ClassName": "tasks.emr_demo.PiEstimator",
+           "NodeType": "emr",
+           "ReplyTo": "Someone Else",
+           "Command": ["python", "/opt/modules/tasks/csv_demo/JsonTranslator.py", "-i", "${CCDP_HOME}/data/input_text.txt", "-o", "${CCDP_HOME}/data/out_text.json"],
+           "Configuration": { "output-file": "${CCDP_HOME}/data/pi_values.csv" },
+           "InputPorts": [
+                            {"PortId": "pi_estimator_input-1", "FromPort": [ "cycles_seletor_output-1" ] }
+                         ],
+           "OutputPorts": [ 
+                            {"PortId": "pi_estimator_output-1", "ToPort": [ "pi_reader_input-1" ] }
+                          ]
+          },
+          {"TaskId": "pi_reader",
+           "Name": "PI Value Reader",
+           "ClassName": "tasks.emr_demo.PiReader",
+           "NodeType": "ec2",
+           "ReplyTo": "The Sender",
+           "Command": ["python", "/opt/modules/tasks/csv_demo/JsonReader.py", "-i", "${CCDP_HOME}/data/out_text.json"],
+           "Configuration": {"input-file": "${CCDP_HOME}/data/pi_values.json",  "wait-time": "5" },
+           "InputPorts": [
+                           { "PortId": "pi_reader_input-1", "FromPort": [ "pi_estimator_output-1" ] }
+                         ],
+           "OutputPorts": []
+          }        
+           ]
+        }
+    ]
+  }

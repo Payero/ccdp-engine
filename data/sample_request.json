@@ -1,0 +1,49 @@
+{"threads":
+  [
+    {"id": "thread-1",
+     "name": "CSV 2 JSON Converter",
+     "short-description": "Converts CSV files into JSON strings",
+     "tasks": 
+        [
+          {"id": "thread-1-task-1",
+           "ccdp-type": "ec2",
+           "max-instances": None,
+           "min-instances": None,          
+           "configuration": { "cycles": 10000 },
+           "input-ports": None,
+           "output-ports": [ 
+                  {"id": "thread-1-task-1-out-port-1",
+                   "to": [ "thread-1-task-2-in-port-1" ],
+                  
+                  }
+          },
+          {"id": "thread-1-task-2",
+           "ccdp-type": "ec2",
+           "max-instances": None,
+           "min-instances": None,          
+           "configuration": { "cycles": 10000 },
+           "input-ports": [
+                   {"id": "thread-1-task-2-in-port-1",
+                    "from": [ "thread-1-task-1-out-port-1" ]
+                  }
+                          ],
+           "output-ports": [ 
+                  {"id": "thread-1-task-2-out-port-1",
+                   "to": [ "thread-1-task-3-in-port-1" ],
+                  
+                  }
+          },
+        
+        ]
+    
+    },
+    {"id": "def12345",
+     "name": "Secondary Thread",
+     "tasks": 
+        [
+        
+        
+        ]
+    
+    }
+  ]

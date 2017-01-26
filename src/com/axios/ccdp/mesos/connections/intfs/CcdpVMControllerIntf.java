@@ -1,10 +1,9 @@
-package com.axios.ccdp.mesos.factory;
+package com.axios.ccdp.mesos.connections.intfs;
 
 import java.util.List;
 import java.util.Map;
 
-import org.json.JSONObject;
-
+import com.google.gson.JsonObject;
 
 public interface CcdpVMControllerIntf
 {
@@ -17,7 +16,7 @@ public interface CcdpVMControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( JSONObject config );
+  public void configure( JsonObject config );
   
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
@@ -71,7 +70,7 @@ public interface CcdpVMControllerIntf
    * @return an object containing details of each of the Virtual Machines 
    *         assigned to the user
    */
-  public JSONObject getAllInstanceStatus();
+  public JsonObject getAllInstanceStatus();
   
   /**
    * Returns information about all instances matching the set of filters given
@@ -88,6 +87,6 @@ public interface CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public JSONObject getStatusFilteredByTags( JSONObject filter );
+  public JsonObject getStatusFilteredByTags( JsonObject filter );
   
 }

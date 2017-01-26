@@ -6,8 +6,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import org.apache.log4j.Logger;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
@@ -22,8 +20,10 @@ import com.amazonaws.services.s3.model.ObjectListing;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.factory.AWSCcdpFactoryImpl;
-import com.axios.ccdp.mesos.factory.CcdpStorageControllerIntf;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 /**
  * Class used to manage data being stored in AWS S3 buckets.  
@@ -66,7 +66,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( JSONObject config )
+  public void configure( JsonObject config )
   {
     if( config == null )
       throw new IllegalArgumentException("The configuration cannot be null");
@@ -198,9 +198,9 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         creation time.
    */
   @Override
-  public JSONArray listAllStorages()
+  public JsonArray listAllStorages()
   {
-    JSONArray buckets = new JSONArray();
+    JsonArray buckets = new JsonArray();
     this.logger.debug("Listing buckets");
     try
     {
@@ -208,10 +208,10 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
       {
         String name = bucket.getName();
         Date date = bucket.getCreationDate();
-        JSONObject bkt = new JSONObject();
-        bkt.put("name", name);
-        bkt.put("creation-time", this.date_formatter.format(date));
-        buckets.put(bkt);
+        JsonObject bkt = new JsonObject();
+        bkt.addProperty("name", name);
+        bkt.addProperty("creation-time", this.date_formatter.format(date));
+        buckets.add(bkt);
       }
     }
     catch( Exception e)
@@ -242,22 +242,22 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         creation time.
    */
   @Override
-  public JSONArray listAllFiles(String root)
+  public JsonArray listAllFiles(String root)
   {
-    JSONArray buckets = new JSONArray();
+    JsonArray buckets = new JsonArray();
     try
     {
       this.logger.debug("Listing buckets");
       for (Bucket bucket : s3.listBuckets()) 
       {
-        JSONObject bkt = new JSONObject();
+        JsonObject bkt = new JsonObject();
         String name = bucket.getName();
         Date date = bucket.getCreationDate();
         
-        bkt.put("storage", name);
-        bkt.put("creation-time", this.date_formatter.format(date));
+        bkt.addProperty("storage", name);
+        bkt.addProperty("creation-time", this.date_formatter.format(date));
         
-        JSONArray files = new JSONArray();
+        JsonArray files = new JsonArray();
         final ListObjectsV2Request req = 
                   new ListObjectsV2Request().withBucketName(name);
         
@@ -268,17 +268,17 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
            
            for (S3ObjectSummary obj : result.getObjectSummaries()) 
            {
-             JSONObject json = new JSONObject();
+             JsonObject json = new JsonObject();
              String key = obj.getKey();
              Date fileDate = obj.getLastModified();
-             json.put("storage", key);
-             json.put("creation-time", this.date_formatter.format(fileDate));
-             files.put(json);
+             json.addProperty("storage", key);
+             json.addProperty("creation-time", this.date_formatter.format(fileDate));
+             files.add(json);
            }
            req.setContinuationToken(result.getNextContinuationToken());
         } while(result.isTruncated() == true ); 
-        bkt.put("files", files);
-        buckets.put(bkt);
+        bkt.add("files", files);
+        buckets.add(bkt);
       }
     }
     catch( Exception e)
@@ -304,12 +304,12 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         the criteria and the creation time
    */
   @Override
-  public JSONArray listAllFilesWithPrefix( String bucket, String prefix)
+  public JsonArray listAllFilesWithPrefix( String bucket, String prefix)
   {
     String msg = "Getting all file from bucket " + bucket + 
                  " starting with " + prefix;
     this.logger.debug(msg);
-    JSONArray files = new JSONArray();
+    JsonArray files = new JsonArray();
     try
     {
       ListObjectsRequest req = new ListObjectsRequest()
@@ -322,10 +322,10 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
       {
         String name = obj.getKey();
         Date date = obj.getLastModified();
-        JSONObject file = new JSONObject();
-        file.put("name", name);
-        file.put("creation-time", this.date_formatter.format(date));
-        files.put(file);
+        JsonObject file = new JsonObject();
+        file.addProperty("name", name);
+        file.addProperty("creation-time", this.date_formatter.format(date));
+        files.add(file);
       }
     }
     catch( Exception e)

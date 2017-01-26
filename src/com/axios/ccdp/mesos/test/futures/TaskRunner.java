@@ -5,11 +5,11 @@ import java.util.Random;
 import java.util.function.Supplier;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
 
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.google.gson.JsonObject;
 
-public class TaskRunner implements Runnable, Supplier<JSONObject>
+public class TaskRunner implements Runnable, Supplier<JsonObject>
 {
 
   /**
@@ -37,11 +37,11 @@ public class TaskRunner implements Runnable, Supplier<JSONObject>
     this.date = new Date();
   }
   
-  public JSONObject get()
+  public JsonObject get()
   {
-    JSONObject json = new JSONObject();
-    json.put("name", this.name);
-    json.put("date", this.date);
+    JsonObject json = new JsonObject();
+    json.addProperty("name", this.name);
+    json.addProperty("date", this.date.toString());
     
     return json;
   }

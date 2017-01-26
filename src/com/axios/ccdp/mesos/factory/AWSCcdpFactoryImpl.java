@@ -3,7 +3,6 @@ package com.axios.ccdp.mesos.factory;
 import java.io.File;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
@@ -11,11 +10,15 @@ import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.axios.ccdp.mesos.connections.amq.AMQCcdpTaskingImpl;
+import com.axios.ccdp.mesos.connections.intfs.CcdpObejctFactoryAbs;
+import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpStorageControllerImpl;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
+import com.google.gson.JsonObject;
 
-public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
+public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
 {
   /** Stores the name of the ACCESS KEY Environment Variable **/
   public static final String ACCESS_KEY_ID_ENV_VAR = "AWS_ACCESS_KEY_ID";
@@ -40,7 +43,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
    * Limiting access to this constructor is intentional in order to enforce the
    * use of a single factory object
    */
-  protected AWSCcdpFactoryImpl()
+  public AWSCcdpFactoryImpl()
   {
 
   }
@@ -68,7 +71,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
    *         to manipulate the resources
    */
   @Override
-  public CcdpVMControllerIntf getCcdpResourceController(JSONObject config)
+  public CcdpVMControllerIntf getCcdpResourceController(JsonObject config)
   {
     CcdpVMControllerIntf aws = new AWSCcdpVMControllerImpl();
     aws.configure(config);
@@ -86,7 +89,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
    *         to manipulate the storage resources
    */
   @Override
-  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(JSONObject config)
+  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(JsonObject config)
   {
     CcdpStorageControllerIntf aws = new AWSCcdpStorageControllerImpl();
     aws.configure(config);
@@ -131,7 +134,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
    *         it cannot find at least one of the different methods to 
    *         authenticate the user
    */
-  public static AWSCredentials getAWSCredentials( JSONObject config )
+  public static AWSCredentials getAWSCredentials( JsonObject config )
   {
     logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -158,8 +161,8 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryIntf
              config.has(FLD_PROFILE_NAME))
     {
       logger.info("Setting Credentials using JSON Configuration");
-      String fname = config.getString(FLD_CREDS_FILE);
-      String profile = config.getString(FLD_PROFILE_NAME);
+      String fname = config.get(FLD_CREDS_FILE).getAsString();
+      String profile = config.get(FLD_PROFILE_NAME).getAsString();
       credentials = AWSCcdpFactoryImpl.getCredentials(fname, profile);
     }
     else if( System.getenv("HOME") != null )

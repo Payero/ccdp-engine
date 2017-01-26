@@ -4,9 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.jms.TextMessage;
+
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
 
 /**
@@ -16,7 +19,8 @@ import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
  * @author Oscar E. Ganteaume
  *
  */
-public class AMQCcdpTaskingImpl implements CcdpTaskingIntf
+public class AMQCcdpTaskingImpl 
+                          implements CcdpTaskingIntf, CcdpEventConsumerIntf
 {
 
   /**
@@ -38,6 +42,10 @@ public class AMQCcdpTaskingImpl implements CcdpTaskingIntf
    */
   private HashMap<String, ArrayList<String>> 
                       registrations = new HashMap<String, ArrayList<String>>();
+  /**
+   * The object interested on receiving the actual task
+   */
+  CcdpTaskConsumerIntf consumer = null;
   
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
@@ -47,6 +55,7 @@ public class AMQCcdpTaskingImpl implements CcdpTaskingIntf
   {
     this.logger.debug("Creating new connections");
     this.sender = new AmqSender();
+    this.receiver = new AmqReceiver(this);
   }
 
   /**
@@ -55,9 +64,9 @@ public class AMQCcdpTaskingImpl implements CcdpTaskingIntf
    * @param consumer the object interested on receiving events.
    */
   @Override
-  public void setEventConsumer( CcdpEventConsumerIntf consumer )
+  public void setTaskConsumer( CcdpTaskConsumerIntf consumer )
   {
-    this.receiver = new AmqReceiver(consumer);
+    this.consumer = consumer;
   }
   
   /**
@@ -156,5 +165,18 @@ public class AMQCcdpTaskingImpl implements CcdpTaskingIntf
     }
     if( this.sender != null )
       this.sender.disconnect();
+  }
+  
+  /**
+   * Gets the events from the AMQ Receiver as a String.  The string contains the
+   * JSON representation of the task or thread to execute.  This method 
+   * translates the incoming event and transform it into a CcdpThreadRequest.
+   * The request is then passed to the CcdpTaskingConsumerIntf object
+   * 
+   * @param event the JSON configuration of the tasking request
+   */
+  public void onEvent( Object event )
+  {
+
   }
 }

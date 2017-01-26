@@ -1,0 +1,5 @@
+'{"session-id":"oeg-1","mesos-type":"SLAVE"}'
+
+'{"session-id":"oeg-1","mesos-type":"SLAVE", "masters":[{"id":1,"ip-address":"10.0.2.192","port":"2888:3888"}]}'
+
+'{"session-id":"oeg-1","mesos-type":"MASTER","server-id":1}'

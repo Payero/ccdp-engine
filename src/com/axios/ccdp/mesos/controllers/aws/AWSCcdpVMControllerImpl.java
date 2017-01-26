@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
-import org.json.JSONObject;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.http.SdkHttpMetadata;
@@ -30,8 +29,9 @@ import com.amazonaws.services.ec2.model.StopInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
+import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.mesos.factory.AWSCcdpFactoryImpl;
-import com.axios.ccdp.mesos.factory.CcdpVMControllerIntf;
+import com.google.gson.JsonObject;
 
 public class AWSCcdpVMControllerImpl implements
     CcdpVMControllerIntf
@@ -53,7 +53,7 @@ public class AWSCcdpVMControllerImpl implements
   /**
    * Stores all the data configuration for this object
    */
-  private JSONObject config = null;
+  private JsonObject config = null;
   /**
    * Object responsible for authenticating with AWS
    */
@@ -106,7 +106,7 @@ public class AWSCcdpVMControllerImpl implements
    *         authenticate the user
    */
   @Override
-  public void configure( JSONObject config )
+  public void configure( JsonObject config )
   {
     this.logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -167,7 +167,7 @@ public class AWSCcdpVMControllerImpl implements
     RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
     String instType = "t2.micro";
     if( this.config.has(FLD_INST_TYPE) )
-      instType = this.config.getString(FLD_INST_TYPE);
+      instType = this.config.get(FLD_INST_TYPE).getAsString();
     
     // if the user data is null then there is nothing to do so pass nothing
     if( user_data == null )
@@ -178,10 +178,10 @@ public class AWSCcdpVMControllerImpl implements
     System.out.println("ecncoded value is " + new String(bytesEncoded ));
     
     request.withInstanceType(instType)
-           .withUserData(new String(bytesEncoded ))
-           .withSecurityGroupIds(this.config.getString(FLD_SECURITY_GRP))
-           .withSubnetId(this.config.getString(FLD_SUBNET_ID))
-           .withKeyName(this.config.getString(FLD_KEY_FILE));
+         .withUserData(new String(bytesEncoded ))
+         .withSecurityGroupIds(this.config.get(FLD_SECURITY_GRP).getAsString())
+         .withSubnetId(this.config.get(FLD_SUBNET_ID).getAsString())
+         .withKeyName(this.config.get(FLD_KEY_FILE).getAsString());
     
     RunInstancesResult result = this.ec2.runInstances(request);
     SdkHttpMetadata shm = result.getSdkHttpMetadata();
@@ -300,10 +300,10 @@ public class AWSCcdpVMControllerImpl implements
    *         assigned to the user
    */
   @Override
-  public JSONObject getAllInstanceStatus()
+  public JsonObject getAllInstanceStatus()
   {
     this.logger.debug("Getting all the Instances Status");
-    JSONObject instancesJson = new JSONObject();
+    JsonObject instancesJson = new JsonObject();
     
     DescribeInstanceStatusRequest descInstReq = 
         new DescribeInstanceStatusRequest()
@@ -321,21 +321,21 @@ public class AWSCcdpVMControllerImpl implements
       
       String instId = stat.getInstanceId();
       String status = stat.getInstanceState().getName();
-      JSONObject obj = new JSONObject();
-      obj.put("status", status);
+      JsonObject obj = new JsonObject();
+      obj.addProperty("status", status);
       List<InstanceStatusDetails>  dets = stat.getInstanceStatus().getDetails();
       Iterator<InstanceStatusDetails> details = dets.iterator();
-      JSONObject jDets = new JSONObject();
+      JsonObject jDets = new JsonObject();
       
       while( details.hasNext() )
       {
         InstanceStatusDetails detail = details.next();
         String name = detail.getName();
         String val = detail.getStatus();
-        jDets.put(name, val);
+        jDets.addProperty(name, val);
       }
-      obj.put("details", jDets);
-      instancesJson.put(instId, obj);
+      obj.add("details", jDets);
+      instancesJson.add(instId, obj);
     }
     
     
@@ -354,20 +354,20 @@ public class AWSCcdpVMControllerImpl implements
         String privIp = instance.getPrivateIpAddress();
         if( instancesJson.has(id) )
         {
-          JSONObject instJson = instancesJson.getJSONObject(id);
-          instJson.put("public-ip", pubIp);
-          instJson.put("private-ip", privIp);
+          JsonObject instJson = instancesJson.getAsJsonObject(id);
+          instJson.addProperty("public-ip", pubIp);
+          instJson.addProperty("private-ip", privIp);
           
-          JSONObject jsonTag = new JSONObject();
+          JsonObject jsonTag = new JsonObject();
           Iterator<Tag> tags = instance.getTags().iterator();
           while( tags.hasNext() )
           {
             Tag tag = tags.next();
             String key = tag.getKey();
             String val = tag.getValue();
-            jsonTag.put(key, val);
+            jsonTag.addProperty(key, val);
           }
-          instJson.put("tags", jsonTag);
+          instJson.add("tags", jsonTag);
         }// instance ID found
       }
     }
@@ -389,22 +389,23 @@ public class AWSCcdpVMControllerImpl implements
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public JSONObject getStatusFilteredByTags( JSONObject filter )
+  public JsonObject getStatusFilteredByTags( JsonObject filter )
   {
     this.logger.debug("Getting Filtered Status using: " + filter);
-    JSONObject all = this.getAllInstanceStatus();
-    JSONObject some = new JSONObject();
+    JsonObject all = this.getAllInstanceStatus();
+    JsonObject some = new JsonObject();
     this.logger.debug("All Instances: " + all);
-    Iterator<String> all_keys = all.keys();
+    Iterator<String> all_keys = all.keySet().iterator();
+    
     while( all_keys.hasNext() )
     {
       String id = all_keys.next();
       this.logger.debug("Looking at ID " + id);
-      JSONObject inst = all.getJSONObject(id);
+      JsonObject inst = all.get(id).getAsJsonObject();
       if( inst.has("tags") )
       {
-        JSONObject tags = inst.getJSONObject("tags");
-        Iterator<String> filter_keys = filter.keys();
+        JsonObject tags = inst.get("tags").getAsJsonObject();
+        Iterator<String> filter_keys = filter.keySet().iterator();
         boolean found = true;
         while( filter_keys.hasNext() )
         {
@@ -423,7 +424,7 @@ public class AWSCcdpVMControllerImpl implements
         if( found )
         {
           this.logger.info("Adding Instance to list");
-          some.put(id, inst);
+          some.add(id, inst);
         }
       }// it has tags to compare
     }// All instances checked

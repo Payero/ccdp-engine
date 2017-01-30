@@ -12,9 +12,11 @@ import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.axios.ccdp.mesos.connections.amq.AMQCcdpTaskingImpl;
 import com.axios.ccdp.mesos.connections.intfs.CcdpObejctFactoryAbs;
 import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpStorageControllerImpl;
+import com.axios.ccdp.mesos.controllers.aws.AWSCcdpTaskingControllerImpl;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
 import com.google.gson.JsonObject;
 
@@ -94,6 +96,23 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
     CcdpStorageControllerIntf aws = new AWSCcdpStorageControllerImpl();
     aws.configure(config);
     return null;
+  }
+  
+  /**
+   * Gets the object responsible for tasking the resources.  For instance, 
+   * it will start a task based on a session-id, capacity, etc
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * 
+   * @return an actual implementation of the object that allows the scheduler
+   *         to manipulate the tasking
+   */
+  @Override
+  public CcdpTaskingControllerIntf getCcdpTaskingController(JsonObject config)
+  {
+    CcdpTaskingControllerIntf aws = new AWSCcdpTaskingControllerImpl();
+    aws.configure(config);
+    return aws;
   }
   
   /**

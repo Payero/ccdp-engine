@@ -5,6 +5,7 @@
 
 	<property name="project.name" value="mesos-dra" />
 	<property name="executor.name" value="mesos-ccdp-exec" />
+  <property name="engine.name" value="mesos-engine" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -48,7 +49,7 @@
 		<jar jarfile="${dist.dir}/${project.name}-${DSTAMP}.jar" basedir="${build.dir}" >
 		    <manifest>
 			<!-- create an executable Jar -->
-			<attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.BookUselessRemoteBash" />
+			<attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor" />
 		    </manifest>
 		</jar>
 	</target>
@@ -58,20 +59,33 @@
 		<delete dir="${dist.dir}" />
 	</target>
 	
-	<target name="gen.jar" depends="compile">
+	<target name="gen.jars" depends="compile">
 		<copy file="${basedir}/config/log4j.properties" todir="${build.dir}" />
-	    <jar destfile="${dist.dir}/${executor.name}.jar" >
-	        <manifest>
-	            <attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.BookUselessRemoteBash"/>
-	        </manifest>
-	        <fileset dir="${build.dir}" includes="*.properties" />
-    		<fileset dir="${build.dir}"/>
+    <jar destfile="${dist.dir}/${executor.name}.jar" >
+        <manifest>
+            <attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
+        </manifest>
+        <fileset dir="${build.dir}" includes="*.properties" />
+  		<fileset dir="${build.dir}"/>
 
-	        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
-	    </jar>
+        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+    </jar>
+
+    <copy file="${basedir}/config/ccdp-config.properties" todir="${build.dir}" />
+    <jar destfile="${dist.dir}/${engine.name}.jar" >
+        <manifest>
+            <attribute name="Main-Class" 
+                       value="com.axios.ccdp.mesos.fmwk.CCDPEngineMain"/>
+        </manifest>
+        <fileset dir="${build.dir}" includes="*.properties" />
+      <fileset dir="${build.dir}"/>
+
+        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+    </jar>
+
 	</target>
 
 	<!-- Default, run this -->
-	<target name="main" depends="clean, compile, dist, gen.jar" />
+	<target name="main" depends="clean, compile, dist, gen.jars" />
 
 </project>

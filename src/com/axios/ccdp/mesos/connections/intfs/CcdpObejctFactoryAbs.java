@@ -82,6 +82,17 @@ public abstract class CcdpObejctFactoryAbs
   public abstract CcdpVMControllerIntf 
                             getCcdpResourceController(JsonObject config);
 
+  /**
+   * Gets the object responsible for tasking the resources.  For instance, 
+   * it will start a task based on a session-id, capacity, etc
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * 
+   * @return an actual implementation of the object that allows the scheduler
+   *         to manipulate the tasking
+   */
+  public abstract CcdpTaskingControllerIntf 
+                            getCcdpTaskingController(JsonObject config);
   
   /**
    * Gets the object responsible for controlling the storage of objects.  For

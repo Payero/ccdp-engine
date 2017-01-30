@@ -223,9 +223,6 @@ public class CcdpRemoteScheduler
     while( items.hasNext() )
     {
       Offer offer = items.next();
-      String txt = "Offer: " + offer.getId().getValue() + 
-                   " on Framework: " + offer.getFrameworkId().getValue();
-//      this.logger.info(txt);
       this.logger.debug("Offer: " + offer.toString());
     }
     
@@ -383,30 +380,27 @@ public class CcdpRemoteScheduler
   public void onTask( CcdpThreadRequest request )
   {
     this.logger.info("Got a new Request: " + request.toString() );
-    synchronized( this.requests )
+    this.requests.add(request);
+    Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
+    while( tasks.hasNext() )
     {
-      this.requests.add(request);
-      Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
-      while( tasks.hasNext() )
+      CcdpTaskRequest task = tasks.next();
+      CcdpJob job = new CcdpJob( task.getTaskId() );
+      job.setCpus( task.getCPU() );
+      job.setMemory( task.getMEM() );
+      job.setCommand(String.join(" ", task.getCommand()));
+      JsonObject config = new JsonObject();
+      Map<String, String> map = task.getConfiguration();
+      Iterator<String> keys = map.keySet().iterator();
+      while( keys.hasNext() )
       {
-        CcdpTaskRequest task = tasks.next();
-        CcdpJob job = new CcdpJob( task.getTaskId() );
-        job.setCpus( task.getCPU() );
-        job.setMemory( task.getMEM() );
-        job.setCommand(String.join(" ", task.getCommand()));
-        JsonObject config = new JsonObject();
-        Map<String, String> map = task.getConfiguration();
-        Iterator<String> keys = map.keySet().iterator();
-        while( keys.hasNext() )
-        {
-          String key = keys.next();
-          config.addProperty(key, map.get(key));
-        }
-        job.setConfig(config);
-        synchronized( this.jobs )
-        {
-          this.jobs.add(job);
-        }
+        String key = keys.next();
+        config.addProperty(key, map.get(key));
+      }
+      job.setConfig(config);
+      synchronized( this.jobs )
+      {
+        this.jobs.add(job);
       }
     }
   }

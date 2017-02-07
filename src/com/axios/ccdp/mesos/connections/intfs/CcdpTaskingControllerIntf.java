@@ -1,5 +1,6 @@
 package com.axios.ccdp.mesos.connections.intfs;
 
+import com.axios.ccdp.mesos.resources.CcdpVMResource;
 import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.google.gson.JsonObject;
 
@@ -19,7 +20,7 @@ public abstract class CcdpTaskingControllerIntf implements Runnable
   
   public abstract int getNumberPendingTasks();
   
-  public abstract void updateResources(JsonObject resources);
+  public abstract void updateResource(CcdpVMResource resource);
   
   public abstract void stopThread( String threadId );
   

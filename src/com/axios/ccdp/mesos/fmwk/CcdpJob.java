@@ -95,7 +95,7 @@ public class CcdpJob
   {
     this.logger.debug("Setting up a new Job");
     this.status = JobState.PENDING;
-    this.id = UUID.randomUUID().toString();
+    this.id = uuid;
     this.retries = 3;
     this.submitted = false;
   }

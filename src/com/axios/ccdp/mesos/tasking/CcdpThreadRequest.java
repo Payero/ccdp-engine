@@ -4,44 +4,118 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
+
+import org.apache.log4j.Logger;
+
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest.CcdpTaskState;
 
 /**
- * {"thread-id": "thread-1",
-    "name": "PI Estmator",
-    "starting-task": "cycles_selector",
-    "short-description": "Estimates the value of PI",
-    "tasks":{}
-   }
-         
+ * Class used to store a list of associated tasks to be ran sequentially.  It
+ * helps coordinating the launching of Tasks and to keep track of its execution
+ * 
  * @author Oscar E. Ganteaume
  *
  */
 public class CcdpThreadRequest 
 {
+  /**
+   * Generates debug print statements based on the verbosity level.
+   */
+  private Logger logger = Logger.getLogger(CcdpThreadRequest.class);
+  /**
+   * Unique identifier for this thread
+   */
   private String ThreadId;
+  /**
+   * The session this task belongs to
+   */
+  private String sessionId = null;
+  /**
+   * A human readable name to identify this thread
+   */
   private String Name;
+  /**
+   * A description to store any help users want to provide
+   */
   private String Description;
-  
-  private String StartingTask;
+  /**
+   * A way to communicate back to the sender events about tasking status change
+   */
+  private String ReplyTo = "";
+  /**
+   * A list of tasks to run in order to execute this processing job
+   */
   private List<CcdpTaskRequest> Tasks = new ArrayList<CcdpTaskRequest>();
   
-
   /**
-   * @return the startingTask
+   * Instantiates a new object using a self-generated UUID as the ThreadID
    */
-  public String getStartingTask()
+  public CcdpThreadRequest()
   {
-    return StartingTask;
+    this( UUID.randomUUID().toString() );
   }
 
   /**
-   * @param startingTask the startingTask to set
+   * Instantiates a new object using the provided threadId as the unique 
+   * identifier
+   * 
+   * @param threadId a unique identifier for this thread
    */
-  public void setStartingTask(String startingTask)
+  public CcdpThreadRequest(String threadId)
   {
-    this.StartingTask = startingTask;
+    this.ThreadId = threadId;
+  }
+  
+  
+  /**
+   * Gets the next task to process or null if all the tasks have been processed
+   * 
+   * @return either the next CcdpTaskRequest object to process or null if none
+   */
+  public CcdpTaskRequest getNextTask()
+  {
+    this.logger.debug("Getting Next task for thread: " + this.ThreadId);
+    Iterator<CcdpTaskRequest> tasks = this.Tasks.iterator();
+    while( tasks.hasNext() )
+    {
+      CcdpTaskRequest task = tasks.next();
+      if( !task.isSubmitted() )
+        return task;
+    }
+    
+    return null;
   }
 
+  /**
+   * Determines whether or not this processing thread is complete or not.  This
+   * is determined checking that each of the tasks have a state of either 
+   * SUCCESSFUL or FAILED.  If at least one of the tasks does not have its state
+   * set to either one of the values mentioned above then it is considered 
+   * pending
+   * 
+   * @return true if all of the tasks have a state of either SUCCESSFUL or 
+   *         FAILED or false otherwise
+   */
+  public boolean threadRequestCompleted()
+  {
+    boolean done = true;
+    Iterator<CcdpTaskRequest> tasks = this.Tasks.iterator();
+    while( tasks.hasNext() )
+    {
+      CcdpTaskRequest task = tasks.next();
+      CcdpTaskState state = task.getTaskState(); 
+      if( state != CcdpTaskState.SUCCESSFUL ||  state != CcdpTaskState.FAILED)
+      {
+        done = false;
+        break;
+      }
+    }
+    
+    return done;
+  }
+  
+  
   /**
    * @return the description
    */
@@ -91,6 +165,22 @@ public class CcdpThreadRequest
   }
 
   /**
+   * @return the sessionId
+   */
+  public String getSessionId()
+  {
+    return sessionId;
+  }
+
+  /**
+   * @param sessionId the sessionId to set
+   */
+  public void setSessionId(String sessionId)
+  {
+    this.sessionId = sessionId;
+  }
+
+  /**
    * @return the name
    */
   public String getName()
@@ -106,13 +196,35 @@ public class CcdpThreadRequest
     Name = name;
   }
   
+  /**
+   * @return the replyTo
+   */
+  public String getReplyTo()
+  {
+    return ReplyTo;
+  }
+
+  /**
+   * @param replyTo the replyTo to set
+   */
+  public void setReplyTo(String replyTo)
+  {
+    ReplyTo = replyTo;
+  }
+  
+  /**
+   * Gets a string representation of this object using the form 
+   *  'Field': 'Value'
+   * 
+   * @return a string representation of the object
+   */
   public String toString()
   {
     StringBuffer buf = new StringBuffer();
     buf.append("Thread Id: "); buf.append(this.getThreadId()); buf.append("\n");
     buf.append("Name: "); buf.append(this.getName()); buf.append("\n");
     buf.append("Description: "); buf.append(this.getDescription()); buf.append("\n");
-    buf.append("Start Task: "); buf.append(this.getStartingTask()); buf.append("\n");
+    buf.append("Reply To: "); buf.append(this.getReplyTo()); buf.append("\n");
 
     List<CcdpTaskRequest> tasks = this.getTasks();
     
@@ -191,5 +303,4 @@ public class CcdpThreadRequest
     
     return buf.toString();
   }
-  
 }

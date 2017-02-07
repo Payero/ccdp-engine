@@ -56,14 +56,14 @@ public class CCDPEngineMain
     if( root == null )
     {
       this.logger.debug("The CCDP_HOME was not set, trying Property");
-      root = CcdpUtils.getProperty(CcdpUtils.KEY_FMWK_ROOT);
+      root = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_FMWK_ROOT);
     }
     // if we don't have a path then quit
     if( root == null )
     {
       CCDPEngineMain.usage("Please set the running environment");
     }
-    String jar_file = CcdpUtils.getProperty(CcdpUtils.KEY_EXEC_JAR);
+    String jar_file = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_EXEC_JAR);
     
     File obj = new File(jar_file);
     if( !obj.isFile() )
@@ -129,7 +129,7 @@ public class CCDPEngineMain
     Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
     // Running Mesos Specific stuff
     MesosSchedulerDriver driver = null;
-    String master = CcdpUtils.getProperty(CcdpUtils.KEY_MESOS_MASTER_URI);
+    String master = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MESOS_MASTER_URI);
     this.logger.info("Master  URI: " + master);
     
     if (System.getenv("MESOS_AUTHENTICATE") != null) 
@@ -257,7 +257,7 @@ public class CCDPEngineMain
     }
     String cfg_file = null;
     String jobs_file = null;
-    String key = CcdpUtils.KEY_CFG_FILE;
+    String key = CcdpUtils.CFG_KEY_CFG_FILE;
     
     // do we have a configuration file? if not search for the System Property
     if( cmd.hasOption('c') )

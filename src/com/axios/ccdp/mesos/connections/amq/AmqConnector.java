@@ -52,7 +52,7 @@ public class AmqConnector
    */
   protected boolean connect(String name)
   {
-    String broker = CcdpUtils.getProperty(CcdpUtils.KEY_BROKER_CONNECTION);
+    String broker = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     
     this.logger.info("Connecting to: " + broker);
     

@@ -404,13 +404,13 @@ def set_slave( data, is_aws ):
   if data.has_key('session-id'):
     sid = data['session-id']
     print "Setting attributes IID: %s and SID: %s" % (iid, sid)
-    cmd = "echo instance-d:%s,session-id:%s >> /etc/mesos-slave/attributes" % (iid, sid)
+    cmd = 'echo "instance-id:%s;session-id:%s" >> /etc/mesos-slave/attributes' % (iid, sid)
   else:
     print "Setting attributes IID: %s" % (iid)
-    cmd = "echo instance-d:%s >> /etc/mesos-slave/attributes" % iid
+    cmd = "echo instance-id:%s >> /etc/mesos-slave/attributes" % iid
   
   print "Executing: %s" % cmd
-  os.system(cmd) 
+  os.system("%s" % cmd) 
 
 
 if __name__ == '__main__':

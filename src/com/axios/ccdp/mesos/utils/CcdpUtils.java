@@ -42,23 +42,31 @@ public class CcdpUtils
   /**  The default name of the log4j configuration file  */
   public static String LOG4J_CFG_FILENAME = "log4j.properties";
   /**  The key name of the property storing the log4j config filename  */
-  public static final String KEY_LOG4J_CFG_FILE = "log4j.config.file";
+  public static final String CFG_KEY_LOG4J_CFG_FILE = "log4j.config.file";
   /**  The key name of the property storing the configuration filename  */
-  public static final String KEY_CFG_FILE = "ccdp.config.file";
+  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
   /**  The key name of the property the root path of the system  */
-  public static final String KEY_FMWK_ROOT = "ccdp.framework.root";
+  public static final String CFG_KEY_FMWK_ROOT = "ccdp.framework.root";
   /**  The key name of the property with the self contained executor jar  */
-  public static final String KEY_EXEC_JAR = "executor.src.jar.file";
+  public static final String CFG_KEY_EXEC_JAR = "executor.src.jar.file";
   /**  The key name of the property used to locate the mesos master  */
-  public static final String KEY_MESOS_MASTER_URI = "mesos.master.uri";
+  public static final String CFG_KEY_MESOS_MASTER_URI = "mesos.master.uri";
   /**  The key name of the property used to send tasks to the Scheduler  */
-  public static final String KEY_TASKING_CHANNEL = "to.scheduler.channel";
+  public static final String CFG_KEY_TASKING_CHANNEL = "to.scheduler.channel";
   /**  The key name of the property used to send events to other entities  */
-  public static final String KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
+  public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
   /**  The key name of the property used to connect to a broker  */
-  public static final String KEY_BROKER_CONNECTION = "broker.connection";
+  public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
   /**  The key name of the property used to generate an object factory  */
-  public static final String KEY_FACTORY_IMPL = "factory.interface.impl";
+  /** The time to wait before checking for next tasking thread assignment **/
+  public static final String CFG_KEY_FACTORY_IMPL = "factory.interface.impl";
+  
+  /** The JSON key used to store the user's session id **/
+  public static final String KEY_SESSION_ID = "session-id";
+  /** The JSON key used to store the resource's instance id **/
+  public static final String KEY_INSTANCE_ID = "instance-id";
+
+  
   /**
    * Stores all the properties used by the system
    */
@@ -79,7 +87,7 @@ public class CcdpUtils
   public static void configureProperties() 
                                       throws FileNotFoundException, IOException
   {
-    String key = CcdpUtils.KEY_CFG_FILE;
+    String key = CcdpUtils.CFG_KEY_CFG_FILE;
     if( CcdpUtils.properties.containsKey( key ) )
       CcdpUtils.configProperties(CcdpUtils.properties.getProperty( key ));
     else
@@ -132,7 +140,7 @@ public class CcdpUtils
    */
   public static void configLogger()
   {
-    String key = CcdpUtils.KEY_LOG4J_CFG_FILE;
+    String key = CcdpUtils.CFG_KEY_LOG4J_CFG_FILE;
     if( CcdpUtils.properties.containsKey(  key ) )
       CcdpUtils.configLogger(CcdpUtils.properties.getProperty( key ));
     else
@@ -389,8 +397,6 @@ public class CcdpUtils
 
         JsonObject obj = (JsonObject)tasks.get(i);
         CcdpTaskRequest task = gson.fromJson(obj, CcdpTaskRequest.class);
-        if( i == 0 )
-          request.setStartingTask(task.getTaskId());
         request.getTasks().add(task);
         requests.add(request);
       }    
@@ -413,9 +419,6 @@ public class CcdpUtils
         
         CcdpTaskRequest task = new CcdpTaskRequest();
         task.setTaskId( UUID.randomUUID().toString() );
-        
-        if( i == 0 )
-          request.setStartingTask(task.getTaskId());
         
         JsonObject job = (JsonObject)jobs.get(i);
         double cpu = 0;

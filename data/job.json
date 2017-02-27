@@ -1,0 +1,6 @@
+{
+  "jobs": 
+    [
+      {"session-id":"oeg-1", "cpu": 0.01, "mem": 0.0000000001, "command": ["/bin/echo", "'Hello world'", ">>", "/tmp/hello.txt"]}
+    ]
+}

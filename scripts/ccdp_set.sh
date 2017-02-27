@@ -18,7 +18,14 @@ else
   echo "CCDP_HOME is set to '$CCDP_HOME'"; 
 fi
 
+
+
 JSON_CFG='{"session-id":"oeg-1","mesos-type":"MASTER","server-id":1,"clean-work-dir":1}'
 echo "Setting Environment to ${JSON_CFG}"
 
+CURR_DIR=`pwd`
+cd ${CCDP_HOME}/scripts
+echo "Running from $PWD"
 ${CCDP_HOME}/scripts/mesos_config.py ${JSON_CFG}
+
+cd ${CURR_DIR}

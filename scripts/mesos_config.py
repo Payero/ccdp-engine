@@ -35,7 +35,10 @@ def run_config(cli_data):
   else:
     print "Running outside of AWS"
     # generates a uuid and takes only the last 2 parts to generate i-aaaa-bbbbbcccc
-    iid =  "i-%s" % "-".join(str(uuid.uuid1()).split('-')[3:])
+    #iid = "i-%s" % "-".join(str(uuid.uuid1()).split('-')[3:])
+    # want to being able to identify is not a real AWS, but is 'RUNNING'
+    iid = "i-test-%s" % "-".join(str(uuid.uuid1()).split('-')[4:])
+
     ip = str([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
 
     config = {"instanceId": iid,
@@ -47,6 +50,12 @@ def run_config(cli_data):
   cli_data['image-id']    = config.get('imageId')
   cli_data['ip-address']  = config.get('privateIp')
 
+  print "Testing Config: %s" % str(config)
+  if cli_data.has_key('clean-work-dir'):
+    print "Deleting Working Directory"
+    cmd = "rm -fR /var/lib/mesos/*"
+    print "Executing: %s" % cmd
+    os.system(cmd)    
   print "Setting up environment using: %s" % pformat(cli_data)
 
 

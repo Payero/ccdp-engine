@@ -25,6 +25,9 @@ import org.apache.mesos.Scheduler;
 
 import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /**
  * Main class to run a Mesos Framework.  It is used for testing and learning
@@ -38,6 +41,14 @@ public class CCDPEngineMain
    * Displays all the debug messages to the screen
    */
   private Logger logger = Logger.getLogger(CCDPEngineMain.class.getName());
+  /**
+   * Parses and prints all the options or arguments used by this application
+   */
+  private static HelpFormatter formatter = new HelpFormatter();
+  /**
+   * Stores all the options that can be used by this application
+   */
+  private static Options options = new Options();
   
   /**
    * Instantiates a new object which will deployed a custom executor.  The 
@@ -61,7 +72,12 @@ public class CCDPEngineMain
     // if we don't have a path then quit
     if( root == null )
     {
-      CCDPEngineMain.usage("Please set the running environment");
+      String msg = "Please set the running environment. Need to either set " +
+               " the CCDP_HOME environment variable or set the path of the " +
+               " installation using the System Property: '" + 
+               CcdpUtils.CFG_KEY_FMWK_ROOT + "'";
+      
+      CCDPEngineMain.usage(msg);
     }
     String jar_file = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_EXEC_JAR);
     
@@ -93,8 +109,7 @@ public class CCDPEngineMain
     this.logger.info("Executor ID = " + ccdpExec.getExecutorId().getValue() );
     FrameworkInfo.Builder frameworkBuilder = FrameworkInfo.newBuilder()
         .setFailoverTimeout(120000)
-        .setUser("") // Have Mesos fill in
-        // the current user.
+        .setUser("") // Have Mesos fill in the current user
         .setName("CCDP Remote Command Exec");
 
     if (System.getenv("MESOS_CHECKPOINT") != null) 
@@ -104,6 +119,9 @@ public class CCDPEngineMain
     }
     
     List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
+    boolean test = true;
+    List<CcdpJob> jobs = new ArrayList<CcdpJob>();
+    
     if( json_file != null )
     {
       File json_jobs = new File(json_file);
@@ -116,8 +134,21 @@ public class CCDPEngineMain
         this.logger.debug("Is a valid file");
         byte[] data = Files.readAllBytes( Paths.get( json_file ) );
         requests = CcdpUtils.toCcdpThreadRequest(new String( data, "UTF-8"));
-        
         this.logger.debug("Number of Jobs: " + requests.size() );
+        
+        if( test )
+        {
+          JsonNode node = new ObjectMapper().readTree( data );
+          if( node.has("jobs") )
+          {
+            ArrayNode jobs_node = (ArrayNode)node.get("jobs");
+            for( JsonNode job : jobs_node )
+            {
+              this.logger.debug("Adding Job: " + job.toString());
+              jobs.add(CcdpJob.fromJSON(job.deepCopy()));
+            }
+          }
+        }
       }
       else
       {
@@ -126,7 +157,20 @@ public class CCDPEngineMain
         CCDPEngineMain.usage(msg);
       }
     }
+    
     Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
+    
+    if( test )
+    {
+     
+      scheduler = new SimpleRemoteScheduler( ccdpExec, jobs );
+      this.logger.warn("\n\nUSING THE SIMPLE REMOTE SCHEDULER");
+      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER");
+      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER");
+      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER\n\n");
+      
+    }
+    
     // Running Mesos Specific stuff
     MesosSchedulerDriver driver = null;
     String master = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MESOS_MASTER_URI);
@@ -179,14 +223,10 @@ public class CCDPEngineMain
    */
   private static void usage(String msg) 
   {
-    String name = CcdpRemoteScheduler.class.getName();
     if( msg != null )
       System.err.println(msg);
-    System.err.println("Usage: " + name + " json_jobs_filename [config file]");
-    System.err.println("The configuration file can be either pass as an ");
-    System.err.println("argument or it can be passed as a property using the ");
-    System.err.println("key 'ccdp.config.file'");
     
+    formatter.printHelp(CCDPEngineMain.class.toString(), options);
     System.exit(1);
   }
 
@@ -216,7 +256,6 @@ public class CCDPEngineMain
   public static void main(String[] args) throws Exception 
   {
     // building all the options available
-    Options options = new Options();
     String txt = "Path to the configuration file.  This can also be set using "
         + "the System Property 'ccdp.config.file'";
     Option config = new Option("c", "config-file", true, txt);
@@ -233,7 +272,6 @@ public class CCDPEngineMain
     options.addOption(help);
 
     CommandLineParser parser = new DefaultParser();
-    HelpFormatter formatter = new HelpFormatter();
     
     CommandLine cmd;
 
@@ -284,6 +322,9 @@ public class CCDPEngineMain
       else
         usage("The jobs file (" + fname + ") was provided, but is invalid");
     }
+    
+    if( cfg_file == null )
+      usage("The configuration is null, but it is required");
     
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();

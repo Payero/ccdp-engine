@@ -12,7 +12,8 @@ import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.Value;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 
 /**
@@ -35,6 +36,10 @@ public class CcdpJob
    * All the different states the job can be at any given time
    */
   public enum JobState { PENDING, STAGING, RUNNING, SUCCESSFUL, FAILED }
+  /**
+   * Creates all the ArrayNode and ObjectNode
+   */
+  private static ObjectMapper mapper = new ObjectMapper();
   /**
    * Stores the current status of the task
    */
@@ -70,7 +75,7 @@ public class CcdpJob
   /**
    * Stores the configuration for this job
    */
-  private JsonObject config = new JsonObject();
+  private ObjectNode config;;
   
   /**
    * Instantiates a new object and sets its status to PENDING, and the number
@@ -188,7 +193,7 @@ public class CcdpJob
    * 
    * @return the optional configuration to pass to the Mesos Executor
    */
-  public JsonObject getConfig()
+  public ObjectNode getConfig()
   {
     return config;
   }
@@ -197,7 +202,7 @@ public class CcdpJob
    * Sets the optional configuration to be executed by this task.  
    * 
    */
-  public void setConfig(JsonObject config)
+  public void setConfig(ObjectNode config)
   {
     this.config = config;
   }
@@ -278,11 +283,12 @@ public class CcdpJob
     this.slaveId = targetSlave;
     
     bldr.setExecutor(exec);
-    JsonObject json = new JsonObject();
-    json.addProperty("cmd", this.command);
+    ObjectNode json = CcdpJob.mapper.createObjectNode();
+    
+    json.put("cmd", this.command);
     // if there is a configuration, add it
     if( this.config != null )
-      json.add("cfg", this.config);
+      json.set("cfg", this.config);
     
     bldr.setData(ByteString.copyFrom(json.toString().getBytes()));
     return bldr.build();
@@ -298,15 +304,25 @@ public class CcdpJob
    * @throws JSONException a JSONException is thrown if there is a problem 
    *         parsing the JSON object
    */
-  public static CcdpJob fromJSON( JsonObject obj) 
+  public static CcdpJob fromJSON( ObjectNode obj) 
   {
     CcdpJob job = new CcdpJob();
-    job.cpus = obj.get("cpus").getAsDouble();
-    job.mem = obj.get("mem").getAsDouble();
-    job.command = obj.get("command").getAsString();
-    if( obj.has("cfg") )
-      job.setConfig((JsonObject)obj.get("cfg"));
+    if( obj.has("cpus") )
+      job.cpus = obj.get("cpu").asDouble();
+    else
+      job.cpus = 0.01;
+    if( obj.has("mem") )
+      job.mem = obj.get("mem").asDouble();
+    else
+      job.mem = 0.01;
+    if( obj.has("command") )
+      job.command = obj.get("command").asText();
+    else
+      System.err.println("The command field is required");
     
+    if( obj.has("cfg") )
+      job.setConfig(obj.get("cfg").deepCopy());
+      
     return job;
   }
   
@@ -322,20 +338,21 @@ public class CcdpJob
     //TODO Is this function really needed?????
     
     this.logger.info("Saving State");
-    JsonObject obj = new JsonObject();
-    obj.addProperty("id", this.id);
+    ObjectNode obj = CcdpJob.mapper.createObjectNode();
+    
+    obj.put("id", this.id);
     if( this.status == JobState.STAGING )
-      obj.addProperty("status", JobState.RUNNING.toString() );
+      obj.put("status", JobState.RUNNING.toString() );
     else
-      obj.addProperty("status", this.status.toString() );
+      obj.put("status", this.status.toString() );
     
     // storing all other fields
-    obj.addProperty("cpus", this.cpus);
-    obj.addProperty("mem", this.mem);
-    obj.addProperty("command", this.command);
-    obj.addProperty("retries", this.retries);
-    obj.addProperty("submitted", this.submitted);
-    obj.addProperty("slave-id", this.slaveId.toString());
+    obj.put("cpus", this.cpus);
+    obj.put("mem", this.mem);
+    obj.put("command", this.command);
+    obj.put("retries", this.retries);
+    obj.put("submitted", this.submitted);
+    obj.put("slave-id", this.slaveId.toString());
     
   }
   

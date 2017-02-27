@@ -10,8 +10,9 @@ import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 
 /**
  * Simple class that is used by a Mesos Executor and is intended to run on a 
@@ -50,6 +51,12 @@ public class CcdpTaskRunner extends Thread
    * actual command is added in the startProcess()
    */
   private List<String> cmdArgs = new ArrayList<String>();
+  
+  /**
+   * Creates all the ObjectNode and ArrayNode objects
+   */
+  private ObjectMapper mapper = new ObjectMapper();
+  
   /**
    * Creates a new Task to be executed by a Mesos Executor 
    */
@@ -77,11 +84,10 @@ public class CcdpTaskRunner extends Thread
       byte[] taskData = this.taskInfo.getData().toByteArray();
       String msg = "The Task JSON Configuration: " + new String(taskData);
       this.logger.debug(msg);
-      JsonParser parser = new JsonParser();
       
-      JsonObject cfg = 
-          (JsonObject)parser.parse( new String( taskData, "UTF-8") );
-      this.process = this.startProcess(cfg);
+      JsonNode node = this.mapper.readTree( new String( taskData, "UTF-8") );
+      
+      this.process = this.startProcess(node);
       
       int exitCode;
       try
@@ -140,11 +146,11 @@ public class CcdpTaskRunner extends Thread
    * @throws Exception an exception is thrown if an error is found while 
    *         attempting to execute the command
    */
-  private Process startProcess( JsonObject job  ) throws Exception
+  private Process startProcess( JsonNode job  ) throws Exception
   {
     this.logger.info("Launching a new Process: " + job);
     
-    this.cmdArgs.add(job.get("cmd").getAsString());
+    this.cmdArgs.add(job.get("cmd").asText());
     String mesosDir = System.getenv("MESOS_DIRECTORY");
     
     ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);

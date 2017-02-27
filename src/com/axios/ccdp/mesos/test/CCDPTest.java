@@ -1,31 +1,28 @@
 package com.axios.ccdp.mesos.test;
 
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.resources.CcdpVMResource;
-import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.gson.reflect.TypeToken;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class CCDPTest
+
+public class CCDPTest implements GetMe
 {
 
   /**
@@ -37,30 +34,29 @@ public class CCDPTest
   public CCDPTest() throws Exception
   {
     this.logger.debug("Running CCDP Test");
-    
-//    String fname = "/home/oeg/dev/CCDP/data/resource.json";
-//   
-//    byte[] bytes = Files.readAllBytes( Paths.get( fname ) );
-//    String data = new String( bytes, "UTF-8");
+    Properties props = System.getProperties();
+    Enumeration<Object> keys = props.keys();
+    while( keys.hasMoreElements() )
+    {
+      String key = (String)keys.nextElement();
+      String val = props.getProperty(key);
+      this.logger.debug("Property[" + key + "] = " + val);
+    }
 
-    HolderClass hc = new HolderClass();
-    hc.addItem(new MyItem("One", "First Number"));
-    hc.addItem(new MyItem("Two", "Second Number"));
-    hc.addItem(new MyItem("Three", "Third Number"));
-    hc.addItem(new MyItem("Four", "Fourth Number"));
+  }  
+  
+  
+  public List<String> getItems()
+  {
+    List<String> array = new ArrayList<>();
+    array.add("One");
+    array.add("Dos");
+    array.add("Tres");
+    array.add("Cuatro");
     
-    this.logger.debug("Before \n" + hc.toString());
-    
-    MyItem test = hc.getItem();
-    this.logger.debug("Contains Item? " + hc.hasItem(test));
-    test.setDescription("Modified Descriction");
-    
-    this.logger.debug("After \n" + hc.toString());
-    this.logger.debug("Contains Item? " + hc.hasItem(test));
-    
+    return array;
   }
   
-
   public static void main(String[] args) throws Exception
   {
     CcdpUtils.loadProperties(System.getProperty(CcdpUtils.CFG_KEY_CFG_FILE));
@@ -68,4 +64,26 @@ public class CCDPTest
     
     new CCDPTest();
   }
+}
+
+class TestLong implements GetMe<Long>
+{
+  public List<Long> getItems()
+  {
+    List<Long> list = new ArrayList<>();
+    list.add(new Long(1));
+    list.add(new Long(2));
+    list.add(new Long(3));
+    list.add(new Long(4));
+    
+    
+    return list;
+  }
+  
+}
+
+interface GetMe<T>
+{
+  public List<T> getItems();
+  
 }

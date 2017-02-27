@@ -11,6 +11,8 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * An actual implementation of the CcdpTaskingIntf that uses ActiveMQ as the 
@@ -45,7 +47,12 @@ public class AMQCcdpTaskingImpl
   /**
    * The object interested on receiving the actual task
    */
-  CcdpTaskConsumerIntf consumer = null;
+  private CcdpTaskConsumerIntf consumer = null;
+  
+  /**
+   * Stores the configuration for the tasking interface
+   */
+  private ObjectNode config = null;
   
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
@@ -70,6 +77,52 @@ public class AMQCcdpTaskingImpl
   }
   
   /**
+   * Configures the running environment and/or connections required to perform
+   * the operations.  The JSON Object contains all the different fields 
+   * necessary to operate.  These fields might change on each actual 
+   * implementation
+   * 
+   * @param config a JSON Object containing all the necessary fields required 
+   *        to operate
+   */
+  @Override
+  public void configure( ObjectNode config )
+  {
+    this.config = config;
+  }
+  
+  /**
+   * Registers a unique identifier with a specific channels.  
+   * 
+   * IMPORTANT NOTE: The registration will allow to start receiving external 
+   * events and therefore the setEventConsumer() needs to be called first, 
+   * failing to do so could have unexpected behavior.
+   * 
+   */
+  @Override
+  public void register()
+  {
+    this.register(this.config.get(CcdpUtils.CFG_KEY_TASKING_UUID).asText());
+  }
+  
+  /**
+   * Registers a unique identifier with a specific channels.  
+   * 
+   * IMPORTANT NOTE: The registration will allow to start receiving external 
+   * events and therefore the setEventConsumer() needs to be called first, 
+   * failing to do so could have unexpected behavior.
+   * 
+   * @param uuid the consumer unique identifier to use
+   */
+  @Override
+  public void register(String uuid)
+  {
+    String channel = 
+        this.config.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL).asText();
+    this.register(uuid, channel);
+  }
+  
+  /**
    * Registers a unique identifier with a specific channels.  
    * 
    * IMPORTANT NOTE: The registration will allow to start receiving external 
@@ -88,8 +141,8 @@ public class AMQCcdpTaskingImpl
       this.logger.error("Have not registered a CcdpEventConsumer!!");
       return;
     }
-    
-    this.receiver.connect(channel);
+    String brkr = this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
+    this.receiver.connect(brkr, channel);
     
     // do we have it already?
     if( this.registrations.containsKey(channel) )
@@ -116,6 +169,22 @@ public class AMQCcdpTaskingImpl
    * props Map is an optional set of properties to be set in the header and the 
    * body is the actual payload or event to send.
    * 
+   * @param props a series of optional header information
+   * @param body the actual body or event to send
+   */
+  @Override
+  public void sendEvent(Map<String, String> props, Object body)
+  {
+    String channel = 
+        this.config.get(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL).asText();
+    this.sendEvent(channel, props, body);
+  }
+  
+  /**
+   * Sends an event to the destination specified in the given channel.  The
+   * props Map is an optional set of properties to be set in the header and the 
+   * body is the actual payload or event to send.
+   * 
    * @param channel the destination channel to send the event
    * @param props a series of optional header information
    * @param body the actual body or event to send
@@ -123,11 +192,38 @@ public class AMQCcdpTaskingImpl
   @Override
   public void sendEvent(String channel, Map<String, String> props, Object body)
   {
-    this.logger.info("Sending Event");
-    this.sender.connect(channel);
+    this.logger.info("Sending Event to " + channel);
+    String brkr = this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
+    this.sender.connect(brkr, channel);
     this.sender.sendMessage(props, body.toString());
   }
 
+  /**
+   * Unregisters the UUID from receiving incoming events from the given channel
+   * 
+   * @param uuid the unique identifier to remove from receiving events
+   * @param channel the channel to unsubscribe
+   */
+  @Override
+  public void unregister()
+  {
+    this.unregister(this.config.get(CcdpUtils.CFG_KEY_TASKING_UUID).asText());
+  }
+  
+  /**
+   * Unregisters the UUID from receiving incoming events from the given channel
+   * 
+   * @param uuid the unique identifier to remove from receiving events
+   * @param channel the channel to unsubscribe
+   */
+  @Override
+  public void unregister(String uuid)
+  {
+    String channel = 
+        this.config.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL).asText();
+    this.unregister(uuid, channel);
+  }
+  
   /**
    * Unregisters the UUID from receiving incoming events from the given channel
    * 

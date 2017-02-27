@@ -1,17 +1,18 @@
-{"Tasks":
+{"tasks":
   [
     {
-      "CPU": "10",
-      "MEM": "128",
-      "Command": ["python", "/opt/modules/CsvReader.python", "${CCDP_HOME}/data/csv_test_file.csv"]
+      "task-id": "task-123",
+      "cpu": "10",
+      "mem": "128",
+      "command": ["python", "/opt/modules/CsvReader.python", "${CCDP_HOME}/data/csv_test_file.csv"]
     },
     {
-      "CPU": "100",
-      "MEM": "128",
-      "Command": ["python", "/opt/modules/tasks/csv_demo/JsonTranslator.py", "-i", "${CCDP_HOME}/data/input_text.txt", "-o", "${CCDP_HOME}/data/out_text.json"]
+      "cpu": "100",
+      "mem": "128",
+      "command": ["python", "/opt/modules/tasks/csv_demo/JsonTranslator.py", "-i", "${CCDP_HOME}/data/input_text.txt", "-o", "${CCDP_HOME}/data/out_text.json"]
     },
     {
-      "Command": ["python", "/opt/modules/tasks/csv_demo/JsonReader.py", "-i", "${CCDP_HOME}/data/out_text.json"]
+      "command": ["python", "/opt/modules/tasks/csv_demo/JsonReader.py", "-i", "${CCDP_HOME}/data/out_text.json"]
     }
   ]
 }

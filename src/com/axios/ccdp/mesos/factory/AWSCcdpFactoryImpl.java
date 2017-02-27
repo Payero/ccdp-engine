@@ -10,7 +10,7 @@ import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.axios.ccdp.mesos.connections.amq.AMQCcdpTaskingImpl;
-import com.axios.ccdp.mesos.connections.intfs.CcdpObejctFactoryAbs;
+import com.axios.ccdp.mesos.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
@@ -18,9 +18,9 @@ import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpStorageControllerImpl;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpTaskingControllerImpl;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
+public class AWSCcdpFactoryImpl extends CcdpObjectFactoryAbs
 {
   /** Stores the name of the ACCESS KEY Environment Variable **/
   public static final String ACCESS_KEY_ID_ENV_VAR = "AWS_ACCESS_KEY_ID";
@@ -58,9 +58,11 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
    *         to send and receive tasking events
    */
   @Override
-  public CcdpTaskingIntf getCcdpTaskingInterface()
+  public CcdpTaskingIntf getCcdpTaskingInterface(ObjectNode config)
   {
-    return new AMQCcdpTaskingImpl();
+    CcdpTaskingIntf tasking = new AMQCcdpTaskingImpl();
+    tasking.configure(config);
+    return tasking;
   }
 
   /**
@@ -73,7 +75,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
    *         to manipulate the resources
    */
   @Override
-  public CcdpVMControllerIntf getCcdpResourceController(JsonObject config)
+  public CcdpVMControllerIntf getCcdpResourceController(ObjectNode config)
   {
     CcdpVMControllerIntf aws = new AWSCcdpVMControllerImpl();
     aws.configure(config);
@@ -91,7 +93,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
    *         to manipulate the storage resources
    */
   @Override
-  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(JsonObject config)
+  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(ObjectNode config)
   {
     CcdpStorageControllerIntf aws = new AWSCcdpStorageControllerImpl();
     aws.configure(config);
@@ -108,7 +110,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
    *         to manipulate the tasking
    */
   @Override
-  public CcdpTaskingControllerIntf getCcdpTaskingController(JsonObject config)
+  public CcdpTaskingControllerIntf getCcdpTaskingController(ObjectNode config)
   {
     CcdpTaskingControllerIntf aws = new AWSCcdpTaskingControllerImpl();
     aws.configure(config);
@@ -153,7 +155,7 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
    *         it cannot find at least one of the different methods to 
    *         authenticate the user
    */
-  public static AWSCredentials getAWSCredentials( JsonObject config )
+  public static AWSCredentials getAWSCredentials( ObjectNode config )
   {
     logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -180,8 +182,8 @@ public class AWSCcdpFactoryImpl extends CcdpObejctFactoryAbs
              config.has(FLD_PROFILE_NAME))
     {
       logger.info("Setting Credentials using JSON Configuration");
-      String fname = config.get(FLD_CREDS_FILE).getAsString();
-      String profile = config.get(FLD_PROFILE_NAME).getAsString();
+      String fname = config.asText(FLD_CREDS_FILE);
+      String profile = config.asText(FLD_PROFILE_NAME);
       credentials = AWSCcdpFactoryImpl.getCredentials(fname, profile);
     }
     else if( System.getenv("HOME") != null )

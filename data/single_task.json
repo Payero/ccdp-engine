@@ -1,15 +1,15 @@
 {
- "Tasks": 
+ "tasks": 
    [
-      {"TaskId": "csv_reader",
-       "Name": "Csv File Reader",
-       "ClassName": "tasks.csv_demo.CsvReader",
-       "NodeType": "ec2",
-       "ReplyTo": "The Sender",
-       "CPU": "10",
-       "MEM": "128",
-       "Command": ["python", "/opt/modules/CsvReader.python"],
-       "Configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv" }
+      {"task-id": "csv_reader",
+       "name": "Csv File Reader",
+       "classname": "tasks.csv_demo.CsvReader",
+       "node-type": "ec2",
+       "reply-to": "The Sender",
+       "cpu": "10",
+       "mem": "128",
+       "command": ["python", "/opt/modules/CsvReader.python"],
+       "configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv" }
      }        
    ]  
 }

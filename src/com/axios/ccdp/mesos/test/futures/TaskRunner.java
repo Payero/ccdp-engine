@@ -7,9 +7,10 @@ import java.util.function.Supplier;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class TaskRunner implements Runnable, Supplier<JsonObject>
+public class TaskRunner implements Runnable, Supplier<ObjectNode>
 {
 
   /**
@@ -37,13 +38,14 @@ public class TaskRunner implements Runnable, Supplier<JsonObject>
     this.date = new Date();
   }
   
-  public JsonObject get()
+  public ObjectNode get()
   {
-    JsonObject json = new JsonObject();
-    json.addProperty("name", this.name);
-    json.addProperty("date", this.date.toString());
+    ObjectNode node = new ObjectMapper().createObjectNode();
     
-    return json;
+    node.put("name", this.name);
+    node.put("date", this.date.toString());
+    
+    return node;
   }
   
   public String getName()

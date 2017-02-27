@@ -41,13 +41,14 @@ public class AmqSender extends AmqConnector
   /**
    * Connects to the given channel to send events
    * 
+   * @param broker the server or broker to connect
    * @param channel the channel used to send events
    */
-  public boolean connect(String channel)
+  public boolean connect(String broker, String channel)
   {
     try
     {
-      super.connect(channel);
+      super.connect(broker, channel);
       this.producer = session.createProducer(destination);
       return true;
     }

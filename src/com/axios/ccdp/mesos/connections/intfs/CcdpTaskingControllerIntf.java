@@ -1,35 +1,32 @@
 package com.axios.ccdp.mesos.connections.intfs;
 
+import java.util.List;
+
 import com.axios.ccdp.mesos.resources.CcdpVMResource;
-import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
-import com.google.gson.JsonObject;
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-
-public abstract class CcdpTaskingControllerIntf implements Runnable
+/**
+ * Interface used to isolate decision making on when to launch new resources
+ * from the mesos scheduler.  The actual implementation would the be object 
+ * with the actual knowledge on when new resources need to be launched.
+ * 
+ * Tried to avoid any dependency to Mesos, but in order to generate the 
+ * necessary tasking information about the 
+ * 
+ * @author Oscar E. Ganteaume
+ *
+ */
+public interface CcdpTaskingControllerIntf<T>
 {
 
-  public abstract void configure( JsonObject config );
+  public  void configure( ObjectNode config );
   
-  public abstract void setVMController( CcdpVMControllerIntf controller );
+  public  List<T> assignTasks(List<CcdpTaskRequest> tasks, 
+                              List<CcdpVMResource> resources);
   
-  public abstract void setStorageController( CcdpStorageControllerIntf storage );
+  public  boolean needResourceAllocation(List<CcdpVMResource> resources);
   
-  public abstract void addTaskingThread(CcdpThreadRequest request);
-  
-  public abstract int getNumberPendingThreads();
-  
-  public abstract int getNumberPendingTasks();
-  
-  public abstract void updateResource(CcdpVMResource resource);
-  
-  public abstract void stopThread( String threadId );
-  
-  public abstract void killThread( String threadId );
-  
-  public abstract void stopTask( String taskId );
-  
-  public abstract void killTask( String taskId );
-  
-  public abstract void stopTasking();
+  public  List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources);
   
 }

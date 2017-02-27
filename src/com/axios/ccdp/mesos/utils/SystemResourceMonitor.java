@@ -6,7 +6,8 @@ import java.lang.reflect.Method;
 
 import org.apache.log4j.Logger;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Simple utility class used to obtain some of the resource utilization 
@@ -317,26 +318,28 @@ public class SystemResourceMonitor
    */
   public String toString()
   {
-    JsonObject json = new JsonObject();
-    json.addProperty("CommittedVirtualMemorySize", 
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode json = mapper.createObjectNode();
+    
+    json.put("CommittedVirtualMemorySize", 
              this.getCommittedVirtualMemorySize());
-    json.addProperty("TotalSwapSpaceSize", 
+    json.put("TotalSwapSpaceSize", 
         this.getTotalSwapSpaceSize());
-    json.addProperty("FreeSwapSpaceSize", 
+    json.put("FreeSwapSpaceSize", 
         this.getFreeSwapSpaceSize());
-    json.addProperty("ProcessCpuTime", 
+    json.put("ProcessCpuTime", 
         this.getProcessCpuTime());
-    json.addProperty("FreePhysicalMemorySize", 
+    json.put("FreePhysicalMemorySize", 
         this.getFreePhysicalMemorySize());
-    json.addProperty("TotalPhysicalMemorySize", 
+    json.put("TotalPhysicalMemorySize", 
         this.getTotalPhysicalMemorySize());
-    json.addProperty("OpenFileDescriptorCount", 
+    json.put("OpenFileDescriptorCount", 
         this.getOpenFileDescriptorCount());
-    json.addProperty("MaxFileDescriptorCount", 
+    json.put("MaxFileDescriptorCount", 
         this.getMaxFileDescriptorCount());
-    json.addProperty("SystemCpuLoad", 
+    json.put("SystemCpuLoad", 
         this.getSystemCpuLoad());
-    json.addProperty("ProcessCpuLoad", 
+    json.put("ProcessCpuLoad", 
         this.getProcessCpuLoad());
 
     return json.toString();

@@ -9,7 +9,7 @@ import java.util.function.BiFunction;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
 public class Runner
@@ -37,7 +37,7 @@ public class Runner
     {
       Executor exec = Executors.newFixedThreadPool(2);
       TaskRunner task = new TaskRunner("One");
-      CompletableFuture<JsonObject> 
+      CompletableFuture<ObjectNode> 
                         future = CompletableFuture.supplyAsync(task, exec);
      
       
@@ -56,13 +56,13 @@ public class Runner
         e.printStackTrace();
       }
       
-      JsonObject json = future.join();
+      ObjectNode json = future.join();
      
       this.logger.debug("The Task: " + json );
     }
     
   }
-  public void handleTask( BiFunction<JsonObject, Throwable, Void> a )
+  public void handleTask( BiFunction<ObjectNode, Throwable, Void> a )
   {
     
   }

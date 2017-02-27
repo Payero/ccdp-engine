@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
 import java.util.UUID;
@@ -21,10 +22,10 @@ import org.apache.log4j.PropertyConfigurator;
 
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
 import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Simple utility class used to perform different tasks by multiple objects
@@ -53,19 +54,40 @@ public class CcdpUtils
   public static final String CFG_KEY_MESOS_MASTER_URI = "mesos.master.uri";
   /**  The key name of the property used to send tasks to the Scheduler  */
   public static final String CFG_KEY_TASKING_CHANNEL = "to.scheduler.channel";
+  /**  The key name of the property used to set the Unique ID of this session */
+  public static final String CFG_KEY_TASKING_UUID = "tasking.uuid";
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
   /**  The key name of the property used to connect to a broker  */
   public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
   /**  The key name of the property used to generate an object factory  */
-  /** The time to wait before checking for next tasking thread assignment **/
   public static final String CFG_KEY_FACTORY_IMPL = "factory.interface.impl";
+  /** The key name of the property used determine min number of free agents **/
+  public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
   
+  /** Properties used by the tasking object receiving external tasks */
+  public static final String CFG_KEY_TASK_MSG = "taskingIntf";
+  /** Properties used by the tasking controller object */
+  public static final String CFG_KEY_TASK_CTR = "taskContrIntf";
+  /** Properties used by the resource controller object */
+  public static final String CFG_KEY_RESOURCE = "resourceIntf";
+  /** Properties used by the storage controller object */
+  public static final String CFG_KEY_STORAGE = "storageIntf";
+  
+
   /** The JSON key used to store the user's session id **/
   public static final String KEY_SESSION_ID = "session-id";
   /** The JSON key used to store the resource's instance id **/
   public static final String KEY_INSTANCE_ID = "instance-id";
-
+  /** The JSON key used to store task id **/
+  public static final String KEY_TASK_ID = "task-id";
+  /** The JSON key used to store the thread id **/
+  public static final String KEY_THREAD_ID = "thread-id";
+  /** The JSON key used to store the resource's instance id **/
+  public static final String KEY_TASK_STATUS = "task-status";
+  
+  /** The name of the public session-id to use when none found in requests   */
+  public static final String PUBLIC_SESSION_ID = "public-session";
   
   /**
    * Stores all the properties used by the system
@@ -73,6 +95,8 @@ public class CcdpUtils
   private static Properties properties = System.getProperties();
   
   private static Logger logger = Logger.getLogger(CcdpUtils.class);
+  
+  private static ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Configures the running environment using the properties file whose name
@@ -282,6 +306,96 @@ public class CcdpUtils
   }
   
   /**
+   * Gets the value of the property stored using the given key as an integer.  
+   * If the property is not found it throws a NumberFormatException
+   * 
+   * @param key the key containing the desired property
+   * @return the integer value of the property if found
+   * 
+   * @throws NumberFormatException a NumberFormatException is thrown if the 
+   *         value stored in the key is invalid
+   */
+  public static int getIntegerProperty(String key)
+  {
+    return Integer.valueOf(CcdpUtils.getProperty(key));
+  }
+
+  /**
+   * Gets the value of the property stored using the given key as a double.  
+   * If the property is not found it throws a NumberFormatException
+   * 
+   * @param key the key containing the desired property
+   * @return the double value of the property if found
+   * 
+   * @throws NumberFormatException a NumberFormatException is thrown if the 
+   *         value stored in the key is invalid
+   */
+  public static double getDoubleProperty(String key)
+  {
+    return Double.valueOf(CcdpUtils.getProperty(key));
+  }
+  
+  /**
+   * Gets the value of the property stored using the given key.  If the property
+   * is not found it returns null
+   * 
+   * @param key the key containing the desired property
+   * @return the value of the property if found or null otherwise
+   */
+  public static boolean getBooleanProperty(String key)
+  {
+    return Boolean.valueOf(CcdpUtils.getProperty(key));
+  }
+  
+  /**
+   * Returns all the key, value pairs from the configuration where the keys 
+   * start with the given filter.  
+   * 
+   * @param filter the first characters representing all the desired keys
+   * 
+   * @return a Map with all the key, value pairs from the configuration where 
+   *         the keys start with the given filter.
+   */
+  public static HashMap<String, String> getKeysByFilter( String filter )
+  {
+    logger.debug("Parsing all the keys starting with " + filter);
+    HashMap<String, String> map = new HashMap<String, String>();
+    Enumeration<?> e = CcdpUtils.properties.propertyNames();
+    while( e.hasMoreElements() )
+    {
+      String key = (String) e.nextElement();
+      if( key.startsWith(filter) )
+      {
+        String val = CcdpUtils.properties.getProperty(key).trim();
+        
+        int start = filter.length() + 1;
+        String prop = key.substring(start);
+        logger.debug("Storing Property[" + prop + "] = " + val);
+        map.put(prop, val);
+      }
+    }
+    
+    return map;
+  }
+  
+  /**
+   * Returns all the key, value pairs from the configuration where the keys 
+   * start with the given filter as a JSON (ObjectNode) object  
+   * 
+   * @param filter the first characters representing all the desired keys
+   * 
+   * @return an ObjectNode with all the key, value pairs from the configuration  
+   *         where the keys start with the given filter.
+   */
+  public static ObjectNode getJsonKeysByFilter( String filter )
+  {
+    HashMap<String, String> map = CcdpUtils.getKeysByFilter(filter);
+    
+    return mapper.convertValue(map, ObjectNode.class);
+  }
+  
+  
+  /**
    * Expands the value of environment variables contained in the value.   If it
    * is not found, it prints an error message warning the user about the missing
    * configuration.  After replacing all the environment variables then it 
@@ -339,13 +453,17 @@ public class CcdpUtils
    * 
    * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         none of the three options are found in the JSON data
+   * @throws JsonProcessingException a JsonProcessingException is thrown if the
+   *         JSON object contains an invalid field or it cannot be processed
+   * @throws IOException an IOException is thrown if the data cannot be 
+   *          processed
    */
   public static List<CcdpThreadRequest> toCcdpThreadRequest( String data )
+                                   throws JsonProcessingException, IOException
   {
-    JsonParser parser = new JsonParser();
-    JsonObject json = parser.parse( data ).getAsJsonObject();    
+    JsonNode node = mapper.readTree( data );
     
-    return CcdpUtils.toCcdpThreadRequest(json);
+    return CcdpUtils.toCcdpThreadRequest(node);
   }
   
   /**
@@ -362,41 +480,46 @@ public class CcdpUtils
    * 
    * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         none of the three options are found in the JSON data
+   * @throws JsonProcessingException a JsonProcessingException is thrown if the
+   *         JSON object contains an invalid field or it cannot be processed
    */
-  public static List<CcdpThreadRequest> toCcdpThreadRequest( JsonObject json )
+  public static List<CcdpThreadRequest> toCcdpThreadRequest( JsonNode json ) 
+                                                throws JsonProcessingException
   {
     List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
     
-    Gson gson = new Gson();
     // first let's look for Threads; the simplest case
     if( json.has("Threads"))
     {
       logger.debug("Processing Threads");
-      JsonArray threads = json.getAsJsonArray("Threads");
+      JsonNode threads = json.get("threads");
       
       for( int i=0; i < threads.size(); i++ )
       {
-        JsonObject obj = (JsonObject)threads.get(i);
-        CcdpThreadRequest req = gson.fromJson(obj, CcdpThreadRequest.class); 
+        CcdpThreadRequest req = 
+            mapper.treeToValue(threads.get(i), CcdpThreadRequest.class);
         requests.add(req);
       }      
     }
     
     // In case there are some Tasks without a Thread information
-    if( json.has("Tasks"))
+    if( json.has("tasks"))
     {
       logger.debug("Processing Tasks");
       
-      JsonArray tasks = json.getAsJsonArray("Tasks");
-      
+      JsonNode tasks = json.get("tasks");
       for( int i=0; i < tasks.size(); i++ )
       {
         CcdpThreadRequest request = new CcdpThreadRequest();
         String uuid = UUID.randomUUID().toString();
         request.setThreadId(uuid);
-
-        JsonObject obj = (JsonObject)tasks.get(i);
-        CcdpTaskRequest task = gson.fromJson(obj, CcdpTaskRequest.class);
+        CcdpTaskRequest task = 
+            mapper.treeToValue(tasks.get(i), CcdpTaskRequest.class);
+        
+        // if at least one of them has a session-id, then use is
+        if( task.getSessionId() != null )
+          request.setSessionId( task.getSessionId() );
+        
         request.getTasks().add(task);
         requests.add(request);
       }    
@@ -405,11 +528,11 @@ public class CcdpUtils
     // Need to create a Task for each Job and then attach them to a Thread so
     // it can be added to the Thread list.  If they are just jobs then need to 
     // be treated as separate threads so they can run in parallel
-    if( json.has("Jobs"))
+    if( json.has("jobs"))
     {
       logger.debug("Processing Jobs");
       
-      JsonArray jobs = json.getAsJsonArray("Jobs");
+      JsonNode jobs = json.get("jobs");
       
       for( int i=0; i < jobs.size(); i++ )
       {
@@ -420,24 +543,30 @@ public class CcdpUtils
         CcdpTaskRequest task = new CcdpTaskRequest();
         task.setTaskId( UUID.randomUUID().toString() );
         
-        JsonObject job = (JsonObject)jobs.get(i);
-        double cpu = 0;
-        double mem = 0;
-        JsonArray cmd = new JsonArray();
+        JsonNode job = jobs.get(i);
         
-        if( job.has("CPU") )
-          cpu = job.get("CPU").getAsDouble();
-        if( job.has("MEM") )
-          mem = job.get("MEM").getAsDouble();
-        if( job.has("Command") )
-          cmd = job.get("Command").getAsJsonArray();
-        List<String> args = new ArrayList<String>();
-        for(int n = 0; n < cmd.size(); n++ )
-          args.add( cmd.get(n).getAsString() );
+        JsonNode cmd;
         
-        task.setCPU(cpu);
-        task.setMEM(mem);
-        task.setCommand(args);
+        if( job.has("cpu") )
+          task.setCPU( job.get("cpu").asDouble() );
+        if( job.has("mem") )
+          task.setMEM( job.get("mem").asDouble() );
+        if( job.has(CcdpUtils.KEY_SESSION_ID) )
+        {
+          String sid = job.get(CcdpUtils.KEY_SESSION_ID).asText();
+          task.setSessionId(sid);
+          request.setSessionId(sid);
+        }
+        
+        if( job.has("command") )
+        {
+          cmd = job.get("command");
+          List<String> args = new ArrayList<String>();
+          for(int n = 0; n < cmd.size(); n++ )
+            args.add( cmd.get(n).toString() );
+          
+          task.setCommand(args);
+        }
         
         request.getTasks().add(task);
         requests.add(request);

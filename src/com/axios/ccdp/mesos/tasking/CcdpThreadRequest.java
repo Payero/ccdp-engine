@@ -9,6 +9,10 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest.CcdpTaskState;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Class used to store a list of associated tasks to be ran sequentially.  It
@@ -26,7 +30,7 @@ public class CcdpThreadRequest
   /**
    * Unique identifier for this thread
    */
-  private String ThreadId;
+  private String threadId;
   /**
    * The session this task belongs to
    */
@@ -34,19 +38,27 @@ public class CcdpThreadRequest
   /**
    * A human readable name to identify this thread
    */
-  private String Name;
+  private String name;
   /**
    * A description to store any help users want to provide
    */
-  private String Description;
+  private String description;
   /**
    * A way to communicate back to the sender events about tasking status change
    */
-  private String ReplyTo = "";
+  private String replyTo = "";
   /**
    * A list of tasks to run in order to execute this processing job
    */
-  private List<CcdpTaskRequest> Tasks = new ArrayList<CcdpTaskRequest>();
+  private List<CcdpTaskRequest> tasks = new ArrayList<CcdpTaskRequest>();
+  /**
+   * Indicates whether or not all the Tasks are launched at once or not
+   */
+  private boolean launchAllTasks = true;
+  /**
+   * Indicates whether or not all the tasks have been submitted for this thread
+   */
+  private boolean tasksSubmitted = false;
   
   /**
    * Instantiates a new object using a self-generated UUID as the ThreadID
@@ -64,7 +76,7 @@ public class CcdpThreadRequest
    */
   public CcdpThreadRequest(String threadId)
   {
-    this.ThreadId = threadId;
+    this.threadId = threadId;
   }
   
   
@@ -75,8 +87,8 @@ public class CcdpThreadRequest
    */
   public CcdpTaskRequest getNextTask()
   {
-    this.logger.debug("Getting Next task for thread: " + this.ThreadId);
-    Iterator<CcdpTaskRequest> tasks = this.Tasks.iterator();
+    this.logger.debug("Getting Next task for thread: " + this.threadId);
+    Iterator<CcdpTaskRequest> tasks = this.tasks.iterator();
     while( tasks.hasNext() )
     {
       CcdpTaskRequest task = tasks.next();
@@ -100,11 +112,11 @@ public class CcdpThreadRequest
   public boolean threadRequestCompleted()
   {
     boolean done = true;
-    Iterator<CcdpTaskRequest> tasks = this.Tasks.iterator();
+    Iterator<CcdpTaskRequest> tasks = this.tasks.iterator();
     while( tasks.hasNext() )
     {
       CcdpTaskRequest task = tasks.next();
-      CcdpTaskState state = task.getTaskState(); 
+      CcdpTaskState state = task.getState(); 
       if( state != CcdpTaskState.SUCCESSFUL ||  state != CcdpTaskState.FAILED)
       {
         done = false;
@@ -121,7 +133,7 @@ public class CcdpThreadRequest
    */
   public String getDescription()
   {
-    return Description;
+    return this.description;
   }
 
   /**
@@ -129,7 +141,7 @@ public class CcdpThreadRequest
    */
   public void setDescription(String description)
   {
-    this.Description = description;
+    this.description = description;
   }
 
   /**
@@ -137,7 +149,7 @@ public class CcdpThreadRequest
    */
   public List<CcdpTaskRequest> getTasks()
   {
-    return Tasks;
+    return this.tasks;
   }
 
   /**
@@ -145,36 +157,40 @@ public class CcdpThreadRequest
    */
   public void setTasks(List<CcdpTaskRequest> tasks)
   {
-    this.Tasks = tasks;
+    this.tasks = tasks;
   }
 
   /**
    * @return the threadId
    */
+  @JsonGetter("thread-id")
   public String getThreadId()
   {
-    return ThreadId;
+    return this.threadId;
   }
 
   /**
    * @param threadId the threadId to set
    */
+  @JsonSetter("thread-id")
   public void setThreadId(String threadId)
   {
-    ThreadId = threadId;
+    this.threadId = threadId;
   }
 
   /**
    * @return the sessionId
    */
+  @JsonGetter("session-id")
   public String getSessionId()
   {
-    return sessionId;
+    return this.sessionId;
   }
 
   /**
    * @param sessionId the sessionId to set
    */
+  @JsonSetter("session-id")
   public void setSessionId(String sessionId)
   {
     this.sessionId = sessionId;
@@ -185,7 +201,7 @@ public class CcdpThreadRequest
    */
   public String getName()
   {
-    return Name;
+    return this.name;
   }
 
   /**
@@ -193,25 +209,59 @@ public class CcdpThreadRequest
    */
   public void setName(String name)
   {
-    Name = name;
+    this.name = name;
   }
   
   /**
    * @return the replyTo
    */
+  @JsonGetter("reply-to")
   public String getReplyTo()
   {
-    return ReplyTo;
+    return this.replyTo;
   }
 
   /**
    * @param replyTo the replyTo to set
    */
+  @JsonSetter("reply-to")
   public void setReplyTo(String replyTo)
   {
-    ReplyTo = replyTo;
+    this.replyTo = replyTo;
   }
   
+  /**
+   * @return the launchAllTasks
+   */
+  public boolean isLaunchAllTasks()
+  {
+    return this.launchAllTasks;
+  }
+
+  /**
+   * @param launchAllTasks the launchAllTasks to set
+   */
+  public void setLaunchAllTasks(boolean launchAllTasks)
+  {
+    this.launchAllTasks = launchAllTasks;
+  }
+
+  /**
+   * @return the tasksSubmitted
+   */
+  public boolean isTasksSubmitted()
+  {
+    return tasksSubmitted;
+  }
+
+  /**
+   * @param tasksSubmitted the tasksSubmitted to set
+   */
+  public void setTasksSubmitted(boolean tasksSubmitted)
+  {
+    this.tasksSubmitted = tasksSubmitted;
+  }
+
   /**
    * Gets a string representation of this object using the form 
    *  'Field': 'Value'
@@ -220,87 +270,17 @@ public class CcdpThreadRequest
    */
   public String toString()
   {
-    StringBuffer buf = new StringBuffer();
-    buf.append("Thread Id: "); buf.append(this.getThreadId()); buf.append("\n");
-    buf.append("Name: "); buf.append(this.getName()); buf.append("\n");
-    buf.append("Description: "); buf.append(this.getDescription()); buf.append("\n");
-    buf.append("Reply To: "); buf.append(this.getReplyTo()); buf.append("\n");
-
-    List<CcdpTaskRequest> tasks = this.getTasks();
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode thread = mapper.createObjectNode();
     
-    buf.append("Tasks:\n");
-    Iterator<CcdpTaskRequest> items = tasks.iterator();
-    while( items.hasNext() )
-    {
-      CcdpTaskRequest task = items.next();
-      
-      buf.append("\tTask Id: "); buf.append(task.getTaskId()); buf.append("\n");
-      buf.append("\tTask Name: "); buf.append(task.getName()); buf.append("\n");
-      buf.append("\tClass Name: "); buf.append(task.getClassName()); buf.append("\n");
-      buf.append("\tReply To: "); buf.append(task.getReplyTo()); buf.append("\n");
-      buf.append("\tNodeType: "); buf.append(task.getNodeType()); buf.append("\n");
-      
-      buf.append("\tCPU: "); buf.append(task.getCPU()); buf.append("\n");
-      buf.append("\tMEM: "); buf.append(task.getMEM()); buf.append("\n");
-      buf.append("\tCommand: "); buf.append("\n");
-      Iterator<String> args = task.getCommand().iterator();
-      buf.append("\t\t");
-      while( args.hasNext() )
-      {
-        String arg = args.next();
-        buf.append(arg);
-        buf.append(" ");
-      }
-      buf.append("\n");
-      
-      Map<String, String> config = task.getConfiguration();
-      Iterator<String> keys = config.keySet().iterator();
-      buf.append("\tTask Configuration:\n");
-      while( keys.hasNext() )
-      {
-        String key = keys.next();
-        buf.append("\t\tConfig["); buf.append(key); buf.append("] = "); 
-        buf.append(config.get(key)); buf.append("\n");
-      }
-
-      Iterator<CcdpPort> inPorts = task.getInputPorts().iterator();
-      buf.append("\tTask Input Ports:\n");
-      while( inPorts.hasNext() )
-      {
-        CcdpPort port = inPorts.next();
-        Iterator<String> from = port.getFromPort().iterator();
-        Iterator<String> to = port.getToPort().iterator();
-        buf.append("\t\tPortId: "); buf.append(port.getPortId()); buf.append("\n");
-        while( from.hasNext() )
-        {
-          buf.append("\t\t\tFrom: "); buf.append(from.next()); buf.append("\n");
-        }
-        while( to.hasNext() )
-        {
-          buf.append("\t\t\tTo: "); buf.append(to.next()); buf.append("\n");
-        }
-      }
-
-
-      Iterator<CcdpPort> outPorts = task.getOutputPorts().iterator();
-      buf.append("\tTask Output Ports:\n");
-      while( outPorts.hasNext() )
-      {
-        CcdpPort port = outPorts.next();
-        Iterator<String> from = port.getFromPort().iterator();
-        Iterator<String> to = port.getToPort().iterator();
-        buf.append("\t\tPortId: "); buf.append(port.getPortId()); buf.append("\n");
-        while( from.hasNext() )
-        {
-          buf.append("\t\t\tFrom: "); buf.append(from.next()); buf.append("\n");
-        }
-        while( to.hasNext() )
-        {
-          buf.append("\t\t\tTo: "); buf.append(to.next()); buf.append("\n");
-        }
-      }
-    }
+    thread.put("thread-id",         this.threadId);
+    thread.put("name",              this.name);
+    thread.put("description",       this.description);
+    thread.put("reply-to",          this.replyTo);
+    thread.put("launch-all-tasks",  this.launchAllTasks);
+    thread.put("tasks-submitted",   this.tasksSubmitted);
+    thread.put("tasks",             this.tasks.toString());
     
-    return buf.toString();
+    return thread.toString();
   }
 }

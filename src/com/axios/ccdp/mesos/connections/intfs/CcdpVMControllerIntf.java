@@ -3,7 +3,8 @@ package com.axios.ccdp.mesos.connections.intfs;
 import java.util.List;
 import java.util.Map;
 
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 
 public interface CcdpVMControllerIntf
 {
@@ -16,7 +17,7 @@ public interface CcdpVMControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( JsonObject config );
+  public void configure( ObjectNode config );
   
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
@@ -38,6 +39,23 @@ public interface CcdpVMControllerIntf
    */
   public List<String> startInstances(String imageId, int min, int max, 
                                    Map<String, String> tags, String user_data);
+  
+  /**
+   * Starts one or more VM instances using the defined Image ID as given by the
+   * imageId argument.  The number of instances are determined by the min and 
+   * max arguments.  If the tags is not null then they are set and the new 
+   * Virtual Machine will contain them.
+   * 
+   * The resources are launched the image id, user data, and tags specified in
+   * the configuration file
+   * 
+   * @param min the minimum number of Virtual Machines to create
+   * @param max the maximum number of Virtual Machines to create
+   * 
+   * @return a list of unique Virtual Machine identifiers
+   */
+  public List<String> startInstances(int min, int max);
+  
   
   /**
    * Stops each one of the Virtual Machines whose unique identifier matches the
@@ -70,7 +88,7 @@ public interface CcdpVMControllerIntf
    * @return an object containing details of each of the Virtual Machines 
    *         assigned to the user
    */
-  public JsonObject getAllInstanceStatus();
+  public ObjectNode getAllInstanceStatus();
   
   /**
    * Returns information about all instances matching the set of filters given
@@ -87,6 +105,19 @@ public interface CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public JsonObject getStatusFilteredByTags( JsonObject filter );
+  public ObjectNode getStatusFilteredByTags( ObjectNode filter );
+  
+  /**
+   * Returns information about the instance matching the unique id given as 
+   * argument.  
+   * 
+   * The result is a JSON Object whose key is the Virtual Machine identifier and
+   * the value is detailed information of the VM.
+   * 
+   * @param uuid the unique identifier used to select the appropriate resource
+   *        
+   * @return A JSON Object containing all the information about the VM
+   */
+  public ObjectNode getStatusFilteredById( String uuid );
   
 }

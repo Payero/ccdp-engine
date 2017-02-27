@@ -3,54 +3,48 @@
     {"thread-id": "thread-1",
          "name": "CSV 2 JSON Converter",
          "starting-task": ["csv_reader"],
-         "short-description": "Converts CSV files into JSON strings",
+         "description": "Converts CSV files into JSON strings",
          "tasks": 
            [
               {"task-id": "csv_reader",
                "name": "Csv File Reader",
-               "class-name": "tasks.csv_demo.CsvReader",
-               "ccdp-type": "ec2",
-               "max-instances": 1,
-               "min-instances": 1,          
+               "classname": "tasks.csv_demo.CsvReader",
+               "node-type": "ec2",
                "configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv",
                                   "sleep-time": 5 },
                "input-ports": [],
                "output-ports": [ 
                                 {"port-id": "csv_output-1",
-                                 "to": "json_translator_input-1" 
+                                 "to-port": "json_translator_input-1" 
                                 }
                                ]
              },
           {"task-id": "json_translator",
            "name": "JSON Translator",
-           "class-name": "tasks.csv_demo.JsonTranslator",
-           "ccdp-type": "ec2",
-           "max-instances": 1,
-           "min-instances": 1,          
+           "classname": "tasks.csv_demo.JsonTranslator",
+           "node-type": "ec2",
            "configuration": { "output-file": "${CCDP_HOME}/data/json_test_out.json",
                               "sleep-time": 5 },
            "input-ports": [
                             {"port-id": "json_translator_input-1",
-                             "from": "csv_output-1" 
+                             "from-port": "csv_output-1" 
                            }
                           ],
            "output-ports": [ 
                             {"port-id": "json_translator_output-1",
-                             "to": "json_reader_input-1" 
+                             "to-port": "json_reader_input-1" 
                             }
                            ]
           },
           {"task-id": "json_reader",
            "name": "JSON File Reader",
-           "class-name": "tasks.csv_demo.JsonReader",
-           "ccdp-type": "ec2",
-           "max-instances": 1,
-           "min-instances": 1,          
+           "classname": "tasks.csv_demo.JsonReader",
+           "node-type": "ec2",
            "configuration": {"input-file": "${CCDP_HOME}/data/json_test_out.json",
                              "sleep-time": 5 },
            "input-ports": [
                            {"port-id": "json_reader_input-1",
-                            "from": "json_translator_output-1"
+                            "from-port": "json_translator_output-1"
                            }
                           ],
            "output-ports": []

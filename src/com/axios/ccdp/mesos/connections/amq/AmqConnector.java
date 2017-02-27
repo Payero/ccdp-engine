@@ -6,7 +6,6 @@ import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Session;
 
-import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.log4j.Logger;
 
@@ -47,13 +46,13 @@ public class AmqConnector
   /**
    * Connects to the given channel
    * 
+   * @param broker the server or broker to connect
    * @param name the channel to connect to either send or receive data
-   * @return true if the connection was succesfull
+   * 
+   * @return true if the connection was successful
    */
-  protected boolean connect(String name)
+  protected boolean connect(String broker, String name)
   {
-    String broker = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
-    
     this.logger.info("Connecting to: " + broker);
     
     try

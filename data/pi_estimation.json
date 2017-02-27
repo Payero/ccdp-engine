@@ -1,51 +1,51 @@
-{"Threads":
+{"threads":
   [
-    {"ThreadId": "thread-1",
-         "Name": "PI Estmator",
-         "StartingTask": "cycles_selector",
-         "ReplyTo": "The Sender",
-         "Description": "Estimates the value of PI",
-         "Tasks": 
+    {"thread-id": "thread-1",
+         "name": "PI Estmator",
+         "starting-task": "cycles_selector",
+         "reply-to": "The Sender",
+         "description": "Estimates the value of PI",
+         "tasks": 
            [
-              {"TaskId": "cycles_selector",
-               "Name": "Cycles Selector",
-               "ClassName": "tasks.emr_demo.CyclesSelector",
-               "NodeType": "ec2",
-               "ReplyTo": "The Sender",
-               "CPU": "10",
-               "MEM": "128",
-               "Command": ["python", "/opt/modules/CsvReader.python", "${CCDP_HOME}/data/csv_test_file.csv"],
-               "Configuration": { "number-cycles": "10000", "wait-time": "5" },
-               "InputPorts": [],
-               "OutputPorts": [ 
-                                {"PortId": "cycles_selector-1", "ToPort": [ "pi_estimator_input-1" ] }
+              {"task-id": "cycles_selector",
+               "name": "Cycles Selector",
+               "classname": "tasks.emr_demo.CyclesSelector",
+               "node-type": "ec2",
+               "reply-to": "The Sender",
+               "cpu": "10",
+               "mem": "128",
+               "command": ["python", "/opt/modules/CsvReader.python", "${CCDP_HOME}/data/csv_test_file.csv"],
+               "configuration": { "number-cycles": "10000", "wait-time": "5" },
+               "input-ports": [],
+               "output-ports": [ 
+                                {"port-id": "cycles_selector-1", "to-port": [ "pi_estimator_input-1" ] }
                               ]
              },
-          {"TaskId": "pi_estimator",
-           "Name": "PI Estimator",
-           "ClassName": "tasks.emr_demo.PiEstimator",
-           "NodeType": "emr",
-           "ReplyTo": "Someone Else",
-           "Command": ["python", "/opt/modules/tasks/csv_demo/JsonTranslator.py", "-i", "${CCDP_HOME}/data/input_text.txt", "-o", "${CCDP_HOME}/data/out_text.json"],
-           "Configuration": { "output-file": "${CCDP_HOME}/data/pi_values.csv" },
-           "InputPorts": [
-                            {"PortId": "pi_estimator_input-1", "FromPort": [ "cycles_seletor_output-1" ] }
+          {"task-id": "pi_estimator",
+           "name": "PI Estimator",
+           "classname": "tasks.emr_demo.PiEstimator",
+           "node-type": "emr",
+           "reply-to": "Someone Else",
+           "command": ["python", "/opt/modules/tasks/csv_demo/JsonTranslator.py", "-i", "${CCDP_HOME}/data/input_text.txt", "-o", "${CCDP_HOME}/data/out_text.json"],
+           "configuration": { "output-file": "${CCDP_HOME}/data/pi_values.csv" },
+           "input-ports": [
+                            {"port-id": "pi_estimator_input-1", "from-port": [ "cycles_seletor_output-1" ] }
                          ],
-           "OutputPorts": [ 
-                            {"PortId": "pi_estimator_output-1", "ToPort": [ "pi_reader_input-1" ] }
+           "output-ports": [ 
+                            {"port-id": "pi_estimator_output-1", "to-port": [ "pi_reader_input-1" ] }
                           ]
           },
-          {"TaskId": "pi_reader",
-           "Name": "PI Value Reader",
-           "ClassName": "tasks.emr_demo.PiReader",
-           "NodeType": "ec2",
-           "ReplyTo": "The Sender",
-           "Command": ["python", "/opt/modules/tasks/csv_demo/JsonReader.py", "-i", "${CCDP_HOME}/data/out_text.json"],
-           "Configuration": {"input-file": "${CCDP_HOME}/data/pi_values.json",  "wait-time": "5" },
-           "InputPorts": [
-                           { "PortId": "pi_reader_input-1", "FromPort": [ "pi_estimator_output-1" ] }
+          {"task-id": "pi_reader",
+           "name": "PI Value Reader",
+           "classname": "tasks.emr_demo.PiReader",
+           "node-type": "ec2",
+           "reply-to": "The Sender",
+           "command": ["python", "/opt/modules/tasks/csv_demo/JsonReader.py", "-i", "${CCDP_HOME}/data/out_text.json"],
+           "configuration": {"input-file": "${CCDP_HOME}/data/pi_values.json",  "wait-time": "5" },
+           "input-ports": [
+                           { "port-id": "pi_reader_input-1", "from-port": [ "pi_estimator_output-1" ] }
                          ],
-           "OutputPorts": []
+           "output-ports": []
           }        
            ]
         }

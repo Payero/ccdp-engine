@@ -1,35 +1,31 @@
 {"threads":
   [
-    {"id": "thread-1",
+    {"thread-id": "thread-1",
      "name": "CSV 2 JSON Converter",
-     "short-description": "Converts CSV files into JSON strings",
+     "description": "Converts CSV files into JSON strings",
      "tasks": 
         [
-          {"id": "thread-1-task-1",
-           "ccdp-type": "ec2",
-           "max-instances": None,
-           "min-instances": None,          
+          {"task-id": "thread-1-task-1",
+           "node-type": "ec2",
            "configuration": { "cycles": 10000 },
            "input-ports": None,
            "output-ports": [ 
-                  {"id": "thread-1-task-1-out-port-1",
-                   "to": [ "thread-1-task-2-in-port-1" ],
+                  {"port-id": "thread-1-task-1-out-port-1",
+                   "to-port": [ "thread-1-task-2-in-port-1" ],
                   
                   }
           },
-          {"id": "thread-1-task-2",
-           "ccdp-type": "ec2",
-           "max-instances": None,
-           "min-instances": None,          
+          {"task-id": "thread-1-task-2",
+           "node-type": "ec2",
            "configuration": { "cycles": 10000 },
            "input-ports": [
-                   {"id": "thread-1-task-2-in-port-1",
-                    "from": [ "thread-1-task-1-out-port-1" ]
+                   {"port-id": "thread-1-task-2-in-port-1",
+                    "from-port": [ "thread-1-task-1-out-port-1" ]
                   }
                           ],
            "output-ports": [ 
-                  {"id": "thread-1-task-2-out-port-1",
-                   "to": [ "thread-1-task-3-in-port-1" ],
+                  {"port-id": "thread-1-task-2-out-port-1",
+                   "to-port": [ "thread-1-task-3-in-port-1" ],
                   
                   }
           },
@@ -37,7 +33,7 @@
         ]
     
     },
-    {"id": "def12345",
+    {"task-id": "def12345",
      "name": "Secondary Thread",
      "tasks": 
         [

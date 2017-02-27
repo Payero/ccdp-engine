@@ -5,46 +5,42 @@ package com.axios.ccdp.mesos.fmwk;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
-import org.apache.mesos.Protos.CommandInfo;
 import org.apache.mesos.Protos.ExecutorID;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkID;
 import org.apache.mesos.Protos.MasterInfo;
 import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Protos.OfferID;
-import org.apache.mesos.Protos.Resource;
 import org.apache.mesos.Protos.SlaveID;
-import org.apache.mesos.Protos.Status;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
-import org.apache.mesos.Protos.Value;
 import org.apache.mesos.Protos.TaskStatus.Reason;
-import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpObejctFactoryAbs;
+import com.axios.ccdp.mesos.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
+import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.mesos.fmwk.CcdpJob.JobState;
+import com.axios.ccdp.mesos.resources.CcdpVMResource;
+import com.axios.ccdp.mesos.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import com.google.protobuf.ByteString;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Class used to coordinate the tasking among multiple Virtual Machines.  It 
@@ -62,9 +58,13 @@ import com.google.protobuf.ByteString;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpMesosScheduler 
+public abstract class CcdpMesosScheduler 
               implements Scheduler, CcdpEventConsumerIntf, CcdpTaskConsumerIntf
 {
+  /**
+   * Creates all the ArrayNode and ObjectNode
+   */
+  protected ObjectMapper mapper = new ObjectMapper();
   /**
    * Stores the Framework Unique ID this Scheduler is running under
    */
@@ -88,21 +88,19 @@ public class CcdpMesosScheduler
    * containing one or more processing task.
    */
   protected ConcurrentLinkedQueue<CcdpThreadRequest> 
-                requests = new ConcurrentLinkedQueue<CcdpThreadRequest>();
-  
-  /**
-   * Stores all the jobs assigned to this Scheduler.  Each job matches one 
-   * processing task request contained in the processing thread
-   */
-  protected List<CcdpJob> jobs = new ArrayList<CcdpJob>();
+                requests = new ConcurrentLinkedQueue<>();
   /**
    * Stores the object responsible for creating all interfaces
    */
-  protected CcdpObejctFactoryAbs factory = null;
+  protected CcdpObjectFactoryAbs factory = null;
   /**
    * Stores the object responsible for sending and receiving tasking information
    */
   protected CcdpTaskingIntf taskingInf = null;
+  /**
+   * Stores the object that determines the logic to assign tasks to VMs
+   */
+  protected CcdpTaskingControllerIntf<TaskInfo> tasker = null;
   /**
    * Controls all the VMs
    */
@@ -112,6 +110,17 @@ public class CcdpMesosScheduler
    */
   protected CcdpStorageControllerIntf storage = null;
   
+  /**
+   * Stores all the VMS or resources that have not been allocated to a 
+   * particular session
+   */
+  protected List<CcdpVMResource> free_vms = 
+                Collections.synchronizedList(new ArrayList<CcdpVMResource>());
+  
+  /**
+   * Stores all the VMs allocated to different sessions
+   */
+  protected Map<String, List<CcdpVMResource>> sessions = new HashMap<>();
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -120,35 +129,79 @@ public class CcdpMesosScheduler
    * @param execInfo the name of the executor to use to execute the tasks
    * @param jobs an optional list of jobs
    */
+  @SuppressWarnings("unchecked")
   public CcdpMesosScheduler( ExecutorInfo execInfo, List<CcdpThreadRequest> jobs)
   {
     this.logger.debug("Creating a new CCDP Remote Scheduler");
     this.executor = execInfo;
     
-    if( jobs != null )
-    {
-      Iterator<CcdpThreadRequest> items = jobs.iterator();
-      while( items.hasNext() )
-      {
-        CcdpThreadRequest request = items.next();
-        this.onTask(request);
-      }
-    }
-    
     // creating the factory that generates the objects used by the scheduler
     String clazz = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_FACTORY_IMPL);
     if( clazz != null )
     {
-      this.factory = CcdpObejctFactoryAbs.newInstance(clazz);
-      this.taskingInf = this.factory.getCcdpTaskingInterface();
-      this.storage = 
-          this.factory.getCcdpStorageControllerIntf(new JsonObject());
+      this.factory = CcdpObjectFactoryAbs.newInstance(clazz);
+      ObjectNode task_msg_node = 
+          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
+      ObjectNode task_ctr_node = 
+          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
+      ObjectNode res_ctr_node = 
+          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+      ObjectNode storage_node = 
+          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
+      
+      this.taskingInf = this.factory.getCcdpTaskingInterface(task_msg_node);
+      this.tasker = this.factory.getCcdpTaskingController(task_ctr_node);
+      this.controller = this.factory.getCcdpResourceController(res_ctr_node);
+      this.storage = this.factory.getCcdpStorageControllerIntf(storage_node);
+      
     }
     else
     {
       String txt = "Could not find factory.  Please check configuration." +
                    "The key " + CcdpUtils.CFG_KEY_FACTORY_IMPL + " is missing";
       this.logger.error(txt);
+      System.exit(-1);
+    }
+    
+    // Starting the minimum number of free resources needed to run
+    try
+    {
+      int free_vms = 
+          CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_INITIAL_VMS);
+      if( free_vms > 0 )
+      {
+        this.logger.info("Starting " + free_vms + " free agents");
+        int min = free_vms;
+        int max = free_vms;
+        List<String> launched = this.controller.startInstances(min, max);
+        synchronized(this.free_vms)
+        {
+          for( String id : launched )
+          {
+            CcdpVMResource resource = new CcdpVMResource(id);
+            resource.setStatus(ResourceStatus.LAUNCHED);
+            this.free_vms.add(resource);
+          }
+        }
+      }
+    }
+    catch( Exception e )
+    {
+      String msg = "Error parsing the integer containing initial agents. "
+          + "Message " + e.getMessage();
+      this.logger.error(msg);
+      e.printStackTrace();
+    }
+    
+    // Now that some resources has been allocated, we can add the tasks
+    if( jobs != null )
+    {
+      this.logger.info("Adding initial jobs");
+      for( CcdpThreadRequest request : jobs )
+      {
+        this.logger.info("Adding Thread Request: " + request.getThreadId() );
+        this.onTask(request);
+      }
     }
   }
 
@@ -174,10 +227,7 @@ public class CcdpMesosScheduler
     this.driver = driver;
     
     this.taskingInf.setTaskConsumer(this);
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_TASKING_CHANNEL);
-    this.logger.info("Registering to " + channel);
-    
-    this.taskingInf.register(this.fmwkId.getValue(), channel);
+    this.taskingInf.register(this.fmwkId.getValue());
   }
 
   /**
@@ -222,171 +272,116 @@ public class CcdpMesosScheduler
   public void resourceOffers(SchedulerDriver driver, List<Offer> offers)
   {
     this.logger.info("resourceOffers: Got some resource Offers" );
-    
-    Iterator<Offer> items = offers.iterator();
-    while( items.hasNext() )
+    boolean dbg = true;
+    if( dbg )
     {
-      Offer offer = items.next();
-      this.logger.debug("Offer: " + offer.toString());
+      // just printing the offers
+      for( Offer offer : offers )
+        this.logger.debug("Offer: " + offer.toString());
     }
     
-    synchronized( this.jobs )
-    {
-      List<CcdpJob> pendingJobs = new ArrayList<>();
-      for( CcdpJob j : this.jobs )
-      {
-        this.logger.debug("Adding Job: " + j.getId());
-        if( !j.isSubmitted() )
-          pendingJobs.add(j);
-      }
-      
-      for( Offer offer : offers )
-      {
-        if( pendingJobs.isEmpty() )
-        {
-          this.logger.info("No Pending Jobs, declining offer");
-          driver.declineOffer( offer.getId() );
-          break;
-        }
-        List<OfferID> list = Collections.singletonList( offer.getId() );
-        List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
-        Status stat = driver.launchTasks(list, tasks );
-        this.logger.debug("Task Launched with status of: " + stat.toString() );
-      }
-    }// end of synch block
+    this.handleResourceOffering(offers);
+//    
+//    // just printing the offers
+//    for( Offer offer : offers )
+//      this.logger.debug("Offer: " + offer.toString());
+//   
+//    
+//    synchronized( this.requests )
+//    {
+//      List<CcdpTaskRequest> pendingJobs = new ArrayList<>();
+//      
+//      // Check each thread's tasking
+//      for( CcdpThreadRequest req : this.requests )
+//      {
+//        String tid = req.getThreadId();
+//        
+//        if( req.threadRequestCompleted() )
+//        {
+//          this.logger.info("Thread " + tid + " is Complete!!");
+//          this.requests.remove(req);
+//          continue;
+//        }
+//        // do we need to launch all the tasks or one at the time?
+//        if( req.isLaunchAllTasks() )
+//        {
+//          this.logger.info("Launching all Tasks for thread " + tid );
+//          for( CcdpTaskRequest task : req.getTasks() )
+//          {
+//            if( !task.isSubmitted() )
+//            {
+//              this.logger.info("Adding Task " + task.getTaskId());
+//              pendingJobs.addAll(req.getTasks());
+//            }
+//          }
+//          
+//        }
+//        else
+//        {
+//          CcdpTaskRequest task = req.getNextTask();
+//          if( !task.isSubmitted() )
+//          {
+//            this.logger.info("Adding Task " + task.getTaskId());
+//            pendingJobs.add(task);
+//          }
+//        }// end of else portion of launch all if condition
+//      }// end of the while loop getting all the threads
+//      
+//      List<CcdpVMResource> avails = new ArrayList<>();
+//      for( Offer offer : offers )
+//      {
+//        if( pendingJobs.isEmpty() )
+//        {
+//          this.logger.info("No Pending Jobs, declining offer");
+//          driver.declineOffer( offer.getId() );
+//          break;
+//        }
+//        
+//        
+//        
+//        List<OfferID> list = Collections.singletonList( offer.getId() );
+////        List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
+////        Status stat = driver.launchTasks(list, tasks );
+////        this.logger.debug("Task Launched with status of: " + stat.toString() );
+//      }
+//    }// end of synch block
+    
+//    synchronized( this.jobs )
+//    {
+//      List<CcdpJob> pendingJobs = new ArrayList<>();
+//      for( CcdpJob j : this.jobs )
+//      {
+//        this.logger.debug("Adding Job: " + j.getId());
+//        if( !j.isSubmitted() )
+//          pendingJobs.add(j);
+//      }
+//      
+//      for( Offer offer : offers )
+//      {
+//        if( pendingJobs.isEmpty() )
+//        {
+//          this.logger.info("No Pending Jobs, declining offer");
+//          driver.declineOffer( offer.getId() );
+//          break;
+//        }
+//        List<OfferID> list = Collections.singletonList( offer.getId() );
+//        List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
+//        Status stat = driver.launchTasks(list, tasks );
+//        this.logger.debug("Task Launched with status of: " + stat.toString() );
+//      }
+//    }// end of synch block
   }
 
-  /***************************************************************************/
-  /***************************************************************************/
-  /***************************************************************************/
-  
-  public void launchTask( CcdpTaskRequest task )
-  {
-    
-  }
-  
-  
-  /**
-   * Generates a TaskInfo object that will be executed by the appropriate Mesos 
-   * Agent.
-   * 
-   * @param targetSlave the Unique identifier of the Mesos Agent responsible for
-   *        running this task
-   * @param exec The mesos executor to use to execute the task
-   * 
-   * @return a TaskInfo object containing all the information required to run
-   *         this job
-   */
-  public TaskInfo makeTask(CcdpTaskRequest task, SlaveID targetSlave, ExecutorInfo exec)
-  {
-    this.logger.debug("Making Task at Slave " + targetSlave.getValue());
-    TaskID id = TaskID.newBuilder().setValue(task.getTaskId()).build();
-    
-    Protos.TaskInfo.Builder bldr = TaskInfo.newBuilder();
-    bldr.setName("task " + id.getValue());
-    bldr.setTaskId(id);
-    // Adding the CPU
-    Protos.Resource.Builder resBldr = Resource.newBuilder();
-    resBldr.setName("cpus");
-    resBldr.setType(Value.Type.SCALAR);
-    resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getCPU()));
-    Resource cpuRes = resBldr.build();
-    bldr.addResources(cpuRes);
-    this.logger.debug("Adding CPU Resource " + cpuRes.toString());
-    
-    // Adding the Memory
-    resBldr.setName("mem");
-    resBldr.setType(Value.Type.SCALAR);
-    resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getMEM()));
-    Resource memRes = resBldr.build();
-    bldr.addResources(memRes);
-    this.logger.debug("Adding MEM Resource " + memRes.toString());
-    
-    Protos.CommandInfo.Builder cmdBldr = CommandInfo.newBuilder();
-    String cmd = String.join(" ", task.getCommand());
-    cmdBldr.setValue( cmd );
-    this.logger.debug("Running Command: " + cmd);
-    
-    bldr.setSlaveId(targetSlave);
-    
-    bldr.setExecutor(exec);
-    JsonObject json = new JsonObject();
-    json.addProperty("cmd", cmd);
-    
-    // if there is a configuration, add it
-    if( task.getConfiguration() != null )
-    {
-      Gson gson = new Gson();
-      JsonObject config = 
-          gson.toJsonTree(task.getConfiguration()).getAsJsonObject();
-      json.add("cfg", config);
-    }
-    
-    bldr.setData(ByteString.copyFrom(json.toString().getBytes()));
-    return bldr.build();
-  }
   
   /***************************************************************************/
   /***************************************************************************/
   /***************************************************************************/
   
   
-  /**
-   * Invoked when the status of a task has changed (e.g., a slave is lost and 
-   * so the task is lost, a task finishes and an executor sends a status update 
-   * saying so, etc). If implicit acknowledgements are being used, then 
-   * returning from this callback _acknowledges_ receipt of this status update! 
-   * If for whatever reason the scheduler aborts during this callback (or the 
-   * process exits) another status update will be delivered (note, however, 
-   * that this is currently not true if the slave sending the status update is 
-   * lost/fails during that time). If explicit acknowledgements are in use, the 
-   * scheduler must acknowledge this status on the driver.
-   * 
-   * @param driver - The driver that was used to run this scheduler.
-   * @param status - The status update, which includes the task ID and status.
-   * 
-   */
-  @Override
-  public void statusUpdate(SchedulerDriver driver, TaskStatus status)
-  {
-    this.logger.info("statusUpdate TaskStatus: " + status.getTaskId().getValue() );
-    this.logger.info("Status: " + status.getState());
-    synchronized( this.jobs )
-    {
-      Reason reason = status.getReason();
-      
-      if( reason.equals( Reason.REASON_RECONCILIATION) )
-        this.logger.warn("Got a reconciliation, want to do something?");
-      // we'll see if we can find a job this corresponds to
-      for( CcdpJob job : this.jobs )
-      {
-        String jid = job.getId();
-        String tid = status.getTaskId().getValue();
-        this.logger.debug("Comparing Task: " + tid + " against " + jid);
-        if( job.getId().equals( status.getTaskId().getValue() ) )
-        {
-          switch ( status.getState() )
-          {
-            case TASK_RUNNING:
-              job.started();
-              break;
-            case TASK_FINISHED:
-              job.succeed();
-              this.logger.debug("Job (" + job.getId() + ") Finished");
-              break;
-            case TASK_FAILED:
-            case TASK_KILLED:
-            case TASK_LOST:
-            case TASK_ERROR:
-              job.fail();
-              break;
-            default:
-              break;
-          }// end of switch statement
-        }// found the job
-      }// for loop
-    }// end of synch block
-  }
+  /***************************************************************************/
+  /***************************************************************************/
+  /***************************************************************************/
+  
   
   /**
    * Makes sure that what the Master Mesos believes is the state of the cluster
@@ -398,23 +393,26 @@ public class CcdpMesosScheduler
   public void reconcileTasks()
   {
     List<TaskStatus> runningTasks = new ArrayList<>();
-    for( CcdpJob job : this.jobs )
+    for( CcdpThreadRequest req: this.requests )
     {
-      if( job.getStatus() == JobState.RUNNING )
+      for( CcdpTaskRequest task: req.getTasks() )
       {
-        TaskID id = TaskID.newBuilder()
-            .setValue( job.getId())
-            .build();
-        SlaveID slaveId = SlaveID.newBuilder()
-           .setValue( job.getSlaveId().toString() )
-           .build();
-        
-        this.logger.debug("Reconciling Task: " + job.getId() );
-        TaskStatus.Builder bldr = TaskStatus.newBuilder();
-        bldr.setSlaveId(slaveId);
-        bldr.setTaskId(id);
-        bldr.setState(TaskState.TASK_RUNNING);
-        runningTasks.add( bldr.build() );
+        if( task.getState() == CcdpTaskState.RUNNING )
+        {
+          TaskID id = TaskID.newBuilder()
+              .setValue( task.getTaskId() )
+              .build();
+          SlaveID slaveId = SlaveID.newBuilder()
+             .setValue( task.getAgentId() )
+             .build();
+          
+          this.logger.debug("Reconciling Task: " + task.getTaskId() );
+          TaskStatus.Builder bldr = TaskStatus.newBuilder();
+          bldr.setSlaveId(slaveId);
+          bldr.setTaskId(id);
+          bldr.setState(TaskState.TASK_RUNNING);
+          runningTasks.add( bldr.build() );
+        }
       }
     }
     
@@ -431,138 +429,149 @@ public class CcdpMesosScheduler
   public void onEvent( Object event )
   {
     this.logger.info("Got a new Event: " + event.toString() );
-    try
-    {
-      JsonParser parser = new JsonParser();
-      
-      JsonObject json = (JsonObject)parser.parse(event.toString());
-      CcdpJob job = CcdpJob.fromJSON(json);
-      synchronized( this.jobs )
-      {
-        this.logger.info("Adding Job: " + job);
-        this.jobs.add(job);
-      }
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Message: " + e.getMessage(), e);
-    }
+//    try
+//    {
+//      ObjectNode json = this.mapper.valueToTree( event.toString() );
+//      CcdpJob job = CcdpJob.fromJSON(json);
+//      synchronized( this.jobs )
+//      {
+//        this.logger.info("Adding Job: " + job);
+//        this.jobs.add(job);
+//      }
+//    }
+//    catch( Exception e )
+//    {
+//      this.logger.error("Message: " + e.getMessage(), e);
+//    }
   }
 
   /**
    * Implementation of the TaskingIntf interface used to receive event 
    * asynchronously.
    * 
-   * @param event the event to pass to the framework
+   * It checks for available resources to execute this request.  It launches
+   * new resources based on the following:
+   *  
+   * If the request has Session Id
+   *    - Moves one Resource from the free pool and assign it to this session
+   *    - Matches the minimum number of free VMs to be running at any given
+   *      time.
+   * 
+   * If the request does not have a Session Id:
+   *    - Assigns the request to the public-session and re-post it
+   *    - If there is at least one public VM running, then it assigns the task
+   *      to that VM
+   *    - If not then it takes one of the free VM just as described above
+   * 
+   * @param request the CcdpThreadRequest to execute
    * 
    */
   public void onTask( CcdpThreadRequest request )
   {
-    this.logger.info("Got a new Request: " + request.toString() );
-    this.requests.add(request);
-    Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
-    while( tasks.hasNext() )
+    if( request == null )
     {
-      CcdpTaskRequest task = tasks.next();
-      CcdpJob job = new CcdpJob( task.getTaskId() );
-      job.setCpus( task.getCPU() );
-      job.setMemory( task.getMEM() );
-      job.setCommand(String.join(" ", task.getCommand()));
-      JsonObject config = new JsonObject();
-      Map<String, String> map = task.getConfiguration();
-      Iterator<String> keys = map.keySet().iterator();
-      while( keys.hasNext() )
-      {
-        String key = keys.next();
-        config.addProperty(key, map.get(key));
-      }
-      job.setConfig(config);
-      synchronized( this.jobs )
-      {
-        this.jobs.add(job);
-      }
+      this.logger.error("The request cannot be null!!");
+      return;
     }
+    
+    this.logger.info("Got a new Request: " + request.toString() );
+    String sid = request.getSessionId();
+    this.checkResourcesAvailability(sid);
+    
+    // adding the request using the abstract method
+    this.requests.add( request );
   }
-  
-  
   
   /**
-   * Checks the amount of CPU and memory available in the offer and starts 
-   * launching jobs that has not been submitted before and requires less 
-   * resources than the ones available in the Offer.
+   * Checks the available resources for this session and assigns a new resource
+   * if required.  If the session ID is null then it uses the PUBLIC_SESSION_ID
    * 
-   * @param offer the processing node available to execute the job
-   * @param jobs as list of jobs or tasks to run
-   * 
-   * @return a list of TaskInfo objects that were launched on this offer
+   * @param sid The session id to determine resources requirements
    */
-  public List<TaskInfo> doFirstFit( Offer offer, List<CcdpJob> jobs )
+  protected void checkResourcesAvailability( String sid )
   {
-    this.logger.debug("Running First Fit");
-    List<TaskInfo> toLaunch = new ArrayList<>();
-    List<CcdpJob> launchedJobs = new ArrayList<>();
-    
-    double offerCpus = 0;
-    double offerMem = 0;
-    
-    // We always need to extract the resource info from the offer
-    for( Resource r : offer.getResourcesList() )
+    if(sid == null )
     {
-      if( r.getName().equals("cpus") )
-      {
-        double val = r.getScalar().getValue();
-        this.logger.debug("Got " + val + " CPU Offered");
-        offerCpus += val;
-      }
-      else if( r.getName().equals("mem") )
-      {
-        double val = r.getScalar().getValue();
-        this.logger.debug("Got " + val + " MEM Offered");
-        offerMem += val;
-      }
-    }// end of resources loop
+      sid = CcdpUtils.PUBLIC_SESSION_ID;
+      this.logger.warn("No Session ID found, using public one " + sid);
+    }
     
-    
-    String str = 
-          String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
-    this.logger.debug(str);
-    
-    // Now we will pack jobs into the offer
-    for( CcdpJob job : jobs )
+    // Get the resources from the current sessions
+    List<CcdpVMResource> resources = this.sessions.get(sid);
+    if( this.tasker.needResourceAllocation(resources) )
     {
-      if( job.isSubmitted() )
+      this.logger.info("Need to assing more resources to session: " + sid);
+      CcdpVMResource resource = this.getVMResource();
+      if( resources == null )
       {
-        this.logger.debug("Job already submitted, skipping it");
-        continue;
+        this.logger.info("No resources available for SID " + sid);
+        List<CcdpVMResource> list = 
+            Collections.synchronizedList(new ArrayList<CcdpVMResource>());
+        list.add(resource);
+        this.sessions.put(sid, list);
       }
-      
-      double jobCpus = job.getCpus();
-      double jobMem = job.getMemory();
-      this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
-      // does the offer has more resources than needed?
-      if( jobCpus <= offerCpus && jobMem <= offerMem )
+      else
       {
-        this.logger.info("Enough resources for a new Job");
-        offerCpus -= jobCpus;
-        offerMem -= jobMem;
-        
-        TaskInfo task = job.makeTask( offer.getSlaveId(), this.executor );
-        
-        toLaunch.add( task );
-        job.setSubmitted(true);
-        launchedJobs.add( job );
+        this.logger.info("Adding a new VM to current list for session " + sid);
+        this.sessions.get(sid).add(resource);
       }
     }
-    // launch each task
-    for( CcdpJob job : launchedJobs )
-    {
-      this.logger.info("Launching " + job );
-      job.launch();
-    }
-    // clean the jobs 
-    jobs.removeAll(launchedJobs);
-    return toLaunch;
   }
+  
+  /**
+   * Checks the available pool of resources.  If there are any available, then
+   * it is removed from the pool and the CcdpVMResource object associated to it
+   * is returned.  If there is no available resources from the pool a new one is
+   * started and the newly created resource information is returned.
+   * 
+   * Once the assignment is completed, it checks the number of resources in the
+   * free pool and makes sure it meets the minimum requirement of resources
+   * available at any given time.
+   * 
+   * @return a resource object associated with the virtual machine
+   */
+  private CcdpVMResource getVMResource()
+  {
+    CcdpVMResource resource = null;
+    
+    int free_sz = this.free_vms.size();
+    
+    if( free_sz > 0 )
+    {
+      this.logger.info("Getting VM from available resources");
+      resource = this.free_vms.remove(0);
+    }
+    else
+    {
+      this.logger.info("Starting new VM, no available resources");
+      List<String> vms = this.controller.startInstances(1, 1);
+      resource = new CcdpVMResource(vms.get(0));
+      resource.setStatus(ResourceStatus.INITIALIZING);
+    }
+    
+    // now let's make sure we have enough free VMs
+    int need = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_INITIAL_VMS);
+    int have = this.free_vms.size();
+    this.logger.info("Need " + need + " VMS, have " + have + " available");
+    
+    if( need > have )
+    {
+      int diff = need - have;
+      this.logger.info("Launching " + diff + " new VMS");
+      List<String> vms = this.controller.startInstances(diff, diff);
+      // Add the newly created VMs to the list of free available VMs
+      for( String id : vms )
+      {
+        this.logger.info("Adding VM " + id + " to Free VMs pool");
+        CcdpVMResource res = new CcdpVMResource(id);
+        res.setStatus(ResourceStatus.INITIALIZING);
+        this.free_vms.add(res);
+      }
+    }
+    
+    return resource;
+  }
+  
   
   /**
    * Invoked when the scheduler becomes "disconnected" from the master (e.g., 
@@ -668,22 +677,99 @@ public class CcdpMesosScheduler
                       " SlaveId: " + slvId.toString() );
    }
    
-   private List<CcdpJob> getJobs()
+   /**
+    * Invoked when the status of a task has changed (e.g., a slave is lost and 
+    * so the task is lost, a task finishes and an executor sends a status update 
+    * saying so, etc). If implicit acknowledgements are being used, then 
+    * returning from this callback _acknowledges_ receipt of this status update! 
+    * If for whatever reason the scheduler aborts during this callback (or the 
+    * process exits) another status update will be delivered (note, however, 
+    * that this is currently not true if the slave sending the status update is 
+    * lost/fails during that time). If explicit acknowledgements are in use, the 
+    * scheduler must acknowledge this status on the driver.
+    * 
+    * @param driver - The driver that was used to run this scheduler.
+    * @param status - The status update, which includes the task ID and status.
+    * 
+    */
+   public void statusUpdate(SchedulerDriver driver, TaskStatus status)
    {
-     List<CcdpJob> jobs = new ArrayList<CcdpJob>();
-     Iterator<CcdpThreadRequest> threads = this.requests.iterator();
-     while( threads.hasNext() )
+     String tid = status.getTaskId().getValue();
+     this.logger.info("statusUpdate TaskStatus: " + tid );
+     this.logger.info("Status: " + status.getState());
+     
+     synchronized( this.requests )
      {
-       CcdpThreadRequest request = threads.next();
-       Iterator<CcdpTaskRequest> tasks = request.getTasks().iterator();
-       while( tasks.hasNext() )
+       Reason reason = status.getReason();
+       
+       if( reason.equals( Reason.REASON_RECONCILIATION) )
+         this.logger.warn("Got a reconciliation, want to do something?");
+       // we'll see if we can find a job this corresponds to
+       
+       for( CcdpThreadRequest req : this.requests)
        {
-         CcdpTaskRequest task = tasks.next();
-         CcdpJob job = new CcdpJob();
-         
-         
+         for( CcdpTaskRequest task : req.getTasks() )
+         {
+           String jid = task.getTaskId();
+           this.logger.debug("Comparing Task: " + tid + " against " + jid);
+           if( jid.equals( tid ) )
+           {
+             this.logger.debug("Found Task I was looking for");
+             boolean changed = false;
+             switch ( status.getState() )
+             {
+               case TASK_RUNNING:
+                 task.started();
+                 changed = true;
+                 break;
+               case TASK_FINISHED:
+                 task.succeed();
+                 changed = true;
+                 this.logger.debug("Job (" + jid + ") Finished");
+                 break;
+               case TASK_FAILED:
+               case TASK_KILLED:
+               case TASK_LOST:
+               case TASK_ERROR:
+                 task.fail();
+                 changed = true;
+                 break;
+               default:
+                 break;
+             }// end of switch statement
+             
+             // if there is a change in the status, send a message back
+             if( changed )
+             {
+               String channel = task.getReplyTo();
+               if( channel == null )
+                 channel = req.getReplyTo();
+               
+               task.setReplyTo(channel);
+               // notify the child of changes on a task
+               this.handleStatusUpdate(task);
+             }
+           }// found the job
+         }// for task loop
        }
-     }
-     return jobs;
+     }// end of synch block
    }
+   
+   /**
+    * Allows the child class to take responsibility and allocate the offers as
+    * required without having to worry about the actual Mesos implementation
+    * 
+    * @param offers a list of resources available to use to assign tasks to them
+    */
+   public abstract void handleResourceOffering(List<Offer> offers);
+   
+   /**
+    * Updates a single task status.  It is intended to give child classes a way
+    * to be notified of changes in the tasking and therefore being able to send
+    * a notification to the client about such changes.
+    * 
+    * @param task the task whose status changed
+    */
+   public abstract void handleStatusUpdate( CcdpTaskRequest task );
+   
 }

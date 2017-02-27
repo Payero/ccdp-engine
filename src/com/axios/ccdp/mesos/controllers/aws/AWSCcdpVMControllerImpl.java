@@ -1,9 +1,11 @@
 package com.axios.ccdp.mesos.controllers.aws;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import com.amazonaws.util.Base64;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -31,19 +33,22 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.mesos.factory.AWSCcdpFactoryImpl;
-import com.google.gson.JsonObject;
+import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class AWSCcdpVMControllerImpl implements
-    CcdpVMControllerIntf
+public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
   /** The security group resource ID to use */
-  public static final String FLD_SECURITY_GRP = "security-group";
+  public static final String FLD_SECURITY_GRP = "security.group";
   /** The subnet resource id to use */
-  public static final String FLD_SUBNET_ID    = "subnet-id";
+  public static final String FLD_SUBNET_ID    = "subnet.id";
   /** The type of instance to deploy (default t2.micro) */
-  public static final String FLD_INST_TYPE    = "instance-type";
+  public static final String FLD_INST_TYPE    = "instance.type";
   /** The name of the .pem key file (without the extension) */
-  public static final String FLD_KEY_FILE     = "key-file-name";
+  public static final String FLD_KEY_FILE     = "key.file.name";
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -53,11 +58,16 @@ public class AWSCcdpVMControllerImpl implements
   /**
    * Stores all the data configuration for this object
    */
-  private JsonObject config = null;
+  private ObjectNode config = null;
   /**
    * Object responsible for authenticating with AWS
    */
   private AmazonEC2 ec2 = null;
+  
+  /**
+   * Creates all the ObjectNode and ArrayNode objects
+   */
+  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new object, but it does not do anything
@@ -106,7 +116,7 @@ public class AWSCcdpVMControllerImpl implements
    *         authenticate the user
    */
   @Override
-  public void configure( JsonObject config )
+  public void configure( ObjectNode config )
   {
     this.logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -150,6 +160,54 @@ public class AWSCcdpVMControllerImpl implements
    * The String needs to reflect a bash script such as new lines needs to be
    * added between commands.
    * 
+   * @param min the minimum number of Virtual Machines to create
+   * @param max the maximum number of Virtual Machines to create
+   * 
+   * @return a list of unique Virtual Machine identifiers
+   */
+  @Override
+  public List<String> startInstances(int min, int max )
+  {
+    String imgId = this.config.get("image.id").asText();
+    String user_data = "";
+    HashMap<String, String> map = null;
+    
+    if(this.config.has("user.data"))
+      user_data = this.config.get("user.data").asText();
+    
+    if(this.config.has("tags"))
+    {
+      JsonNode tags = this.config.get("tags");
+      
+      try
+      {
+        if( tags != null )
+        {
+          map = this.mapper.readValue(tags.asText(),
+              new TypeReference<HashMap<String, String>>() {
+              });
+        }
+      }
+      catch( IOException e )
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+      }  
+    }
+    
+    return this.startInstances(imgId, min, max, map, user_data);
+  }
+
+
+  /**
+   * Starts one or more VM instances using the defined Image ID as given by the
+   * imageId argument.  The number of instances are determined by the min and 
+   * max arguments.  If the tags is not null then they are set and the new 
+   * Virtual Machine will contain them.
+   * 
+   * If an user_data argument is provided then is executed as bash commands.  
+   * The String needs to reflect a bash script such as new lines needs to be
+   * added between commands.
+   * 
    * @param imageId the image to use to create new Virtual Machines
    * @param min the minimum number of Virtual Machines to create
    * @param max the maximum number of Virtual Machines to create
@@ -167,7 +225,7 @@ public class AWSCcdpVMControllerImpl implements
     RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
     String instType = "t2.micro";
     if( this.config.has(FLD_INST_TYPE) )
-      instType = this.config.get(FLD_INST_TYPE).getAsString();
+      instType = this.config.get(FLD_INST_TYPE).asText();
     
     // if the user data is null then there is nothing to do so pass nothing
     if( user_data == null )
@@ -179,9 +237,9 @@ public class AWSCcdpVMControllerImpl implements
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
-         .withSecurityGroupIds(this.config.get(FLD_SECURITY_GRP).getAsString())
-         .withSubnetId(this.config.get(FLD_SUBNET_ID).getAsString())
-         .withKeyName(this.config.get(FLD_KEY_FILE).getAsString());
+         .withSecurityGroupIds(this.config.get(FLD_SECURITY_GRP).asText())
+         .withSubnetId(this.config.get(FLD_SUBNET_ID).asText())
+         .withKeyName(this.config.get(FLD_KEY_FILE).asText());
     
     RunInstancesResult result = this.ec2.runInstances(request);
     SdkHttpMetadata shm = result.getSdkHttpMetadata();
@@ -199,10 +257,12 @@ public class AWSCcdpVMControllerImpl implements
         Instance inst = instances.next();
         String instId = inst.getInstanceId();
         
+        List<Tag> new_tags = new ArrayList<Tag>();
+        new_tags.add(new Tag(CcdpUtils.KEY_INSTANCE_ID, instId));
+        
         if( tags != null )
         {
           this.logger.info("Setting Tags");
-          List<Tag> new_tags = new ArrayList<Tag>();
           
           Iterator<String> keys = tags.keySet().iterator();
           while( keys.hasNext() )
@@ -212,9 +272,10 @@ public class AWSCcdpVMControllerImpl implements
             this.logger.debug("Setting Tag[" + key + "] = " + val);
             new_tags.add(new Tag(key , val));
           }
-          inst.setTags(new_tags);
+          
         }
         
+        inst.setTags(new_tags);
         launched.add(instId);
       }
     }
@@ -300,10 +361,10 @@ public class AWSCcdpVMControllerImpl implements
    *         assigned to the user
    */
   @Override
-  public JsonObject getAllInstanceStatus()
+  public ObjectNode getAllInstanceStatus()
   {
     this.logger.debug("Getting all the Instances Status");
-    JsonObject instancesJson = new JsonObject();
+    ObjectNode instancesJson = this.mapper.createObjectNode();
     
     DescribeInstanceStatusRequest descInstReq = 
         new DescribeInstanceStatusRequest()
@@ -321,21 +382,23 @@ public class AWSCcdpVMControllerImpl implements
       
       String instId = stat.getInstanceId();
       String status = stat.getInstanceState().getName();
-      JsonObject obj = new JsonObject();
-      obj.addProperty("status", status);
+      ObjectNode obj = this.mapper.createObjectNode();
+      
+      obj.put("status", status);
       List<InstanceStatusDetails>  dets = stat.getInstanceStatus().getDetails();
       Iterator<InstanceStatusDetails> details = dets.iterator();
-      JsonObject jDets = new JsonObject();
+      ObjectNode jDets = this.mapper.createObjectNode();
       
       while( details.hasNext() )
       {
         InstanceStatusDetails detail = details.next();
         String name = detail.getName();
         String val = detail.getStatus();
-        jDets.addProperty(name, val);
+        jDets.put(name, val);
       }
-      obj.add("details", jDets);
-      instancesJson.add(instId, obj);
+      obj.set("details", jDets);
+      this.logger.debug("Adding: " + obj);
+      instancesJson.set(instId, obj);
     }
     
     
@@ -354,20 +417,31 @@ public class AWSCcdpVMControllerImpl implements
         String privIp = instance.getPrivateIpAddress();
         if( instancesJson.has(id) )
         {
-          JsonObject instJson = instancesJson.getAsJsonObject(id);
-          instJson.addProperty("public-ip", pubIp);
-          instJson.addProperty("private-ip", privIp);
-          
-          JsonObject jsonTag = new JsonObject();
-          Iterator<Tag> tags = instance.getTags().iterator();
-          while( tags.hasNext() )
+          try
           {
-            Tag tag = tags.next();
-            String key = tag.getKey();
-            String val = tag.getValue();
-            jsonTag.addProperty(key, val);
+            JsonNode node = instancesJson.get(id);
+            this.logger.debug("The JSON Node: " + node.toString());
+            ObjectNode instJson = node.deepCopy(); 
+            
+            instJson.put("public-ip", pubIp);
+            instJson.put("private-ip", privIp);
+            
+            ObjectNode jsonTag = this.mapper.createObjectNode();
+            Iterator<Tag> tags = instance.getTags().iterator();
+            while( tags.hasNext() )
+            {
+              Tag tag = tags.next();
+              String key = tag.getKey();
+              String val = tag.getValue();
+              jsonTag.put(key, val);
+            }
+            instJson.set("tags", jsonTag);
           }
-          instJson.add("tags", jsonTag);
+          catch( Exception ioe )
+          {
+            this.logger.error("Message: " + ioe.getMessage(), ioe);
+          }
+          
         }// instance ID found
       }
     }
@@ -389,23 +463,26 @@ public class AWSCcdpVMControllerImpl implements
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public JsonObject getStatusFilteredByTags( JsonObject filter )
+  public ObjectNode getStatusFilteredByTags( ObjectNode filter )
   {
     this.logger.debug("Getting Filtered Status using: " + filter);
-    JsonObject all = this.getAllInstanceStatus();
-    JsonObject some = new JsonObject();
+    ObjectNode all = this.getAllInstanceStatus();
+    ObjectNode some = this.mapper.createObjectNode();
+    
     this.logger.debug("All Instances: " + all);
-    Iterator<String> all_keys = all.keySet().iterator();
+    Iterator<String> all_keys = all.fieldNames();
     
     while( all_keys.hasNext() )
     {
       String id = all_keys.next();
       this.logger.debug("Looking at ID " + id);
-      JsonObject inst = all.get(id).getAsJsonObject();
+      
+      JsonNode inst = all.get(id);
+      
       if( inst.has("tags") )
       {
-        JsonObject tags = inst.get("tags").getAsJsonObject();
-        Iterator<String> filter_keys = filter.keySet().iterator();
+        JsonNode tags = inst.get("tags");
+        Iterator<String> filter_keys = filter.fieldNames();
         boolean found = true;
         while( filter_keys.hasNext() )
         {
@@ -424,11 +501,47 @@ public class AWSCcdpVMControllerImpl implements
         if( found )
         {
           this.logger.info("Adding Instance to list");
-          some.add(id, inst);
+          some.set(id, inst);
         }
       }// it has tags to compare
     }// All instances checked
     
     return some;
   }
+  
+  
+  
+  /**
+   * Returns information about the instance matching the unique id given as 
+   * argument.  
+   * 
+   * The result is a JSON Object whose key is the Virtual Machine identifier and
+   * the value is detailed information of the VM.
+   * 
+   * @param uuid the unique identifier used to select the appropriate resource
+   *        
+   * @return A JSON Object containing all the information about the VM
+   */
+  public ObjectNode getStatusFilteredById( String uuid )
+  {
+    this.logger.debug("Getting Filtered Status for: " + uuid);
+    ObjectNode all = this.getAllInstanceStatus();
+    
+    this.logger.debug("All Instances: " + all);
+    Iterator<String> all_keys = all.fieldNames();
+    
+    while( all_keys.hasNext() )
+    {
+      String id = all_keys.next();
+      this.logger.debug("Looking at ID " + id);
+      
+      // found it
+      if(id.equals(uuid))
+        return all.get(id).deepCopy();
+      
+    }// All instances checked
+    
+    return null;
+  }
+  
 }

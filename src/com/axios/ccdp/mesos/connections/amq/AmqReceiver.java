@@ -1,6 +1,5 @@
 package com.axios.ccdp.mesos.connections.amq;
 
-import java.util.Enumeration;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -11,8 +10,6 @@ import javax.jms.TextMessage;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
-import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
 
 /**
@@ -70,13 +67,14 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   /**
    * Connects to the given channel to start receiving events
    * 
+   * @param broker the server or broker to connect
    * @param channel the channel to subscribe and start receiving events
    */
-  public boolean connect(String channel)
+  public boolean connect(String broker, String channel)
   {
     try
     {
-      super.connect(channel);
+      super.connect(broker, channel);
       receiver = session.createConsumer(destination);
       this.receiver.setMessageListener(this);
       return true;

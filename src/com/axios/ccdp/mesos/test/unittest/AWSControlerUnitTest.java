@@ -9,8 +9,9 @@ import org.junit.Test;
 
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSControlerUnitTest
 {
@@ -20,19 +21,21 @@ public class AWSControlerUnitTest
    */
   private Logger logger = Logger
       .getLogger(AWSControlerUnitTest.class.getName());
-
+  
+  private ObjectMapper mapper = new ObjectMapper();
+  private ObjectNode jsonCfg;
   AWSCcdpVMControllerImpl aws = null;
-  JsonObject jsonCfg = new JsonObject();
   
   
   public AWSControlerUnitTest()
   {
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
+    this.jsonCfg = this.mapper.createObjectNode();
     
-    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-b28aafcf");
-    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-7c6dfc51");
-    this.jsonCfg.addProperty(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
+    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-b28aafcf");
+    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-7c6dfc51");
+    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
   }
   
@@ -47,8 +50,8 @@ public class AWSControlerUnitTest
   public void testConfigFail()
   {
     this.logger.debug("Testing a field missing JSON Object");
-    JsonObject json = new JsonObject();
-    this.aws.configure(json);
+    
+    this.aws.configure( this.mapper.createObjectNode() );
   }
   
   //@Test
@@ -58,24 +61,25 @@ public class AWSControlerUnitTest
     this.aws.configure(this.jsonCfg);
   }
   
-  @Test
+  //@Test
   public void testStartInstance()
   {
     this.logger.debug("Running Test Start Instance");
     this.aws.configure(this.jsonCfg);
     
+    ObjectNode json = this.mapper.createObjectNode();
+    json.put("server-id", "1");
+    json.put("mesos-type", "SLAVE");
+    json.put("session-id", "oeg-1");
     
-    JsonObject json = new JsonObject();
-    json.addProperty("server-id", "1");
-    json.addProperty("mesos-type", "SLAVE");
-    json.addProperty("session-id", "oeg-1");
-    JsonObject master = new JsonObject();
-    master.addProperty("server-id", "1");
-    master.addProperty("ip-address", "10.0.2.135");
-    master.addProperty("port", "23888:3888");
-    JsonArray masters = new JsonArray();
+    ObjectNode master = this.mapper.createObjectNode();
+    master.put("server-id", "1");
+    master.put("ip-address", "10.0.2.135");
+    master.put("port", "23888:3888");
+    
+    ArrayNode masters = this.mapper.createArrayNode();
     masters.add(master);
-    json.add("masters", masters);
+    json.set("masters", masters);
     
     
     String user_data = "#!/bin/bash\n\n " +
@@ -113,25 +117,34 @@ public class AWSControlerUnitTest
 //    Assert.assertTrue(res);
   }
   
-  @Test
+  //@Test
   public void testGetAllInstancesStatus()
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    JsonObject items = this.aws.getAllInstanceStatus();
+    ObjectNode items = this.aws.getAllInstanceStatus();
     this.logger.debug("Items: " + items);
     
   }
   
-//  @Test
+  //@Test
   public void testGetFilteredInstances()
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    JsonObject filter = new JsonObject();
-    filter.addProperty("Name", "CCDP-Server");
-    JsonObject items = this.aws.getStatusFilteredByTags(filter);
+    ObjectNode filter = this.mapper.createObjectNode();
+    filter.put(CcdpUtils.KEY_INSTANCE_ID, "i-0146423181872f36f");
+    ObjectNode items = this.aws.getStatusFilteredByTags(filter);
     this.logger.debug("Items: " + items);
+  }
+  
+  @Test
+  public void testGetFilteredInstancesById()
+  {
+    this.logger.debug("Testing Getting Instance by Id");
+    this.aws.configure(this.jsonCfg);
+    ObjectNode node = this.aws.getStatusFilteredById("i-0146423181872f36f");
+    this.logger.debug("Items: " + node);
   }
   
 }

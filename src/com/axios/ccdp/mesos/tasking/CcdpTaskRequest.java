@@ -8,6 +8,11 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 /**
  * {"task-id": "cycles_selector",
    "name": "Cycles Selector",
@@ -37,19 +42,19 @@ public class CcdpTaskRequest
   /**
    * All the different states the job can be at any given time
    */
-  public enum CcdpTaskState { PENDING, STAGING, RUNNING, SUCCESSFUL, FAILED }
+  public enum CcdpTaskState { PENDING, ASSIGNED, STAGING, RUNNING, SUCCESSFUL, FAILED }
   /**
    * Stores the unique identifier for this task 
    */
-  private String TaskId;
+  private String taskId;
   /** 
    * The human readable name of the Task 
    **/
-  private String Name;
+  private String name;
   /** 
    * An optional description of this task 
    **/
-  private String Description;
+  private String description;
   /** 
    * Sets the current state of this task, required for controlling 
    **/
@@ -57,15 +62,15 @@ public class CcdpTaskRequest
   /** 
    * Stores the class name of a module to execute if needed
    **/
-  private String ClassName;
+  private String className;
   /** 
    * Indicates the node type where this task needs to run such as EMR, EC2, etc 
    **/
-  private String NodeType;
+  private String nodeType;
   /** 
    * The destination or entity to notify this task has change state 
    **/
-  private String ReplyTo = "";
+  private String replyTo = "";
   /** 
    * The unique identifier of the Agent responsible for the task
    */
@@ -81,29 +86,29 @@ public class CcdpTaskRequest
   /**
    * The amount of CPU this task requires to execute
    */
-  private double CPU = 0.000001;
+  private double cpu = 0.000001;
   /**
    * The amount of memory this task requires to execute
    */
-  private double MEM = 0.000001;
+  private double mem = 0.000001;
   /**
    * A list of arguments used to generate the command to be executed by the 
    * agent
    */
-  private List<String> Command = new ArrayList<String>();
+  private List<String> command = new ArrayList<String>();
   /**
    * A map of configuration to be used by the agent
    */
-  private Map<String, String> Configuration = new HashMap<String, String>();
+  private Map<String, String> configuration = new HashMap<String, String>();
   /**
    * A list of incoming data from the previous task
    */
-  private List<CcdpPort> InputPorts = new ArrayList<CcdpPort>();
+  private List<CcdpPort> inputPorts = new ArrayList<CcdpPort>();
   /**
    * A list of ports to forward the data one is processed so they can be 
    * executed by the next task
    */
-  private List<CcdpPort> OutputPorts = new ArrayList<CcdpPort>();
+  private List<CcdpPort> outputPorts = new ArrayList<CcdpPort>();
   /**
    * The session this task belongs to
    */
@@ -145,17 +150,19 @@ public class CcdpTaskRequest
   /**
    * @return the className
    */
+  @JsonGetter("classname")
   public String getClassName()
   {
-    return ClassName;
+    return className;
   }
 
   /**
    * @param className the className to set
    */
+  @JsonSetter("classname")
   public void setClassName(String className)
   {
-    this.ClassName = className;
+    this.className = className;
   }
 
   /**
@@ -163,7 +170,7 @@ public class CcdpTaskRequest
    */
   public Map<String, String> getConfiguration()
   {
-    return Configuration;
+    return this.configuration;
   }
 
   /**
@@ -171,76 +178,85 @@ public class CcdpTaskRequest
    */
   public void setConfiguration(Map<String, String> configuration)
   {
-    this.Configuration = configuration;
+    this.configuration = configuration;
   }
 
   /**
    * @return the inputPorts
    */
+  @JsonGetter("input-ports")
   public List<CcdpPort> getInputPorts()
   {
-    return InputPorts;
+    return this.inputPorts;
   }
 
   /**
    * @param inputPorts the inputPorts to set
    */
+  @JsonSetter("input-ports")
   public void setInputPorts(List<CcdpPort> inputPorts)
   {
-    this.InputPorts = inputPorts;
+    this.inputPorts = inputPorts;
   }
 
   /**
    * @return the outputPorts
    */
+  @JsonGetter("output-ports")
   public List<CcdpPort> getOutputPorts()
   {
-    return OutputPorts;
+    return this.outputPorts;
   }
 
   /**
    * @param outputPorts the outputPorts to set
    */
+  @JsonSetter("putput-ports")
   public void setOutputPorts(List<CcdpPort> outputPorts)
   {
-    this.OutputPorts = outputPorts;
+    this.outputPorts = outputPorts;
   }
 
-  public CcdpTaskState getTaskState()
-  {
-    return this.state;
-  }
+//  @JsonGetter("task-state")
+//  public CcdpTaskState getTaskState()
+//  {
+//    return this.state;
+//  }
   
   /**
    * @return the cPU
    */
+  @JsonGetter("cpu")
   public double getCPU()
   {
-    return CPU;
+    return this.cpu;
   }
 
   /**
    * @param cPU the cPU to set
    */
-  public void setCPU(double cPU)
+  @JsonSetter("cpu")
+  public void setCPU(double cpu)
   {
-    CPU = cPU;
+    this.cpu = cpu;
   }
 
   /**
    * @return the mEM
    */
+  @JsonGetter("mem")
   public double getMEM()
   {
-    return MEM;
+    return this.mem;
   }
 
   /**
    * @param mEM the mEM to set
    */
-  public void setMEM(double mEM)
+  @JsonSetter("mem")
+  public void setMEM(double mem)
   {
-    MEM = mEM;
+    this.mem = mem;
   }
 
   /**
@@ -248,7 +264,7 @@ public class CcdpTaskRequest
    */
   public List<String> getCommand()
   {
-    return Command;
+    return this.command;
   }
 
   /**
@@ -256,36 +272,40 @@ public class CcdpTaskRequest
    */
   public void setCommand(List<String> command)
   {
-    Command = command;
+    this.command = command;
   }
 
   /**
    * @return the taskId
    */
+  @JsonGetter("task-id")
   public String getTaskId()
   {
-    return TaskId;
+    return this.taskId;
   }
 
   /**
    * @param taskId the taskId to set
    */
+  @JsonSetter("task-id")
   public void setTaskId(String taskId)
   {
-    TaskId = taskId;
+    this.taskId = taskId;
   }
 
   /**
    * @return the sessionId
    */
+  @JsonGetter("session-id")
   public String getSessionId()
   {
-    return sessionId;
+    return this.sessionId;
   }
 
   /**
    * @param sessionId the sessionId to set
    */
+  @JsonSetter("session-id")
   public void setSessionId(String sessionId)
   {
     this.sessionId = sessionId;
@@ -296,7 +316,7 @@ public class CcdpTaskRequest
    */
   public String getName()
   {
-    return Name;
+    return this.name;
   }
 
   /**
@@ -304,7 +324,7 @@ public class CcdpTaskRequest
    */
   public void setName(String name)
   {
-    Name = name;
+    this.name = name;
   }
 
   /**
@@ -312,7 +332,7 @@ public class CcdpTaskRequest
    */
   public String getDescription()
   {
-    return Description;
+    return this.description;
   }
 
   /**
@@ -320,39 +340,43 @@ public class CcdpTaskRequest
    */
   public void setDescription(String description)
   {
-    Description = description;
+    this.description = description;
   }
 
   /**
    * @return the nodeType
    */
+  @JsonGetter("node-type")
   public String getNodeType()
   {
-    return NodeType;
+    return this.nodeType;
   }
 
   /**
    * @param nodeType the nodeType to set
    */
+  @JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
-    NodeType = nodeType;
+    this.nodeType = nodeType;
   }
 
   /**
    * @return the replyTo
    */
+  @JsonGetter("reply-to")
   public String getReplyTo()
   {
-    return ReplyTo;
+    return this.replyTo;
   }
 
   /**
    * @param replyTo the replyTo to set
    */
+  @JsonSetter("reply-to")
   public void setReplyTo(String replyTo)
   {
-    ReplyTo = replyTo;
+    this.replyTo = replyTo;
   }
 
   /**
@@ -360,7 +384,7 @@ public class CcdpTaskRequest
    */
   public CcdpTaskState getState()
   {
-    return state;
+    return this.state;
   }
 
   /**
@@ -374,14 +398,16 @@ public class CcdpTaskRequest
   /**
    * @return the agentId
    */
+  @JsonGetter("agent-id")
   public String getAgentId()
   {
-    return agentId;
+    return this.agentId;
   }
 
   /**
    * @param agentId the agentId to set
    */
+  @JsonSetter("agent-id")
   public void setAgentId(String agentId)
   {
     this.agentId = agentId;
@@ -392,7 +418,7 @@ public class CcdpTaskRequest
    */
   public int getRetries()
   {
-    return retries;
+    return this.retries;
   }
 
   /**
@@ -408,7 +434,7 @@ public class CcdpTaskRequest
    */
   public boolean isSubmitted()
   {
-    return submitted;
+    return this.submitted;
   }
 
   /**
@@ -428,6 +454,15 @@ public class CcdpTaskRequest
     this.state = CcdpTaskState.STAGING;
   }
 
+  /**
+   * Indicates that this job has been assigned and therefore it sets its status
+   * to ASSIGNED
+   */
+  public void assigned() 
+  {
+    this.state = CcdpTaskState.ASSIGNED;
+  }
+  
   /**
    * Indicates that this job started and therefore it sets its status to RUNNING 
    */
@@ -461,5 +496,36 @@ public class CcdpTaskRequest
       this.retries--;
       this.state = CcdpTaskState.PENDING;
     }
+  }
+  
+  /**
+   * Gets the string representation using the JSON style.
+   * 
+   * @return A string representation of the object using JSON nomenclature
+   */
+  public String toString()
+  {
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode task = mapper.createObjectNode();
+    task.put("task-id",       this.taskId);
+    task.put("name",          this.name);
+    task.put("description",   this.description);
+    task.put("state",         this.state.toString());
+    task.put("classname",     this.className);
+    task.put("node-type",     this.nodeType);
+    task.put("reply-to",      this.replyTo);
+    task.put("agent-id",      this.agentId);
+    task.put("session-id",    this.sessionId);
+    task.put("retries",       this.retries);
+    task.put("submitted",     this.submitted);
+    task.put("cpu",           this.cpu);
+    task.put("mem",           this.mem);
+    task.put("command",       this.command.toString());
+    task.put("configuration", this.configuration.toString());
+    task.put("input-ports",   this.inputPorts.toString());
+    task.put("output-ports",  this.outputPorts.toString());
+    
+    
+    return task.toString();
   }
 }

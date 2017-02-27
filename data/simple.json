@@ -1,20 +1,18 @@
 {"threads":
   [
-    {"id": "thread-1",
+    {"thread-id": "thread-1",
      "name": "CSV 2 JSON Converter",
-     "short-description": "Converts CSV files into JSON strings",
+     "description": "Converts CSV files into JSON strings",
      "tasks": 
         [
-          {"id": "csv_reader",
+          {"task-id": "csv_reader",
            "name": "Csv File Reader",
-           "ccdp-type": "ec2",
-           "max-instances": 1,
-           "min-instances": 1,          
+           "node-type": "ec2",   
            "configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv" },
            "input-ports": [],
            "output-ports": [ 
-                            {"id": "csv_output-1",
-                             "to": [ "json_translator_input-1" ]
+                            {"port-id": "csv_output-1",
+                             "to-port": [ "json_translator_input-1" ]
                             }
                            ]
           }

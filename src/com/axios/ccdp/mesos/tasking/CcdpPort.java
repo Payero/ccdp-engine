@@ -3,6 +3,9 @@ package com.axios.ccdp.mesos.tasking;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
+
 /**
  *  {"port-id": "cycles_selector-1",
                      "to": [ "pi_estimator_input-1" ]
@@ -14,9 +17,9 @@ import java.util.List;
 public class CcdpPort
 {
 
-  private String PortId;
-  private List<String> FromPort = new ArrayList<String>();
-  private List<String> ToPort = new ArrayList<String>();
+  private String portId;
+  private List<String> fromPort = new ArrayList<String>();
+  private List<String> toPort = new ArrayList<String>();
   
   public CcdpPort()
   {
@@ -26,48 +29,54 @@ public class CcdpPort
   /**
    * @return the portId
    */
+  @JsonGetter("port-id")
   public String getPortId()
   {
-    return PortId;
+    return portId;
   }
 
   /**
    * @param portId the portId to set
    */
+  @JsonSetter("port-id")
   public void setPortId(String portId)
   {
-    this.PortId = portId;
+    this.portId = portId;
   }
 
   /**
    * @return the fromPort
    */
+  @JsonGetter("from-port")
   public List<String> getFromPort()
   {
-    return FromPort;
+    return fromPort;
   }
 
   /**
    * @param fromPort the fromPort to set
    */
+  @JsonSetter("from-port")
   public void setFromPort(List<String> fromPort)
   {
-    this.FromPort = fromPort;
+    this.fromPort = fromPort;
   }
 
   /**
    * @return the toPort
    */
+  @JsonGetter("to-port")
   public List<String> getToPort()
   {
-    return ToPort;
+    return toPort;
   }
 
   /**
    * @param toPort the toPort to set
    */
+  @JsonSetter("to-port")
   public void setToPort(List<String> toPort)
   {
-    this.ToPort = toPort;
+    this.toPort = toPort;
   }
 }

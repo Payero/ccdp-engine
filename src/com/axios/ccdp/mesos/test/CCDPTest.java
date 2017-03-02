@@ -1,28 +1,24 @@
 package com.axios.ccdp.mesos.test;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.Properties;
 import java.util.StringJoiner;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.mesos.resources.CcdpVMResource;
+import com.axios.ccdp.mesos.fmwk.CcdpJob;
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 
-public class CCDPTest implements GetMe
+public class CCDPTest
 {
 
   /**
@@ -34,28 +30,44 @@ public class CCDPTest implements GetMe
   public CCDPTest() throws Exception
   {
     this.logger.debug("Running CCDP Test");
-    Properties props = System.getProperties();
-    Enumeration<Object> keys = props.keys();
-    while( keys.hasMoreElements() )
+    String fname = "/home/oeg/dev/oeg/CCDP/data/job.json";
+    File file = new File(fname);
+    if( file.isFile() )
     {
-      String key = (String)keys.nextElement();
-      String val = props.getProperty(key);
-      this.logger.debug("Property[" + key + "] = " + val);
+      byte[] data = Files.readAllBytes( Paths.get( fname ) );
+      JsonNode node = new ObjectMapper().readTree( data );
+      if( node.has("jobs") )
+      {
+        ArrayNode jobs_node = (ArrayNode)node.get("jobs");
+        for( JsonNode job : jobs_node )
+        {
+          this.logger.debug("Adding Job: " + job.toString());
+          ArrayNode args = (ArrayNode)job.get("command");
+          List<String> list = new ArrayList<String>();
+          for( JsonNode arg : args )
+          {
+            String cmd = arg.asText();
+            list.add(cmd);
+            this.logger.debug("\tThe Argument " + cmd);
+          }
+          StringJoiner joiner = new StringJoiner(" ");
+          list.forEach(joiner::add);
+          
+          String command = joiner.toString();
+          this.logger.debug("The generated command " + command);
+          
+          
+          CcdpJob ccdp_job = CcdpJob.fromJSON(job);
+          this.logger.debug("CPU: " + ccdp_job.getCpus());
+          this.logger.debug("MEM: " + ccdp_job.getMemory());
+          this.logger.debug("ID: " + ccdp_job.getId());
+          this.logger.debug("Command: " + ccdp_job.getCommand());
+        }
+      }
     }
-
   }  
   
-  
-  public List<String> getItems()
-  {
-    List<String> array = new ArrayList<>();
-    array.add("One");
-    array.add("Dos");
-    array.add("Tres");
-    array.add("Cuatro");
-    
-    return array;
-  }
+
   
   public static void main(String[] args) throws Exception
   {
@@ -66,24 +78,4 @@ public class CCDPTest implements GetMe
   }
 }
 
-class TestLong implements GetMe<Long>
-{
-  public List<Long> getItems()
-  {
-    List<Long> list = new ArrayList<>();
-    list.add(new Long(1));
-    list.add(new Long(2));
-    list.add(new Long(3));
-    list.add(new Long(4));
-    
-    
-    return list;
-  }
-  
-}
 
-interface GetMe<T>
-{
-  public List<T> getItems();
-  
-}

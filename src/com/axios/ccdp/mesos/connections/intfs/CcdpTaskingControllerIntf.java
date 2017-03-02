@@ -2,6 +2,8 @@ package com.axios.ccdp.mesos.connections.intfs;
 
 import java.util.List;
 
+import org.apache.mesos.Protos.ExecutorInfo;
+
 import com.axios.ccdp.mesos.resources.CcdpVMResource;
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -29,4 +31,5 @@ public interface CcdpTaskingControllerIntf<T>
   
   public  List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources);
   
+  public void setExecutor(ExecutorInfo exec);
 }

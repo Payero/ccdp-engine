@@ -18,6 +18,9 @@
 
 	<!--Thirdparty jars/libaries -->
 	<property name="lib.dir" location="lib" />
+  
+  <!--The location of the javadoc directory -->
+  <property name="doc.dir" location="doc" />
 
 	<path id="classpath">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -85,7 +88,18 @@
 
 	</target>
 
-	<!-- Default, run this -->
-	<target name="main" depends="clean, compile, dist, gen.jars" />
+  <!-- Generates the JavaDoc for the whole project -->
+  <target name="javadoc" depends="compile" description="Generates JavaDoc">
+    <javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
+      <classpath>
+        <fileset dir="${lib.dir}" includes="*.jar" />
+        
+      </classpath>
+    </javadoc>
+  </target>
+
+ 	<!-- Default, run this -->
+	<target name="main" depends="clean, compile, dist, gen.jars,javadoc" />
+
 
 </project>

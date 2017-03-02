@@ -11,6 +11,7 @@ import java.util.StringJoiner;
 import org.apache.log4j.Logger;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.CommandInfo;
+import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.Resource;
 import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.TaskID;
@@ -50,6 +51,8 @@ public class AWSCcdpTaskingControllerImpl
    * Stores the configuration passed to this object
    */
   private ObjectNode config = null;
+  
+  private ExecutorInfo executor;
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
@@ -265,6 +268,10 @@ public class AWSCcdpTaskingControllerImpl
     return taskInfo;
   }
 
+  public void setExecutor( ExecutorInfo exec )
+  {
+    this.executor = exec;
+  }
   /**
    * Generates a TaskInfo object that will be executed by the appropriate Mesos 
    * Agent.
@@ -313,6 +320,7 @@ public class AWSCcdpTaskingControllerImpl
     slvBldr.setValue(targetSlave);
     bldr.setSlaveId(slvBldr.build());
     
+    bldr.setExecutor(this.executor);
     ObjectNode json = this.mapper.createObjectNode();
     
     task.getCommand();

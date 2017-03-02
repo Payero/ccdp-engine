@@ -119,7 +119,7 @@ public class CCDPEngineMain
     }
     
     List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
-    boolean test = true;
+    boolean test = false;
     List<CcdpJob> jobs = new ArrayList<CcdpJob>();
     
     if( json_file != null )
@@ -131,21 +131,21 @@ public class CCDPEngineMain
       // loading Jobs from the command line
       if( json_jobs.isFile() )
       {
-        this.logger.debug("Is a valid file");
-        byte[] data = Files.readAllBytes( Paths.get( json_file ) );
-        requests = CcdpUtils.toCcdpThreadRequest(new String( data, "UTF-8"));
+        requests = CcdpUtils.toCcdpThreadRequest( json_jobs );
         this.logger.debug("Number of Jobs: " + requests.size() );
         
         if( test )
         {
+          byte[] data = Files.readAllBytes( Paths.get( json_file ) );
           JsonNode node = new ObjectMapper().readTree( data );
           if( node.has("jobs") )
           {
             ArrayNode jobs_node = (ArrayNode)node.get("jobs");
             for( JsonNode job : jobs_node )
             {
-              this.logger.debug("Adding Job: " + job.toString());
-              jobs.add(CcdpJob.fromJSON(job.deepCopy()));
+              JsonNode copy = job.deepCopy();
+              this.logger.debug("Adding Job: " + copy.toString());
+              jobs.add(CcdpJob.fromJSON(copy));
             }
           }
         }

@@ -6,6 +6,8 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -458,6 +460,40 @@ public class CcdpUtils
    * @throws IOException an IOException is thrown if the data cannot be 
    *          processed
    */
+  public static List<CcdpThreadRequest> toCcdpThreadRequest( File file )
+                                   throws JsonProcessingException, IOException
+  {
+    // loading Jobs from the command line
+    if( file != null && file.isFile() )
+    {
+      byte[] data = Files.readAllBytes( Paths.get( file.getAbsolutePath() ) );
+      return CcdpUtils.toCcdpThreadRequest(new String( data, "UTF-8"));
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Uses the incoming JSON representation of a tasking job to generate a list 
+   * of CcdpThreadRequest.  The data needs to have an array of either Threads,
+   * Tasks, or Jobs.  If neither of the three types of tasking is found, then
+   * it will throw an IllegalArgumentException.
+   * 
+   * This method essentially generates a JsonObject and returns the value from
+   * invoking the toCcdpThreadRequest( json ) method.
+   * 
+   * @param data the string representation of the tasking to generate
+   * 
+   * @return an object containing all the information needed to run a task or
+   *         a processing Thread
+   * 
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
+   *         none of the three options are found in the JSON data
+   * @throws JsonProcessingException a JsonProcessingException is thrown if the
+   *         JSON object contains an invalid field or it cannot be processed
+   * @throws IOException an IOException is thrown if the data cannot be 
+   *          processed
+   */
   public static List<CcdpThreadRequest> toCcdpThreadRequest( String data )
                                    throws JsonProcessingException, IOException
   {
@@ -563,7 +599,7 @@ public class CcdpUtils
           cmd = job.get("command");
           List<String> args = new ArrayList<String>();
           for(int n = 0; n < cmd.size(); n++ )
-            args.add( cmd.get(n).toString() );
+            args.add( cmd.get(n).asText() );
           
           task.setCommand(args);
         }

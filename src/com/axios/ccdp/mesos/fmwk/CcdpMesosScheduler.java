@@ -741,6 +741,7 @@ public abstract class CcdpMesosScheduler
              // if there is a change in the status, send a message back
              if( changed )
              {
+               this.logger.debug("Status changed to " + task.getState());
                String channel = task.getReplyTo();
                if( channel == null )
                  channel = req.getReplyTo();

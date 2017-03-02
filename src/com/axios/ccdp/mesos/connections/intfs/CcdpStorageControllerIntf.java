@@ -36,39 +36,43 @@ public interface CcdpStorageControllerIntf
    * if the action was successful or if the storage already exists and is 
    * accessible
    * 
-   * @param root the name of the storage to create
+   * @param where the name of the storage to create
    * @return true if the action was successful or if the storage already exists 
    *         and is accessible
    */
-  public boolean createStorage(String root);
+  public boolean createStorage(String where);
+  
   /**
-   * Creates a new file in the give storage location.  If the file already 
-   * already exists it will get overwritten.  It returns true if the action was
-   * successful.  If the file name is of the form 'path/filename.txt' then it
-   * will be stored in the appropriate location such as a sub-directory.
+   * Creates a new element in the give storage location.  If the element  
+   * already already exists it will get overwritten.  It returns true if the 
+   * action was successful.  If the element name is of the form 'path/element'
+   * then it will be stored in the appropriate location such as a sub-
+   * directory.
    * 
-   * @param root the name of the storage where the file will be stored
-   * @param name the name of the file to store
-   * @param file the actual file to store
+   * @param where the name of the storage where the element will be stored
+   * @param target the name of the element to store
+   * @param source the actual element to store
    * 
    * @return true if the action was successful
    */
-  public boolean storeFile(String root, String name, File file);
+  public boolean storeElement(String where, String target, File source);
+  
   /**
-   * Retrieves the content of a file from the specified location.  The root 
-   * indicates the path to begin the search and the filename is the path 
-   * relative to the root.  For instance a file named 'ccdp/path/filename.txt' 
-   * will use 'ccdp' as the root and 'path/filename.txt' as the filename
+   * Retrieves the content of an element from the specified location.  The  
+   * where indicates the path to begin the search and the element is the path 
+   * relative to the where.  For instance an element named 'ccdp/path/element' 
+   * will use 'ccdp' as the root and 'path/element' as the element name
    * 
-   * If the file is not found then the method returns null.
+   * If the element is not found then the method returns null.
    * 
-   * @param root the initial path to begin the search for the file
-   * @param filename the name of the file relative to the root
+   * @param where the initial path to begin the search for the element
+   * @param what the name of the element relative to where
    * 
-   * @return an InputStream object with the contents of the file or null if not
-   *         found
+   * @return an InputStream object with the contents of the element or null 
+   *         if not found
    */
-  public InputStream getFile(String root, String filename);
+  public InputStream getElement(String where, String what);
+  
   /**
    * Lists all the storage locations created.  For instance it will return all 
    * the buckets created on AWS S3 or directories in a file system 
@@ -83,8 +87,9 @@ public interface CcdpStorageControllerIntf
    *         creation time.
    */
   public ArrayNode listAllStorages();
+  
   /**
-   * Lists all the files stored in ALL the storage locations.  For instance it 
+   * Lists all the elements stored in ALL the storage locations.  For instance it 
    * will return all the objects created in S3 buckets or file in directories 
    * on a file system implementation.
    * 
@@ -104,11 +109,12 @@ public interface CcdpStorageControllerIntf
    * @return a list of dictionaries containing the name of the storage and the
    *         creation time.
    */
-  public ArrayNode listAllFiles(String root);
+  public ArrayNode listAllElements(String where);
+  
   /**
-   * Lists only the files stored in ALL the storage locations whose filename 
+   * Lists only the elements stored in ALL the storage locations whose name 
    * starts with the give prefix.  For instance it will return all the objects 
-   * created in S3 buckets or file in directories on a file system 
+   * created in S3 buckets or files in directories on a file system 
    * implementation matching the criteria. In other words to retrieve all the 
    * files in the 'path' sub-directory under the 'ccdp' storage then the root
    * should be 'ccdp' and the prefix 'path'.  
@@ -122,23 +128,25 @@ public interface CcdpStorageControllerIntf
    * @return a list of dictionaries containing the name of the files matching 
    *         the criteria and the creation time
    */
-  public ArrayNode listAllFilesWithPrefix( String root, String prefix);
+  public ArrayNode listAllElementsWithPrefix( String where, String prefix);
+  
   /**
    * Deletes the storage location and all its contents.  It returns true if the
    * operation was successful or false otherwise
    * 
-   * @param name the name of the storage location to delete
+   * @param where the name of the storage location to delete
    * @return true if the operation was successful or false otherwise
    */
-  public boolean deleteStoreage(String name);
+  public boolean deleteStorage(String where);
+  
   /**
-   * Deletes a file from the specified storage location.  The filename is 
+   * Deletes an element from the specified storage location.  The name is  
    * relative to the given storage name.  It returns true if the operation was 
    * successful or false otherwise
    * 
-   * @param root the name of the storage location where the file resides
-   * @param filename the name of the file to to delete
+   * @param where the name of the storage location where the element resides
+   * @param what the name of the element to to delete
    * @return true if the operation was successful or false otherwise
    */
-  public boolean deleteFile(String root, String filename);
+  public boolean deleteElement(String where, String what);
 }

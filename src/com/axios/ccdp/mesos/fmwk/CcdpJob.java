@@ -1,5 +1,8 @@
 package com.axios.ccdp.mesos.fmwk;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringJoiner;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -12,7 +15,10 @@ import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.Value;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.protobuf.ByteString;
 
@@ -103,6 +109,8 @@ public class CcdpJob
     this.id = uuid;
     this.retries = 3;
     this.submitted = false;
+    
+    CcdpJob.mapper.enable(SerializationFeature.INDENT_OUTPUT);
   }
   
   /**
@@ -304,10 +312,10 @@ public class CcdpJob
    * @throws JSONException a JSONException is thrown if there is a problem 
    *         parsing the JSON object
    */
-  public static CcdpJob fromJSON( ObjectNode obj) 
+  public static CcdpJob fromJSON( JsonNode obj) 
   {
     CcdpJob job = new CcdpJob();
-    if( obj.has("cpus") )
+    if( obj.has("cpu") )
       job.cpus = obj.get("cpu").asDouble();
     else
       job.cpus = 0.01;
@@ -316,7 +324,18 @@ public class CcdpJob
     else
       job.mem = 0.01;
     if( obj.has("command") )
-      job.command = obj.get("command").asText();
+    {
+      ArrayNode args = (ArrayNode)obj.get("command");
+      List<String> list = new ArrayList<String>();
+      for( JsonNode arg : args )
+      {
+        String cmd = arg.asText();
+        list.add(cmd);
+      }
+      StringJoiner joiner = new StringJoiner(" ");
+      list.forEach(joiner::add);
+      job.command = joiner.toString();
+    }
     else
       System.err.println("The command field is required");
     
@@ -454,5 +473,21 @@ public class CcdpJob
 //    {
 //      this.logger.error("Message: " + e.getMessage(), e);
 //    }
+  }
+  
+  public String toString()
+  {
+    ObjectNode node = CcdpJob.mapper.createObjectNode();
+    node.put("id", this.id);
+    if( this.slaveId != null )
+      node.put("slave-id", this.slaveId.getValue());
+    node.put("cpus", this.cpus);
+    node.put("mem", this.mem);
+    node.put("retries", this.retries);
+    node.put("status", this.status.toString());
+    node.put("command", this.command);
+    node.set("config", this.config);
+    
+    return node.toString();
   }
 }

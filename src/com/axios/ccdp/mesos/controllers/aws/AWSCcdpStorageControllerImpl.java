@@ -133,7 +133,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * @return true if the action was successful
    */
   @Override
-  public boolean storeFile(String bucket, String name, File file)
+  public boolean storeElement(String bucket, String name, File file)
   {
     this.logger.info("Creating File " + name + " in bucket: " + bucket);
     try
@@ -171,7 +171,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         found
    */
   @Override
-  public InputStream getFile(String bucket, String filename)
+  public InputStream getElement(String bucket, String filename)
   {
     InputStream input = null;
     try
@@ -248,7 +248,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         creation time.
    */
   @Override
-  public ArrayNode listAllFiles(String root)
+  public ArrayNode listAllElements(String root)
   {
     ArrayNode buckets = this.mapper.createArrayNode();
     try
@@ -311,7 +311,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    *         the criteria and the creation time
    */
   @Override
-  public ArrayNode listAllFilesWithPrefix( String bucket, String prefix)
+  public ArrayNode listAllElementsWithPrefix( String bucket, String prefix)
   {
     String msg = "Getting all file from bucket " + bucket + 
                  " starting with " + prefix;
@@ -352,7 +352,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * @return true if the operation was successful or false otherwise
    */
   @Override
-  public boolean deleteStoreage(String bucket)
+  public boolean deleteStorage(String bucket)
   {
     this.logger.info("Deleting Bucket " + bucket);
     try
@@ -377,7 +377,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * @return true if the operation was successful or false otherwise
    */
   @Override
-  public boolean deleteFile(String bucket, String filename)
+  public boolean deleteElement(String bucket, String filename)
   {
     this.logger.info("Deleting file " + filename + " from bucket " +  bucket);
     try

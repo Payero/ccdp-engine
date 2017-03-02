@@ -97,13 +97,12 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpEventConsumerIntf
       this.jobs = jobs;
       this.executor = execInfo;
       
-      Iterator<CcdpJob> items = this.jobs.iterator();
-      while( items.hasNext() )
+      for( CcdpJob job : jobs )
       {
-        CcdpJob job = items.next();
-        this.logger.debug("Tasked with " + job.getCommand());
+        this.logger.debug("Tasked with " + job.toString());
       }
     }
+    
     // creating the factory that generates the objects used by the scheduler
     String clazz = CcdpUtils.getProperty("factory.interface.impl");
     if( clazz != null )

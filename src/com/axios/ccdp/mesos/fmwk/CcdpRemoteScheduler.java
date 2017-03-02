@@ -82,7 +82,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       this.logger.debug("Offer: " + offer.toString());
       String id = null;
       String sid = null;
-      String aid = offer.getSlaveId().toString();
+      String aid = offer.getSlaveId().getValue();
       
       offerIds.add( offer.getId() );
       
@@ -105,6 +105,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       
       CcdpVMResource vm = new CcdpVMResource(id);
       vm.setAssignedSession(sid);
+      this.logger.debug("The Agent ID: [" + aid + "]");
       vm.setAgentId(aid);
       
       // We always need to extract the resource info from the offer
@@ -175,6 +176,8 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       this.logger.debug("Task Info: " + task.toString() );
     this.logger.debug("********************************************************\n");
   }
+  
+  
   /**
    * Handles a status change on a single CcdpTaskRequest.  If the replyTo of 
    * either the Task or the Thread is set, then it sends a notification to the
@@ -308,7 +311,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
           }
         }
       }
-      
+      this.tasker.setExecutor(this.executor);
       List<TaskInfo> taskInfo = this.tasker.assignTasks(tasks, resources);
       this.logger.info("Launching " + taskInfo.size() + " tasks");
       return taskInfo;

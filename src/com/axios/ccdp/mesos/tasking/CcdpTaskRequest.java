@@ -410,7 +410,8 @@ public class CcdpTaskRequest
   @JsonSetter("agent-id")
   public void setAgentId(String agentId)
   {
-    this.agentId = agentId;
+    this.logger.debug("\n\nSetting Agent id to " + agentId + "\n\n");
+    this.agentId = agentId.trim();
   }
 
   /**
@@ -495,6 +496,7 @@ public class CcdpTaskRequest
     {
       this.retries--;
       this.state = CcdpTaskState.PENDING;
+      this.submitted = false;
     }
   }
   

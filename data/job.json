@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"oeg-1", "cpu": 0.01, "mem": 0.0000000001, "command": ["/bin/echo", "'Hello world `date`'", ">>", "/tmp/hello.txt"]}
+      {"session-id":"oeg-1", "cpu": 0.1, "mem": 128, "command": ["/home/oeg/dev/oeg/PyMods/src/test/ccdp_mod_test.py", "-a", "testCpuUsage" , "-p", "10"]}
     ]
 }

@@ -320,7 +320,7 @@ public class AWSCcdpTaskingControllerImpl
     slvBldr.setValue(targetSlave);
     bldr.setSlaveId(slvBldr.build());
     
-    bldr.setExecutor(this.executor);
+    bldr.setExecutor( ExecutorInfo.newBuilder(this.executor) );
     ObjectNode json = this.mapper.createObjectNode();
     
     task.getCommand();

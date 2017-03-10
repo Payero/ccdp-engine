@@ -39,6 +39,9 @@ public class CcdpTaskRequest
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CcdpTaskRequest.class.getName());
+  
+  private double DEF_VAL = 0.0001;
+  
   /**
    * All the different states the job can be at any given time
    */
@@ -86,11 +89,11 @@ public class CcdpTaskRequest
   /**
    * The amount of CPU this task requires to execute
    */
-  private double cpu = 0.000001;
+  private double cpu = DEF_VAL;
   /**
    * The amount of memory this task requires to execute
    */
-  private double mem = 0.000001;
+  private double mem = DEF_VAL;
   /**
    * A list of arguments used to generate the command to be executed by the 
    * agent

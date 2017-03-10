@@ -119,36 +119,17 @@ public class CCDPEngineMain
     }
     
     List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
-    boolean test = false;
-    List<CcdpJob> jobs = new ArrayList<CcdpJob>();
     
     if( json_file != null )
     {
       File json_jobs = new File(json_file);
       this.logger.debug("Loading File: " + json_file);
       
-      
       // loading Jobs from the command line
       if( json_jobs.isFile() )
       {
         requests = CcdpUtils.toCcdpThreadRequest( json_jobs );
         this.logger.debug("Number of Jobs: " + requests.size() );
-        
-        if( test )
-        {
-          byte[] data = Files.readAllBytes( Paths.get( json_file ) );
-          JsonNode node = new ObjectMapper().readTree( data );
-          if( node.has("jobs") )
-          {
-            ArrayNode jobs_node = (ArrayNode)node.get("jobs");
-            for( JsonNode job : jobs_node )
-            {
-              JsonNode copy = job.deepCopy();
-              this.logger.debug("Adding Job: " + copy.toString());
-              jobs.add(CcdpJob.fromJSON(copy));
-            }
-          }
-        }
       }
       else
       {
@@ -160,22 +141,11 @@ public class CCDPEngineMain
     
     Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
     
-    if( test )
-    {
-     
-      scheduler = new SimpleRemoteScheduler( ccdpExec, jobs );
-      this.logger.warn("\n\nUSING THE SIMPLE REMOTE SCHEDULER");
-      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER");
-      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER");
-      this.logger.warn("USING THE SIMPLE REMOTE SCHEDULER\n\n");
-      
-    }
-    
     // Running Mesos Specific stuff
     MesosSchedulerDriver driver = null;
     String master = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MESOS_MASTER_URI);
     this.logger.info("Master  URI: " + master);
-    
+    this.logger.debug("Mesos Authentication? " + System.getenv("MESOS_AUTHENTICATE"));
     if (System.getenv("MESOS_AUTHENTICATE") != null) 
     {
       this.logger.info("Enabling authentication for the framework");

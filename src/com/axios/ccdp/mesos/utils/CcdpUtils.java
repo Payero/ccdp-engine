@@ -202,7 +202,9 @@ public class CcdpUtils
     }
     else
     {
-      PropertyConfigurator.configure(cfgFile);
+      String fname = CcdpUtils.expandVars(cfgFile.trim());
+      System.out.println("the file " + fname);
+      PropertyConfigurator.configure(CcdpUtils.expandVars(cfgFile));
       logger.debug("Configuring Logger using file: " + cfgFile);
     }
   }
@@ -427,6 +429,7 @@ public class CcdpUtils
         String txt = "The environment variable " + envVarName + 
             " is used, but not defined, please check your configuration";
         logger.error(txt);
+        System.err.println(txt);
       }
       else
       {

@@ -8,15 +8,21 @@ import org.apache.mesos.ExecutorDriver;
 import org.apache.mesos.MesosExecutorDriver;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkInfo;
+import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.SlaveInfo;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
+import org.apache.mesos.Protos.Status;
 
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.axios.ccdp.mesos.utils.TaskEventIntf;
+import com.axios.ccdp.mesos.utils.ThreadedTimerTask;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class CcdpCommandExecutor implements Executor
+public class CcdpCommandExecutor implements Executor, TaskEventIntf
 {
   /**
    * Generates debug print statements based on the verbosity level.
@@ -32,12 +38,30 @@ public class CcdpCommandExecutor implements Executor
    */
   private ExecutorDriver driver;
   /**
+   * Invokes a method periodically to send heartbeats back to the Mesos Master
+   */
+  private ThreadedTimerTask timer = null;
+  /**
+   * Stores basic information about the node this executor is running on
+   */
+  private SlaveInfo agentInfo = null;
+  /**
+   * Stores basic information about the executor running on this node
+   */
+  private ExecutorInfo execInfo = null;
+  /**
+   * Generates all the different JSON objects
+   */
+  private ObjectMapper mapper = new ObjectMapper();
+  
+  /**
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
    */
   public CcdpCommandExecutor()
   {
     this.logger.info("Running the Executor");
+    this.timer = new ThreadedTimerTask(this, 2000);
   }
 
   /**
@@ -61,6 +85,22 @@ public class CcdpCommandExecutor implements Executor
     
     TaskStatus status  = bldr.build();
     this.driver.sendStatusUpdate(status);
+  }
+  
+  /**
+   * Sends a heartbeat back to the Mesos Master every 5 seconds
+   */
+  public void onEvent()
+  {
+    this.logger.debug("Sending Heartbeat");
+    ObjectNode node = this.mapper.createObjectNode();
+    node.put("agent-id", this.agentInfo.getId().getValue() );
+    node.put("hostname", this.agentInfo.getHostname() );
+    node.put("executor-id", this.execInfo.getExecutorId().getValue() );
+    
+    // if we have a driver then send heartbeat messages
+    if( this.driver != null )
+      this.driver.sendFrameworkMessage(node.asText().getBytes());
   }
   
   /**
@@ -190,6 +230,8 @@ public class CcdpCommandExecutor implements Executor
     String msg = "Executor Registered: " + exec.toString() + " in " + 
                  slave.toString();
     this.logger.info(msg);
+    this.agentInfo = slave;
+    this.execInfo = exec;
   }
 
   /**
@@ -220,7 +262,8 @@ public class CcdpCommandExecutor implements Executor
   public void shutdown(ExecutorDriver driver)
   {
     this.logger.info("Shuting Down Executor");
-    
+    if( this.timer != null )
+      this.timer.stop();
   }
 
   public static void main(String[] args) throws Exception
@@ -232,6 +275,8 @@ public class CcdpCommandExecutor implements Executor
     System.err.println("Creating a new Executor from main");
     Executor executor = new CcdpCommandExecutor();
     ExecutorDriver driver = new MesosExecutorDriver(executor);
-    driver.run();
+    int exitCode = driver.run() == Status.DRIVER_STOPPED ? 0 : 1;
+    System.out.println("Executor ended with exit code: " + exitCode);
+    System.exit(exitCode);
   }
 }

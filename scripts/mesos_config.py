@@ -310,6 +310,42 @@ def set_master( data, is_aws ):
   print "Executing: %s" % cmd
   os.system(cmd)
 
+
+ 
+  fname = "%s/data/credentials" % os.getenv('CCDP_HOME')
+
+  if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
+    print "************  Adding Credentials (Master) ************"
+    cmd = "rm -f /etc/mesos-master/credentials"
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "echo %s >> /etc/mesos-master/credentials" % fname 
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "touch /etc/mesos-master/?authenticate" 
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "touch /etc/mesos-master/?authenticate_agents" 
+    print "Executing: %s" % cmd
+    os.system(cmd)
+  else:
+    print "************  Skipping Credentials (Master)  ************"
+    cmd = "rm -f /etc/mesos-master/credentials"
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "rm -f /etc/mesos-master/?authenticate"
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "rm -f /etc/mesos-master/?authenticate_agents"
+    print "Executing: %s" % cmd
+    os.system(cmd)        
+
+
   print "***************** Configuring Marathon  *****************"
   path = "/etc/marathon/conf"
   if not os.path.isdir(path):
@@ -361,11 +397,11 @@ def set_slave( data, is_aws ):
 
   print "***************** Stopping Zoo and Master  *****************"
   cmd = "stop zookeeper"
-  print "Executong %s" % cmd
+  print "Executing %s" % cmd
   os.system(cmd)
 
   cmd = "stop mesos-master"
-  print "Executong %s" % cmd
+  print "Executing %s" % cmd
   os.system(cmd)
 
 
@@ -421,6 +457,22 @@ def set_slave( data, is_aws ):
   print "Executing: %s" % cmd
   os.system("%s" % cmd) 
 
+  fname = "%s/data/agent_credential" % os.getenv('CCDP_HOME')
+
+  if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
+    print "************  Adding Credentials (Slave) ************"
+    cmd = "rm -f /etc/mesos-slave/credential"
+    print "Executing: %s" % cmd
+    os.system(cmd)
+
+    cmd = "echo %s >> /etc/mesos-slave/credential" % fname 
+    print "Executing: %s" % cmd
+    os.system(cmd)
+  else:
+    print "************  Skipping Credentials (Slave)  ************"
+    cmd = "rm -f /etc/mesos-slave/credential"
+    print "Executing: %s" % cmd
+    os.system(cmd)
 
 if __name__ == '__main__':
   args = sys.argv[1:]

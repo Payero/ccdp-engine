@@ -58,8 +58,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public abstract class CcdpMesosScheduler 
-              implements Scheduler, CcdpEventConsumerIntf, CcdpTaskConsumerIntf
+public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerIntf
 {
   /**
    * Creates all the ArrayNode and ObjectNode
@@ -271,112 +270,38 @@ public abstract class CcdpMesosScheduler
   @Override
   public void resourceOffers(SchedulerDriver driver, List<Offer> offers)
   {
-    this.logger.info("resourceOffers: Got some resource Offers" );
-    boolean dbg = true;
-    if( dbg )
+    boolean done = true;
+    synchronized( this.requests )
     {
-      // just printing the offers
-      for( Offer offer : offers )
-        this.logger.debug("Offer: " + offer.toString());
+      for( CcdpThreadRequest req : this.requests )
+      {
+        if( req.getPendingTasks() > 0 )
+        {
+          this.logger.debug("Request " + req.getThreadId() + " has pending tasks");
+          done = false;
+          break;
+        }
+      }
     }
     
-    this.handleResourceOffering(offers);
-//    
-//    // just printing the offers
-//    for( Offer offer : offers )
-//      this.logger.debug("Offer: " + offer.toString());
-//   
-//    
-//    synchronized( this.requests )
-//    {
-//      List<CcdpTaskRequest> pendingJobs = new ArrayList<>();
-//      
-//      // Check each thread's tasking
-//      for( CcdpThreadRequest req : this.requests )
-//      {
-//        String tid = req.getThreadId();
-//        
-//        if( req.threadRequestCompleted() )
-//        {
-//          this.logger.info("Thread " + tid + " is Complete!!");
-//          this.requests.remove(req);
-//          continue;
-//        }
-//        // do we need to launch all the tasks or one at the time?
-//        if( req.isLaunchAllTasks() )
-//        {
-//          this.logger.info("Launching all Tasks for thread " + tid );
-//          for( CcdpTaskRequest task : req.getTasks() )
-//          {
-//            if( !task.isSubmitted() )
-//            {
-//              this.logger.info("Adding Task " + task.getTaskId());
-//              pendingJobs.addAll(req.getTasks());
-//            }
-//          }
-//          
-//        }
-//        else
-//        {
-//          CcdpTaskRequest task = req.getNextTask();
-//          if( !task.isSubmitted() )
-//          {
-//            this.logger.info("Adding Task " + task.getTaskId());
-//            pendingJobs.add(task);
-//          }
-//        }// end of else portion of launch all if condition
-//      }// end of the while loop getting all the threads
-//      
-//      List<CcdpVMResource> avails = new ArrayList<>();
-//      for( Offer offer : offers )
-//      {
-//        if( pendingJobs.isEmpty() )
-//        {
-//          this.logger.info("No Pending Jobs, declining offer");
-//          driver.declineOffer( offer.getId() );
-//          break;
-//        }
-//        
-//        
-//        
-//        List<OfferID> list = Collections.singletonList( offer.getId() );
-////        List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
-////        Status stat = driver.launchTasks(list, tasks );
-////        this.logger.debug("Task Launched with status of: " + stat.toString() );
-//      }
-//    }// end of synch block
+    // declining offers of we have nothing to run
+    if( done )
+    {
+      this.logger.info("No tasks to run, declining offers");
+      for( Offer offer : offers )
+      {
+        OfferID id = offer.getId();
+        this.logger.debug("Declining Offer: " + id.toString());
+        driver.declineOffer(id);
+      }
+    }
+    else
+    {
+      this.handleResourceOffering(offers);
+    }
     
-//    synchronized( this.jobs )
-//    {
-//      List<CcdpJob> pendingJobs = new ArrayList<>();
-//      for( CcdpJob j : this.jobs )
-//      {
-//        this.logger.debug("Adding Job: " + j.getId());
-//        if( !j.isSubmitted() )
-//          pendingJobs.add(j);
-//      }
-//      
-//      for( Offer offer : offers )
-//      {
-//        if( pendingJobs.isEmpty() )
-//        {
-//          this.logger.info("No Pending Jobs, declining offer");
-//          driver.declineOffer( offer.getId() );
-//          break;
-//        }
-//        List<OfferID> list = Collections.singletonList( offer.getId() );
-//        List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
-//        Status stat = driver.launchTasks(list, tasks );
-//        this.logger.debug("Task Launched with status of: " + stat.toString() );
-//      }
-//    }// end of synch block
   }
 
-  
-  /***************************************************************************/
-  /***************************************************************************/
-  /***************************************************************************/
-  
   
   /***************************************************************************/
   /***************************************************************************/
@@ -392,6 +317,7 @@ public abstract class CcdpMesosScheduler
    */
   public void reconcileTasks()
   {
+    this.logger.debug("Reconciling Tasks");
     List<TaskStatus> runningTasks = new ArrayList<>();
     for( CcdpThreadRequest req: this.requests )
     {
@@ -423,32 +349,6 @@ public abstract class CcdpMesosScheduler
    * Implementation of the TaskingIntf interface used to receive event 
    * asynchronously.
    * 
-   * @param event the event to pass to the framework
-   * 
-   */
-  public void onEvent( Object event )
-  {
-    this.logger.info("Got a new Event: " + event.toString() );
-//    try
-//    {
-//      ObjectNode json = this.mapper.valueToTree( event.toString() );
-//      CcdpJob job = CcdpJob.fromJSON(json);
-//      synchronized( this.jobs )
-//      {
-//        this.logger.info("Adding Job: " + job);
-//        this.jobs.add(job);
-//      }
-//    }
-//    catch( Exception e )
-//    {
-//      this.logger.error("Message: " + e.getMessage(), e);
-//    }
-  }
-
-  /**
-   * Implementation of the TaskingIntf interface used to receive event 
-   * asynchronously.
-   * 
    * It checks for available resources to execute this request.  It launches
    * new resources based on the following:
    *  
@@ -474,11 +374,12 @@ public abstract class CcdpMesosScheduler
       return;
     }
     
+    // do we need to assign a new resource to this session?
     this.logger.info("Got a new Request: " + request.toString() );
     String sid = request.getSessionId();
     this.checkResourcesAvailability(sid);
     
-    // adding the request using the abstract method
+    // adding the request
     this.requests.add( request );
   }
   

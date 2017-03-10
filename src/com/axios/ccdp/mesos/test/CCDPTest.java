@@ -30,41 +30,26 @@ public class CCDPTest
   public CCDPTest() throws Exception
   {
     this.logger.debug("Running CCDP Test");
-    String fname = "/home/oeg/dev/oeg/CCDP/data/job.json";
-    File file = new File(fname);
-    if( file.isFile() )
-    {
-      byte[] data = Files.readAllBytes( Paths.get( fname ) );
-      JsonNode node = new ObjectMapper().readTree( data );
-      if( node.has("jobs") )
-      {
-        ArrayNode jobs_node = (ArrayNode)node.get("jobs");
-        for( JsonNode job : jobs_node )
-        {
-          this.logger.debug("Adding Job: " + job.toString());
-          ArrayNode args = (ArrayNode)job.get("command");
-          List<String> list = new ArrayList<String>();
-          for( JsonNode arg : args )
-          {
-            String cmd = arg.asText();
-            list.add(cmd);
-            this.logger.debug("\tThe Argument " + cmd);
-          }
-          StringJoiner joiner = new StringJoiner(" ");
-          list.forEach(joiner::add);
-          
-          String command = joiner.toString();
-          this.logger.debug("The generated command " + command);
-          
-          
-          CcdpJob ccdp_job = CcdpJob.fromJSON(job);
-          this.logger.debug("CPU: " + ccdp_job.getCpus());
-          this.logger.debug("MEM: " + ccdp_job.getMemory());
-          this.logger.debug("ID: " + ccdp_job.getId());
-          this.logger.debug("Command: " + ccdp_job.getCommand());
-        }
-      }
-    }
+    List<String> lista = new ArrayList<>();
+    lista.add("Uno");
+    lista.add("Dos");
+    lista.add("Tres");
+    lista.add("Cuatro");
+    lista.add("Cinco");
+    
+    List<String> list = new ArrayList<>();
+    list.add("One");
+    list.add("Two");
+    list.add("Three");
+    list.add("Four");
+    list.add("Five");
+    
+    List<String> both = new ArrayList<>();
+    both.addAll(lista);
+    both.addAll(list);
+    for( String s : both )
+      this.logger.debug("Item " + s);
+    
   }  
   
 

@@ -2,6 +2,7 @@ package com.axios.ccdp.mesos.connections.amq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.jms.TextMessage;
@@ -11,7 +12,9 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -53,6 +56,11 @@ public class AMQCcdpTaskingImpl
    * Stores the configuration for the tasking interface
    */
   private ObjectNode config = null;
+  
+  /**
+   * Generates all the JSON objects 
+   */
+  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
@@ -273,6 +281,25 @@ public class AMQCcdpTaskingImpl
    */
   public void onEvent( Object event )
   {
-
+    String msg = (String)event;
+    this.logger.debug("Got a Task Request " + msg);
+    
+    try
+    {
+      List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(msg);
+      if( reqs != null )
+      {
+        this.logger.debug("Got " + reqs.size() + " Thread requests");
+        for( CcdpThreadRequest req : reqs )
+        {
+          this.logger.debug("Tasking Consumer: " + req.toString());
+          this.consumer.onTask(req);
+        }
+      }
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
   }
 }

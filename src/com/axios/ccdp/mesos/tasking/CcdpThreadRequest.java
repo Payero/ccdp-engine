@@ -24,6 +24,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpThreadRequest 
 {
   /**
+   * Determines whether to run all the tasks in this thread in parallel or in 
+   * sequence mode.
+   */
+  public enum TasksRunningMode { PARALLEL, SEQUENCE }
+  /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CcdpThreadRequest.class);
@@ -52,9 +57,9 @@ public class CcdpThreadRequest
    */
   private List<CcdpTaskRequest> tasks = new ArrayList<CcdpTaskRequest>();
   /**
-   * Indicates whether or not all the Tasks are launched at once or not
+   * Indicates how to run all the tasks, one at the time or all of them
    */
-  private boolean launchAllTasks = true;
+  private TasksRunningMode runningMode = TasksRunningMode.PARALLEL;
   /**
    * Indicates whether or not all the tasks have been submitted for this thread
    */
@@ -231,19 +236,19 @@ public class CcdpThreadRequest
   }
   
   /**
-   * @return the launchAllTasks
+   * @return the tasks running mode
    */
-  public boolean isLaunchAllTasks()
+  public TasksRunningMode getTasksRunningMode()
   {
-    return this.launchAllTasks;
+    return this.runningMode;
   }
 
   /**
-   * @param launchAllTasks the launchAllTasks to set
+   * @param runningMode the tasks running mode
    */
-  public void setLaunchAllTasks(boolean launchAllTasks)
+  public void setTasksRunningMode( TasksRunningMode mode )
   {
-    this.launchAllTasks = launchAllTasks;
+    this.runningMode = mode;
   }
 
   /**
@@ -273,14 +278,32 @@ public class CcdpThreadRequest
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode thread = mapper.createObjectNode();
     
-    thread.put("thread-id",         this.threadId);
-    thread.put("name",              this.name);
-    thread.put("description",       this.description);
-    thread.put("reply-to",          this.replyTo);
-    thread.put("launch-all-tasks",  this.launchAllTasks);
-    thread.put("tasks-submitted",   this.tasksSubmitted);
-    thread.put("tasks",             this.tasks.toString());
+    thread.put("thread-id",           this.threadId);
+    thread.put("name",                this.name);
+    thread.put("description",         this.description);
+    thread.put("reply-to",            this.replyTo);
+    thread.put("tasks-running-mode",  this.runningMode.toString());
+    thread.put("tasks-submitted",     this.tasksSubmitted);
+    thread.put("tasks",               this.tasks.toString());
     
     return thread.toString();
+  }
+  
+  /**
+   * Returns the total number of Tasks that have not been submitted 
+   * 
+   * @return the total number of Tasks that have not been submitted
+   */
+  public int getPendingTasks()
+  {
+    int total = 0;
+    
+    for( CcdpTaskRequest task : this.tasks )
+    {
+      if( !task.isSubmitted() )
+        total++;
+    }
+    
+    return total;
   }
 }

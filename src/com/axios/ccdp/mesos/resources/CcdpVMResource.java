@@ -76,7 +76,6 @@ public class CcdpVMResource
    */
   public CcdpVMResource(String iid)
   {
-    this.logger.debug("Instantiating a new VM Resource: " + iid);
     this.setInstanceId(iid);
   }
 

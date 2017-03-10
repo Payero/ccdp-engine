@@ -60,6 +60,7 @@
 	<target name="clean" description="clean up">
 		<delete dir="${build.dir}" />
 		<delete dir="${dist.dir}" />
+    <delete dir="${doc.dir}" />
 	</target>
 	
 	<target name="gen.jars" depends="compile">

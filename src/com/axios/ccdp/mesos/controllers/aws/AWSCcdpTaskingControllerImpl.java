@@ -5,35 +5,23 @@ package com.axios.ccdp.mesos.controllers.aws;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.StringJoiner;
 
 import org.apache.log4j.Logger;
-import org.apache.mesos.Protos;
-import org.apache.mesos.Protos.CommandInfo;
-import org.apache.mesos.Protos.ExecutorInfo;
-import org.apache.mesos.Protos.Resource;
-import org.apache.mesos.Protos.SlaveID;
-import org.apache.mesos.Protos.TaskID;
-import org.apache.mesos.Protos.TaskInfo;
-import org.apache.mesos.Protos.Value;
 
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.mesos.resources.CcdpVMResource;
 import com.axios.ccdp.mesos.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.protobuf.ByteString;
+import com.sun.xml.bind.v2.TODO;
 
 /**
  * @author Oscar E. Ganteaume
  *
  */
-public class AWSCcdpTaskingControllerImpl 
-                          implements CcdpTaskingControllerIntf<TaskInfo>
+public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
 {
 
   /**
@@ -52,8 +40,6 @@ public class AWSCcdpTaskingControllerImpl
    */
   private ObjectNode config = null;
   
-  private ExecutorInfo executor;
-  
   /**
    * Instantiates a new object and starts receiving and processing incoming 
    * assignments    
@@ -66,6 +52,11 @@ public class AWSCcdpTaskingControllerImpl
     this.config = this.mapper.createObjectNode();
   }
 
+  /**
+   * Sets all the parameters required for this object to determine resource
+   * allocation and deallocation.
+   * 
+   */
   public void configure(ObjectNode config)
   {
     if( config != null )
@@ -75,23 +66,49 @@ public class AWSCcdpTaskingControllerImpl
     }
   }
 
-
+  /**
+   * Determines whether or not additional resources are needed based on
+   * the utilization level of the given resources.  If the resources combined
+   * reaches the threshold then it returns true otherwise it returns false.
+   * 
+   * @param resources the list of resources to test for need of additional 
+   *        resources
+   */
   public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
     // TODO Auto-generated method stub
     return false;
   }
   
+  /**
+   * Determines whether or not VM resources need to be terminated due to 
+   * low utilization or need.  If one or more of the current RUNNING resources
+   * falls below the threshold then is added to the list. 
+   * 
+   * @param resources the list of resources to test for need to deallocate
+   * 
+   * @return a list of resources that need to be terminated
+   */
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
     // TODO Auto-generated method stub
     return null;
   }
   
-  public List<TaskInfo> assignTasks(List<CcdpTaskRequest> tasks, 
-                                    List<CcdpVMResource> resources)
+  /**
+   * Assigns all the tasks in the given list to the target VM based on 
+   * resources availability and other conditions.
+   * 
+   * @param tasks a list of tasks to consider running in the intended VM
+   * @param target the VM candidate to run the tasks
+   * @param resources all available resources that could be potentially
+   *        used to run this tasks
+   */
+  public List<CcdpTaskRequest> assignTasks(List<CcdpTaskRequest> tasks, 
+                                           CcdpVMResource target,
+                                           List<CcdpVMResource> resources)
   {
-    List<TaskInfo> assigned = new ArrayList<>();
+    List<CcdpTaskRequest> assigned = new ArrayList<>();
     
     for( CcdpTaskRequest task: tasks )
     {
@@ -105,34 +122,37 @@ public class AWSCcdpTaskingControllerImpl
       if( cpu == 0 )
       {
         this.logger.info("CPU = " + cpu + " Assigning Task based on session");
-        TaskInfo ti = this.doLeastUtilized(task, resources);
-        if( ti != null )
+        if( this.isLeastUtilized(task, target, resources) )
         {
           task.setSubmitted(true);
           task.assigned();
-          assigned.add( ti );
+          target.addTask(task);
+          assigned.add( task );
         }
       }
       else if( cpu >= 100 )
       {
         this.logger.info("CPU = " + cpu + " Assigning a Resource just for this task");
-        TaskInfo ti = this.getAssignedResource(task, resources);
-        if( ti != null )
+        if( this.canAssignResource(task, target) )
         {
+          //TODO Chaning the task's cpu, is that good?
+          this.logger.info("Setting the Task's CPU to max amount for this resource");
+          task.setCPU(target.getCPU());
           task.setSubmitted(true);
           task.assigned();
-          assigned.add( ti );
+          target.addTask(task);
+          assigned.add( task );
         }
       }
       else
       {
         this.logger.info("CPU = " + cpu + " Assigning Task using First Fit");
-        TaskInfo ti = this.doFirstFit(task, resources);
-        if( ti != null )
+        if( this.canRunTask(task, target) )
         {
           task.setSubmitted(true);
           task.assigned();
-          assigned.add( ti );
+          target.addTask(task);
+          assigned.add( task );
         }
       }
     }
@@ -140,203 +160,117 @@ public class AWSCcdpTaskingControllerImpl
     return assigned;
   }
 
-
-
+  
   
   /**
-   * Checks the amount of CPU and memory available in the offer and starts 
-   * launching jobs that has not been submitted before and requires less 
-   * resources than the ones available in the Offer.
+   * Uses the list of resources to determine which one is the least
+   * utilized.  If the target resource is the least utilized then 
+   * it returns true otherwise it returns false.
+   * 
+   * @param target the intended VM to run the task
+   * @param resources a list of available VMs 
+   * 
+   * @return true if the task has not been submitted and the target VM is the
+   *         least utilized in the list
+   */
+  private boolean isLeastUtilized(CcdpTaskRequest task, CcdpVMResource target, 
+                                  List<CcdpVMResource> resources)
+  {
+    this.logger.debug("Finding least used VM of the session");
+    
+    if( task.isSubmitted() )
+    {
+      this.logger.debug("Job already submitted, skipping it");
+      return false;
+    }
+    
+    CcdpVMResource vm = CcdpVMResource.leastUsed(resources);
+    if( vm != null && vm.equals(target))
+    {
+      return true;
+    }
+    return false;
+  }
+  
+  
+  /**
+   * Checks the amount of CPU and memory available in this VM resource.  If the VM has enough resources to run the
+   * task then it returns the CcdpTaskRequest otherwise it returns null
    * 
    * @param task the task to assign to a resource
-   * @param resources a list of Resources that could be used to run this task
+   * @param resource the resource to determine whether or not it can be run this task
    * 
-   * @return a list of TaskInfo objects that were launched on this offer
+   * @return true if this task can be executed on this node
    */
-   private TaskInfo doFirstFit( CcdpTaskRequest task, 
-                                List<CcdpVMResource> resources )
+   private boolean canRunTask( CcdpTaskRequest task, CcdpVMResource resource )
    {
      this.logger.debug("Running First Fit");
-     TaskInfo taskInfo = null;
      if( task.isSubmitted() )
      {
        this.logger.debug("Job already submitted, skipping it");
-       return taskInfo;
+       return false;
      }
      
-     // We always need to extract the resource info from the offer
-     for( CcdpVMResource resource : resources )
+     // if the VM is not running then do not assign task to it
+     ResourceStatus status = resource.getStatus();
+     if( !ResourceStatus.RUNNING.equals(status) )
      {
-       // if the VM is not running then do not assign task to it
-       ResourceStatus status = resource.getStatus();
-       if( !ResourceStatus.RUNNING.equals(status) )
-       {
-         String msg = "VM " + resource.getInstanceId() + " not running " + status.toString(); 
-         this.logger.info(msg);
-         continue;
-       }
-       
-       double offerCpus = resource.getCPU();
-       double offerMem = resource.getMEM();
-       
-       String str = 
-       String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
-       this.logger.debug(str);
-       
-       double jobCpus = task.getCPU();
-       double jobMem = task.getMEM();
-       this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
-       // does the offer has more resources than needed?
-       if( jobCpus <= offerCpus && jobMem <= offerMem )
-       {
-         this.logger.info("Enough resources for a new Job");
-         offerCpus -= jobCpus;
-         offerMem -= jobMem;
-         
-         return this.makeTask( resource.getAgentId(), task );
-       }
-     }// end of resources loop
+       String msg = "VM " + resource.getInstanceId() + " not running " + status.toString(); 
+       this.logger.info(msg);
+       return false;
+     }
      
-     return null;
+     double offerCpus = resource.getCPU();
+     double offerMem = resource.getMEM();
+     
+     String str = 
+     String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
+     this.logger.debug(str);
+     
+     double jobCpus = task.getCPU();
+     double jobMem = task.getMEM();
+     this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
+     // does the offer has more resources than needed?
+     if( jobCpus <= offerCpus && jobMem <= offerMem )
+     {
+       this.logger.info("Enough resources for a new Job");
+       offerCpus -= jobCpus;
+       offerMem -= jobMem;
+       
+       return true;
+     }
+     
+     return false;
    }
-  
+   
    /**
-    * Checks the amount of CPU and memory available in the offer and starts 
-    * launching jobs that has not been submitted before and requires less 
-    * resources than the ones available in the Offer.
+    * Finds the VM that is assigned to this task.  This method is invoked when 
+    * a task requires to be executed alone on a VM.  If the VM is found and its
+    * ResourceStatus is set to RUNNING then it returns true otherwise it returns
+    * false
     * 
-    * @param offer the processing node available to execute the job
-    * @param tasks as list of jobs or tasks to run
+    * @param task the task to assign to the VM 
+    * @param resource the VM to test for assignment
     * 
-    * @return a list of TaskInfo objects that were launched on this offer
+    * @return true if the VM is found and is RUNNING
     */
-    private TaskInfo doLeastUtilized( CcdpTaskRequest task, 
-                                List<CcdpVMResource> resources )
-    {
-      this.logger.debug("Finding least used VM of the session");
-      TaskInfo taskInfo = null;
-      if( task.isSubmitted() )
-      {
-        this.logger.debug("Job already submitted, skipping it");
-        return taskInfo;
-      }
-      List<CcdpVMResource> list = new ArrayList<>();
-      
-      // We always need to extract the resource info from the offer
-      for( CcdpVMResource resource : resources )
-        list.add(resource);
-      
-      CcdpVMResource vm = CcdpVMResource.leastUsed(list);
-      if( vm != null )
-      {
-        return this.makeTask( vm.getAgentId(), task );
-      }
-      return null;
-    }
-    
-  /**
-   * Finds the VM that is assigned to this task.  This method is invoked when 
-   * a task requires to be executed alone on a VM.
-   * 
-   * @param task the task to assign to the VM 
-   * @param resources all the resources available for this session
-   * 
-   * @return a TaskInfo object associating the task with the VM
-   */
-  private TaskInfo getAssignedResource(CcdpTaskRequest task, 
-                                List<CcdpVMResource> resources )
-  {
-    String tid = task.getTaskId();
-    TaskInfo taskInfo = null;
-    for( CcdpVMResource resource: resources )
-    {
-      if( tid != null && tid.equals( resource.getSingleTask() ) )
-      {
-        if( resource.getStatus().equals(ResourceStatus.RUNNING) )
-        {
-          String iid = resource.getInstanceId();
-          this.logger.info("VM " + iid + " was assigned to " + tid);
-          taskInfo = this.makeTask(resource.getAgentId(), task);
-        }
-        else
-        {
-          this.logger.info("Found assigned resource but is not RUNNING");
-        }
-      }
-    }
-    
-    return taskInfo;
-  }
-
-  public void setExecutor( ExecutorInfo exec )
-  {
-    this.executor = exec;
-  }
-  /**
-   * Generates a TaskInfo object that will be executed by the appropriate Mesos 
-   * Agent.
-   * 
-   * @param targetSlave the Unique identifier of the Mesos Agent responsible for
-   *        running this task
-   * @param exec The mesos executor to use to execute the task
-   * 
-   * @return a TaskInfo object containing all the information required to run
-   *         this job
-   */
-  public TaskInfo makeTask(String targetSlave, CcdpTaskRequest task)
-  {
-    this.logger.debug("Making Task at Slave " + targetSlave);
-    TaskID id = TaskID.newBuilder().setValue(task.getTaskId()).build();
-    
-    Protos.TaskInfo.Builder bldr = TaskInfo.newBuilder();
-    bldr.setName("task " + id.getValue());
-    bldr.setTaskId(id);
-    // Adding the CPU
-    Protos.Resource.Builder resBldr = Resource.newBuilder();
-    resBldr.setName("cpus");
-    resBldr.setType(Value.Type.SCALAR);
-    resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getCPU()));
-    Resource cpuRes = resBldr.build();
-    bldr.addResources(cpuRes);
-    this.logger.debug("Adding CPU Resource " + cpuRes.toString());
-    
-    // Adding the Memory
-    resBldr.setName("mem");
-    resBldr.setType(Value.Type.SCALAR);
-    resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getMEM()));
-    Resource memRes = resBldr.build();
-    bldr.addResources(memRes);
-    this.logger.debug("Adding MEM Resource " + memRes.toString());
-    
-    Protos.CommandInfo.Builder cmdBldr = CommandInfo.newBuilder();
-    StringJoiner joiner = new StringJoiner(" ");
-    task.getCommand().forEach(joiner::add);
-    
-    String cmd = joiner.toString();
-    cmdBldr.setValue(cmd);
-    this.logger.debug("Running Command: " + cmd);
-    
-    Protos.SlaveID.Builder slvBldr = SlaveID.newBuilder();
-    slvBldr.setValue(targetSlave);
-    bldr.setSlaveId(slvBldr.build());
-    
-    bldr.setExecutor( ExecutorInfo.newBuilder(this.executor) );
-    ObjectNode json = this.mapper.createObjectNode();
-    
-    task.getCommand();
-    task.getConfiguration();
-    Map<String, String> cfg = task.getConfiguration();
-    // if there is a configuration, add it
-    if( cfg != null )
-    {
-      JsonNode jsonNode = mapper.convertValue(cfg, JsonNode.class);
-      json.set("cfg", jsonNode);
-    }
-    
-    json.put("cmd", cmd);
-    
-    bldr.setData(ByteString.copyFrom(json.toString().getBytes()));
-    return bldr.build();
-  }
-  
+   private boolean canAssignResource(CcdpTaskRequest task, CcdpVMResource resource )
+   {
+     String tid = task.getTaskId();
+     if( tid != null && tid.equals( resource.getSingleTask() ) )
+     {
+       if( resource.getStatus().equals(ResourceStatus.RUNNING) )
+       {
+         String iid = resource.getInstanceId();
+         this.logger.info("VM " + iid + " was assigned to " + tid);
+         return true;
+       }
+       else
+       {
+         this.logger.info("Found assigned resource but is not RUNNING");
+       }
+     }
+     
+     return false;
+   }
 }

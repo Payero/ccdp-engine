@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -41,6 +42,10 @@ public class CcdpTaskRequest
   private Logger logger = Logger.getLogger(CcdpTaskRequest.class.getName());
   
   private double DEF_VAL = 0.0001;
+  /**
+   * Generates all the JSON objects for this class
+   */
+  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * All the different states the job can be at any given time
@@ -510,8 +515,29 @@ public class CcdpTaskRequest
    */
   public String toString()
   {
-    ObjectMapper mapper = new ObjectMapper();
-    ObjectNode task = mapper.createObjectNode();
+    ObjectNode node = this.toObjectNode();
+    String str = node.toString();
+    try
+    {
+      str = 
+          this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+    }
+    catch( JsonProcessingException e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+    
+    return str;
+  }
+  
+  /**
+   * Gets a JSON representation of this task.
+   * 
+   * @return a JSON object representing this task
+   */
+  public ObjectNode toObjectNode()
+  {
+    ObjectNode task = this.mapper.createObjectNode();
     task.put("task-id",       this.taskId);
     task.put("name",          this.name);
     task.put("description",   this.description);
@@ -530,7 +556,6 @@ public class CcdpTaskRequest
     task.put("input-ports",   this.inputPorts.toString());
     task.put("output-ports",  this.outputPorts.toString());
     
-    
-    return task.toString();
+    return task;
   }
 }

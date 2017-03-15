@@ -1,16 +1,17 @@
 package com.axios.ccdp.mesos.resources;
 
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
-import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpVMResource
@@ -68,6 +69,14 @@ public class CcdpVMResource
    * Stores the taskId to run alone on this resource
    */
   private String singleTask = null;
+  /**
+   * Stores all the tasks assigned to this resource
+   */
+  private List<CcdpTaskRequest> tasks = new ArrayList<>();
+  /**
+   * Stores the last time this resource was tasked
+   */
+  private long last_assignment = 0;
   
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
@@ -334,6 +343,75 @@ public class CcdpVMResource
   }
 
   /**
+   * Adds the given task to the list of tasks assigned to this VM Resource
+   * 
+   * @param task the task to add
+   */
+  public void addTask(CcdpTaskRequest task)
+  {
+    this.last_assignment = System.currentTimeMillis();
+    this.tasks.add(task);
+  }
+  
+  /**
+   * Gets all the tasks assigned to this resource
+   * 
+   * @return all the tasks assigned to this resource
+   */
+  public List<CcdpTaskRequest> getTasks()
+  {
+    return this.tasks;
+  }
+  
+  /**
+   * Gets the total number of tasks assigned to this resource
+   * 
+   * @return the total number of tasks assigned to this resource
+   */
+  public int getNumberTasks()
+  {
+    return this.tasks.size();
+  }
+  
+  /**
+   * Removes the first task in the VM Resource list matching the given task's 
+   * ID.  If the task is found it returns true otherwise it returns false
+   * 
+   * @param task the task to remove from the list
+   * @return true if the task is found or false otherwise
+   * 
+   */
+  public boolean removeTask( CcdpTaskRequest task )
+  {
+    return this.tasks.remove(task);
+  }
+  
+  /**
+   * Removes the first task in the VM Resource list matching the given task's 
+   * ID.  If the task is found it returns true otherwise it returns false
+   * 
+   * @param task the task to remove from the list
+   * @return true if the task is found or false otherwise
+   * 
+   */
+  public boolean removeAllTasks( List<CcdpTaskRequest> tasks )
+  {
+    return this.tasks.removeAll(tasks);
+  }
+  
+  /**
+   * Gets the last time a task was added to this resource.  If no task has 
+   * been assigned then the time represents when this object was created.
+   * 
+   * @return the last time a task was added to this resource or the time 
+   *         this thread was created
+   */
+  public long getLastAssignmentTime()
+  {
+    return this.last_assignment;
+  }
+  
+  /**
    * Compares this object with the one provided as argument. The result is as
    * follow:
    *   
@@ -357,6 +435,7 @@ public class CcdpVMResource
       return false;
   }
   
+  
   /**
    * Returns a JSON like string containing information about this object
    * 
@@ -379,6 +458,13 @@ public class CcdpVMResource
     node.put("disk-mem", this.assignedDisk);
     node.put("status", this.status.toString());
     
+    ArrayNode tasks = mapper.createArrayNode();
+    
+    for( CcdpTaskRequest task : this.tasks )
+      tasks.add(task.toObjectNode());
+    
+    node.set("tasks", tasks);
+    
     StringWriter sw = new StringWriter();
     try
     {
@@ -388,6 +474,7 @@ public class CcdpVMResource
     {
       this.logger.error("Message: " + e.getMessage(), e);
     }
+    
     return sw.toString();
   }
   
@@ -395,7 +482,8 @@ public class CcdpVMResource
    * Compares all the resources in the list and determines what is the least
    * utilized.  The comparison is done by checking the difference between the
    * CPU and the assigned CPU values.  If the values are the same then compares
-   * the memory the same way.
+   * the memory the same way.  If the memory is also the same then it uses 
+   * the number of tasks as the differentiator
    * 
    * This method invokes the CcdpVMResource.leastUsed( list, true ) method to
    * indicate that only take into account resources that are running and 
@@ -415,7 +503,8 @@ public class CcdpVMResource
    * Compares all the resources in the list and determines what is the least
    * utilized.  The comparison is done by checking the difference between the
    * CPU and the assigned CPU values.  If the values are the same then compares
-   * the memory the same way.
+   * the memory the same way. If the memory is also the same then it uses 
+   * the number of tasks as the differentiator
    * 
    * If the onlyRunning flag is set it only considers those resources that are
    * ready (the status is set to RUNNING) to process tasks.
@@ -451,7 +540,9 @@ public class CcdpVMResource
       double cpu = res.getCPU() - res.getAssignedCPU();
       
       // if the current least is less than the new one means the new one has
-      // more unused resources
+      // more unused resources.  If they are the same then let's check the 
+      // memory and finally the number of tasks running
+      //
       if( currCPU < cpu )
         least = res;
       else if( least.getAssignedCPU() == res.getAssignedCPU() )
@@ -460,8 +551,14 @@ public class CcdpVMResource
         double mem = res.getMEM() - res.getAssignedMEM();
         if( currMem < mem )
           least = res;
+        else if( least.getAssignedMEM() == res.getAssignedMEM() )
+        {
+          if( res.getNumberTasks() < least.getNumberTasks() )
+          least = res;
+        }
       }
     }
+    
     return least;
   }
 }

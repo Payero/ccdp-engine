@@ -11,7 +11,9 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -84,7 +86,6 @@ public class CcdpThreadRequest
     this.threadId = threadId;
   }
   
-  
   /**
    * Gets the next task to process or null if all the tasks have been processed
    * 
@@ -100,6 +101,9 @@ public class CcdpThreadRequest
       if( !task.isSubmitted() )
         return task;
     }
+    
+    this.logger.debug("All the Tasks have been submitted");
+    this.setTasksSubmitted(true);
     
     return null;
   }
@@ -267,6 +271,48 @@ public class CcdpThreadRequest
     this.tasksSubmitted = tasksSubmitted;
   }
 
+
+  /**
+   * Removes a Task from the Thread Request.  If the task is found it returns
+   * true otherwise it returns false
+   * 
+   * @param task the task to remove from the request
+   * 
+   * @return true if the task is found and was removed successfully or false 
+   *         otherwise
+   */
+  public boolean removeAllTasks( List<CcdpTaskRequest> tasks )
+  {
+    return this.tasks.removeAll(tasks);
+  }
+  
+  
+  /**
+   * Removes a Task from the Thread Request.  If the task is found it returns
+   * true otherwise it returns false
+   * 
+   * @param task the task to remove from the request
+   * 
+   * @return true if the task is found and was removed successfully or false 
+   *         otherwise
+   */
+  public boolean removeTask( CcdpTaskRequest task )
+  {
+    return this.tasks.remove(task);
+  }
+  
+  /**
+   * Returns true if all the tasks have been removed from the list.  The task
+   * is removed once it either finishes running or fails to run.
+   * 
+   * @return  true if all the tasks have been removed from the list or false 
+   *          otherwise
+   */
+  public boolean isDone()
+  {
+    return this.tasks.isEmpty();
+  }
+  
   /**
    * Gets a string representation of this object using the form 
    *  'Field': 'Value'
@@ -277,6 +323,7 @@ public class CcdpThreadRequest
   {
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode thread = mapper.createObjectNode();
+    ArrayNode tasks = mapper.createArrayNode();
     
     thread.put("thread-id",           this.threadId);
     thread.put("name",                this.name);
@@ -284,9 +331,21 @@ public class CcdpThreadRequest
     thread.put("reply-to",            this.replyTo);
     thread.put("tasks-running-mode",  this.runningMode.toString());
     thread.put("tasks-submitted",     this.tasksSubmitted);
-    thread.put("tasks",               this.tasks.toString());
+    for( CcdpTaskRequest task : this.tasks )
+      tasks.add(task.toObjectNode());
     
-    return thread.toString();
+    thread.set("tasks",               tasks);
+    
+    String str = thread.toString();
+    try
+    {
+      str = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(thread);
+    }
+    catch( JsonProcessingException e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+    return str;
   }
   
   /**

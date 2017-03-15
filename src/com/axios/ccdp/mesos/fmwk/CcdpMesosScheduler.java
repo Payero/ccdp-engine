@@ -19,14 +19,12 @@ import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Protos.OfferID;
 import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.TaskID;
-import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.Protos.TaskStatus.Reason;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
-import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
@@ -99,7 +97,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
-  protected CcdpTaskingControllerIntf<TaskInfo> tasker = null;
+  protected CcdpTaskingControllerIntf tasker = null;
   /**
    * Controls all the VMs
    */
@@ -128,7 +126,6 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
    * @param execInfo the name of the executor to use to execute the tasks
    * @param jobs an optional list of jobs
    */
-  @SuppressWarnings("unchecked")
   public CcdpMesosScheduler( ExecutorInfo execInfo, List<CcdpThreadRequest> jobs)
   {
     this.logger.debug("Creating a new CCDP Remote Scheduler");
@@ -270,6 +267,8 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
   @Override
   public void resourceOffers(SchedulerDriver driver, List<Offer> offers)
   {
+    this.printStatus();
+    
     boolean done = true;
     synchronized( this.requests )
     {
@@ -299,7 +298,6 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
     {
       this.handleResourceOffering(offers);
     }
-    
   }
 
   
@@ -307,6 +305,41 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
   /***************************************************************************/
   /***************************************************************************/
   
+  /**
+   * Prints the current Request and Resources Status.  Useful method to take a
+   * quick look at what is happening in the system.  This is invoked every
+   * time a resource is offered.
+   */
+  private void printStatus()
+  {
+    this.logger.debug("******************************************************");
+    this.logger.debug("**********    Current Requests Status    *************");
+    this.logger.debug("******************************************************");
+    for( CcdpThreadRequest req : this.requests )
+    {
+      this.logger.debug("Request " + req.toString() );
+    }
+    
+    this.logger.debug("******************************************************");
+    this.logger.debug("******************************************************");
+    
+    this.logger.debug("======================================================");
+    this.logger.debug("==========    Current Resources    ===================");
+    this.logger.debug("======================================================");
+    
+    for( String sid : this.sessions.keySet() )
+    {
+      this.logger.debug("----------------------------------------------------");
+      this.logger.debug(sid);
+      this.logger.debug("----------------------------------------------------");
+      for( CcdpVMResource res : this.sessions.get(sid) )
+      {
+        this.logger.debug(res.toString());
+      }
+      this.logger.debug("----------------------------------------------------");
+      this.logger.debug("----------------------------------------------------");
+    }
+  }
   
   /**
    * Makes sure that what the Master Mesos believes is the state of the cluster
@@ -607,8 +640,10 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
          this.logger.warn("Got a reconciliation, want to do something?");
        // we'll see if we can find a job this corresponds to
        
+       List<CcdpThreadRequest> doneThreads = new ArrayList<>();
        for( CcdpThreadRequest req : this.requests)
        {
+         List<CcdpTaskRequest> toRemove = new ArrayList<>();
          for( CcdpTaskRequest task : req.getTasks() )
          {
            String jid = task.getTaskId();
@@ -625,6 +660,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
                  break;
                case TASK_FINISHED:
                  task.succeed();
+                 toRemove.add(task);
                  changed = true;
                  this.logger.debug("Job (" + jid + ") Finished");
                  break;
@@ -633,6 +669,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
                case TASK_LOST:
                case TASK_ERROR:
                  task.fail();
+                 toRemove.add(task);
                  changed = true;
                  break;
                default:
@@ -651,9 +688,18 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
                // notify the child of changes on a task
                this.handleStatusUpdate(task);
              }
+             
            }// found the job
          }// for task loop
-       }
+         req.removeAllTasks( toRemove );
+         if( req.isDone() )
+           doneThreads.add(req);
+         
+       }// end of the thread request loop
+       
+       // now need to delete all the threads that are done
+       this.logger.info("Removing " + doneThreads.size() + " done Threads");
+       this.requests.removeAll(doneThreads);
      }// end of synch block
    }
    

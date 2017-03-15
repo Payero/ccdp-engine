@@ -8,7 +8,6 @@ import org.apache.mesos.ExecutorDriver;
 import org.apache.mesos.MesosExecutorDriver;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkInfo;
-import org.apache.mesos.Protos.SlaveID;
 import org.apache.mesos.Protos.SlaveInfo;
 import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
@@ -85,6 +84,14 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     
     TaskStatus status  = bldr.build();
     this.driver.sendStatusUpdate(status);
+    if( state.equals(TaskState.TASK_ERROR) || 
+        state.equals(TaskState.TASK_FAILED) || 
+        state.equals(TaskState.TASK_FINISHED) )
+    {
+      this.tasks.remove(taskId);
+      if( this.tasks.isEmpty() )
+        this.driver.abort();
+    }
   }
   
   /**
@@ -116,6 +123,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.info("Disconnecting");
     String msg = "ERROR: Slave was disconnected";
     this.driver.sendFrameworkMessage(msg.getBytes());
+    driver.abort();
   }
 
   /**
@@ -129,6 +137,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void error(ExecutorDriver driver, String errorMsg)
   {
     this.logger.error("Driver no longer running, got an error: " + errorMsg);
+    this.driver.abort();
   }
 
   /**
@@ -163,12 +172,16 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     
     synchronized( this )
     {
-      CcdpTaskRunner task = this.tasks.get(taskId);
+//      CcdpTaskRunner task = this.tasks.get(taskId);
+      CcdpTaskRunner task = this.tasks.remove(taskId);
       if( task != null )
       {
         task.killTask();
       }
     }
+    
+    if( this.tasks.isEmpty() )
+      driver.abort();
   }
 
   /**
@@ -264,6 +277,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.info("Shuting Down Executor");
     if( this.timer != null )
       this.timer.stop();
+    driver.abort();
   }
 
   public static void main(String[] args) throws Exception
@@ -277,6 +291,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     ExecutorDriver driver = new MesosExecutorDriver(executor);
     int exitCode = driver.run() == Status.DRIVER_STOPPED ? 0 : 1;
     System.out.println("Executor ended with exit code: " + exitCode);
+    driver.abort();
     System.exit(exitCode);
   }
 }

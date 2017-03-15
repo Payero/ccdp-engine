@@ -232,7 +232,7 @@ public class CCDPEngineMain
     config.setRequired(false);
     options.addOption(config);
 
-    Option jobs = new Option("j", "jobs", true, 
+    Option jobs = new Option("f", "file-jobs", true, 
         "Optional JSON file with the jobs to run");
     jobs.setRequired(false);
     options.addOption(jobs);
@@ -283,9 +283,9 @@ public class CCDPEngineMain
     }
     
     // do we have a valid job file?
-    if( cmd.hasOption('j') )
+    if( cmd.hasOption('f') )
     {
-      String fname = CcdpUtils.expandVars( cmd.getOptionValue('j') );
+      String fname = CcdpUtils.expandVars( cmd.getOptionValue('f') );
       File file = new File( fname );
       if( file.isFile() )
         jobs_file = fname;

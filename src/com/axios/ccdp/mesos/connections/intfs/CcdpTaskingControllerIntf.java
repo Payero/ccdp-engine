@@ -23,6 +23,7 @@ public interface CcdpTaskingControllerIntf
    * Sets all the parameters required for this object to determine resource
    * allocation and deallocation.
    * 
+   * @param config the object containing all the configuration parameters
    */
   public  void configure( ObjectNode config );
 
@@ -32,8 +33,11 @@ public interface CcdpTaskingControllerIntf
    * 
    * @param tasks a list of tasks to consider running in the intended VM
    * @param target the VM candidate to run the tasks
-   * @param resources all available resources that could be potentially
+   * @param considering all available resources that could be potentially
    *        used to run this tasks
+   * 
+   * @return a list of tasks that could be assigned to the target resource
+   * 
    */
   public  List<CcdpTaskRequest> assignTasks(List<CcdpTaskRequest> tasks, 
                                             CcdpVMResource target,
@@ -46,6 +50,8 @@ public interface CcdpTaskingControllerIntf
    * 
    * @param resources the list of resources to test for need of additional 
    *        resources
+   * 
+   * @return true if more resources need to be allocated or false otherwise
    */
   public  boolean needResourceAllocation(List<CcdpVMResource> resources);
   

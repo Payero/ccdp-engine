@@ -209,8 +209,6 @@ public class AMQCcdpTaskingImpl
   /**
    * Unregisters the UUID from receiving incoming events from the given channel
    * 
-   * @param uuid the unique identifier to remove from receiving events
-   * @param channel the channel to unsubscribe
    */
   @Override
   public void unregister()
@@ -222,7 +220,6 @@ public class AMQCcdpTaskingImpl
    * Unregisters the UUID from receiving incoming events from the given channel
    * 
    * @param uuid the unique identifier to remove from receiving events
-   * @param channel the channel to unsubscribe
    */
   @Override
   public void unregister(String uuid)

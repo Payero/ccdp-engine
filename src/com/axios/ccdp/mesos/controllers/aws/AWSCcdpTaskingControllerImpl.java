@@ -259,6 +259,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
      String tid = task.getTaskId();
      if( tid != null && tid.equals( resource.getSingleTask() ) )
      {
+       this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
        if( resource.getStatus().equals(ResourceStatus.RUNNING) )
        {
          String iid = resource.getInstanceId();

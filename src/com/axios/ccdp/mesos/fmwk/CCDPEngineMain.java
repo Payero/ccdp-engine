@@ -1,8 +1,6 @@
 package com.axios.ccdp.mesos.fmwk;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +25,6 @@ import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 
 /**
  * Main class to run a Mesos Framework.  It is used for testing and learning
@@ -49,18 +46,26 @@ public class CCDPEngineMain
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
+  /**
+   * If set to true it runs the simple framework rather than the normal one
+   */
+  private boolean run_simple = false;
   
   /**
    * Instantiates a new object which will deployed a custom executor.  The 
    * executor would connect to the Mesos Master and will launch all the jobs
-   * specified in the json_file
+   * specified in the json_file.
+   * 
+   * If the run_simple flag is set to true, then it uses the SimpleFramework
+   * rather than the normal one.  This is useful for debugging
    * 
    * @param json_file contains all the jobs to execute
+   * @param run_simple a flag indicating to run the SimpleFramework
    * 
    * @throws Exception an Exception is thrown if there is a problem executing
    *         the tasks
    */
-  public CCDPEngineMain(String json_file ) throws Exception
+  public CCDPEngineMain(String json_file, boolean run_simple ) throws Exception
   {
     this.logger.debug("Running JSON Remote Main");
     String root = System.getenv("CCDP_HOME");
@@ -119,10 +124,11 @@ public class CCDPEngineMain
     }
     
     List<CcdpThreadRequest> requests = new ArrayList<CcdpThreadRequest>();
+    File json_jobs = null;
     
     if( json_file != null )
     {
-      File json_jobs = new File(json_file);
+      json_jobs = new File(json_file);
       this.logger.debug("Loading File: " + json_file);
       
       // loading Jobs from the command line
@@ -139,7 +145,37 @@ public class CCDPEngineMain
       }
     }
     
-    Scheduler scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
+    // what kind of scheduler do we want to run
+    Scheduler scheduler = null;
+    if( run_simple )
+    {
+      this.logger.info("Running SimpleFramework");
+      List<CcdpJob> jobs = null;
+      if( json_jobs != null && json_jobs.isFile() )
+      {
+        jobs = new ArrayList<>();
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode jsonRoot = mapper.readTree( json_jobs );
+        if( jsonRoot.has("jobs") )
+        {
+          this.logger.debug("Found Jobs");
+          JsonNode jsonJobs = jsonRoot.get("jobs");
+          for( JsonNode job : jsonJobs )
+          {
+            this.logger.debug("Adding Job: " + job.toString());
+            jobs.add( CcdpJob.fromJSON(job) );
+          }
+        }
+        
+      }
+      scheduler = new SimpleRemoteScheduler( ccdpExec, jobs );
+    }
+    else
+    {
+      this.logger.info("Running Remote Framework");
+      scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
+    }
+    
     
     // Running Mesos Specific stuff
     MesosSchedulerDriver driver = null;
@@ -213,11 +249,11 @@ public class CCDPEngineMain
    * Running the class with -h produces the following message:
    * 
    * usage: class com.axios.ccdp.mesos.fmwk.CCDPEngineMain
-   * -c,--config-file <arg>   Path to the configuration file.  This can also
+   * -c,--config-file &lt;arg&gt;      Path to the configuration file.  This can also
    *                           be set using the System Property
    *                           'ccdp.config.file'
    *  -h,--help                Shows this message
-   *  -j,--jobs <arg>          Optional JSON file with the jobs to run
+   *  -j,--jobs &lt;arg&gt;            Optional JSON file with the jobs to run
    * 
    * @param args the command line arguments
    * @throws Exception throws an Exception if the class has problems parsing 
@@ -241,6 +277,11 @@ public class CCDPEngineMain
     help.setRequired(false);
     options.addOption(help);
 
+    Option simple = new Option("s", "simple-fmwk", false, 
+        "Runs the SimpleFramework if present");
+    simple.setRequired(false);
+    options.addOption(simple);
+    
     CommandLineParser parser = new DefaultParser();
     
     CommandLine cmd;
@@ -299,6 +340,10 @@ public class CCDPEngineMain
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     
-    new CCDPEngineMain(jobs_file);
+    boolean run_simple = false;
+    if( cmd.hasOption('s') )
+      run_simple = true;
+    
+    new CCDPEngineMain(jobs_file, run_simple);
   }
 }

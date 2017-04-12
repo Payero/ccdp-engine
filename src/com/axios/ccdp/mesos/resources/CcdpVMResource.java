@@ -390,7 +390,7 @@ public class CcdpVMResource
    * Removes the first task in the VM Resource list matching the given task's 
    * ID.  If the task is found it returns true otherwise it returns false
    * 
-   * @param task the task to remove from the list
+   * @param tasks the tasks to remove from the list
    * @return true if the task is found or false otherwise
    * 
    */

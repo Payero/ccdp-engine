@@ -14,11 +14,17 @@
 	<property name="build.dir" location="build" />
 
 	<!-- Output, Jar -->
-	<property name="dist.dir" location="dist" />
+	<property name="dist.dir" location="dist/CCDP" />
 
 	<!--Thirdparty jars/libaries -->
 	<property name="lib.dir" location="lib" />
-  
+
+  <!--Scripts used to run -->
+  <property name="install.dir" location="inst" />
+
+  <!--Scripts used to run -->
+  <property name="scripts.dir" location="scripts" />
+
   <!--The location of the javadoc directory -->
   <property name="doc.dir" location="doc" />
 
@@ -48,11 +54,13 @@
 		<!-- Create the distribution directory -->
 		<mkdir dir="${dist.dir}" />
 
-		<!-- Put everything in ${build} into the {$projectName}-${DSTAMP}.jar file -->
-		<jar jarfile="${dist.dir}/${project.name}-${DSTAMP}.jar" basedir="${build.dir}" >
+		<!-- Put everything in ${build} into a jar file -->
+		<jar jarfile="${dist.dir}/${project.name}-${DSTAMP}.jar" 
+         basedir="${build.dir}" >
 		    <manifest>
-			<!-- create an executable Jar -->
-			<attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor" />
+			    <!-- create an executable Jar -->
+			    <attribute name="Main-Class" 
+                     value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor" />
 		    </manifest>
 		</jar>
 	</target>
@@ -63,11 +71,23 @@
     <delete dir="${doc.dir}" />
 	</target>
 	
-	<target name="gen.jars" depends="compile">
-		<copy file="${basedir}/config/log4j.properties" todir="${build.dir}" />
+  <!-- Creates a README file explaining that is is just an install directory -->
+  <target name="create.file" description="Creates a readme file">
+    <echo file="${dist.dir}/README" append="false">
+      This directory was created and installed automatically
+    </echo>
+  </target>
+
+  <!-- Generate all the jars and copies all the corresponding files 
+       in the right places by using other targets
+  -->
+	<target name="gen.jars" depends="compile,copy.scripts,create.file">
+		<!-- <copy file="${basedir}/config/log4j.properties" todir="${build.dir}" /> -->
+
     <jar destfile="${dist.dir}/${executor.name}.jar" >
         <manifest>
-            <attribute name="Main-Class" value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
+            <attribute name="Main-Class" 
+                       value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
         </manifest>
         <fileset dir="${build.dir}" includes="*.properties" />
   		<fileset dir="${build.dir}"/>
@@ -75,7 +95,7 @@
         <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
     </jar>
 
-    <copy file="${basedir}/config/ccdp-config.properties" todir="${build.dir}" />
+    <copy file="${basedir}/config/ccdp-config.properties" todir="${build.dir}"/>
     <jar destfile="${dist.dir}/${engine.name}.jar" >
         <manifest>
             <attribute name="Main-Class" 
@@ -99,8 +119,33 @@
     </javadoc>
   </target>
 
+  <!-- Copies the contents of the scripts dir and sets the permissions -->
+  <target name="copy.scripts" 
+          description="Copies all the scripts to the dist directory"
+          depends="copy.install">
+    <copy todir="${dist.dir}/scripts">
+      <fileset dir="${scripts.dir}"/>
+    </copy>
+    
+    <copy file="${basedir}/config/ccdp-config.properties" todir="${dist.dir}" />
+    <copy file="${basedir}/config/log4j.properties" todir="${dist.dir}" />
+
+    <chmod dir="${dist.dir}/scripts" perm="777" includes="**/*.sh"/>
+    <chmod dir="${dist.dir}/scripts" perm="777" includes="**/*.py"/>
+  </target>
+
+  <!-- Copies the contents of the inst dir and sets the permissions -->
+  <target name="copy.install" 
+          description="Copies all the scripts to the dist directory">
+    <copy todir="${dist.dir}/bin">
+      <fileset dir="${install.dir}"/>
+    </copy>
+    
+    <chmod dir="${dist.dir}/bin" perm="777" includes="**/*.sh"/>
+    <chmod dir="${dist.dir}/bin" perm="777" includes="**/*.py"/>
+  </target>
+
  	<!-- Default, run this -->
 	<target name="main" depends="clean, compile, dist, gen.jars,javadoc" />
-
 
 </project>

@@ -89,8 +89,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
         state.equals(TaskState.TASK_FINISHED) )
     {
       this.tasks.remove(taskId);
-      if( this.tasks.isEmpty() )
-        this.driver.abort();
+//      if( this.tasks.isEmpty() )
+//        this.driver.abort();
     }
   }
   
@@ -115,7 +115,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * typically indicates a slave restart.  Rarely should an executor need to do 
    * anything special here
    * 
-   * @param driver
+   * @param driver The executor driver that was disconnected.
    */
   @Override
   public void disconnected(ExecutorDriver driver)
@@ -130,14 +130,14 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * This callback is invoked after a fatal error occurs.  When this callback is
    * invoked the driver is no longer running.
    * 
-   * @param driver
-   * @param errorMsg
+   * @param driver The executor driver that was aborted due this error.
+   * @param errorMsg the error message
    */
   @Override
   public void error(ExecutorDriver driver, String errorMsg)
   {
     this.logger.error("Driver no longer running, got an error: " + errorMsg);
-    this.driver.abort();
+//    this.driver.abort();
   }
 
   /**
@@ -147,7 +147,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * 
    * Note that framework messages are not routed to particular tasks
    * 
-   * @param driver
+   * @param driver The executor driver that was aborted due this error.
    * @param msg serialized message as bytes
    * 
    */
@@ -180,13 +180,13 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       }
     }
     
-    if( this.tasks.isEmpty() )
-      driver.abort();
+//    if( this.tasks.isEmpty() )
+//      driver.abort();
   }
 
   /**
    * Invoked when a task has been launched on this executor (initiated via 
-   * SchedulerDriver.launchTasks(OfferID>, TaskInfo>, Filters). Note that this 
+   * SchedulerDriver.launchTasks(OfferID, TaskInfo, Filters). Note that this 
    * task can be realized with a thread, a process, or some simple computation, 
    * however, no other callbacks will be invoked on this executor until this 
    * callback has returned.
@@ -269,7 +269,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * shutdown doesn't complete within 5 seconds (the default, configurable on 
    * the slave command line with --executor_shutdown_grace_period).
    * 
-   * @param driver
+   * @param driver The executor driver that was aborted due this error.
    */
   @Override
   public void shutdown(ExecutorDriver driver)
@@ -280,6 +280,13 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     driver.abort();
   }
 
+  /**
+   * Runs the show, but it cannot be used as it needs many components from 
+   * mesos
+   * 
+   * @param args the command line arguments
+   * @throws Exception an exception is thrown if an error occurs
+   */
   public static void main(String[] args) throws Exception
   {
     CcdpUtils.configureProperties();

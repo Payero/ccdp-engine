@@ -44,7 +44,7 @@ import com.google.protobuf.ByteString;
  *              a cluster such as EMR, Hadoop, etc.
  *  - CPU:  The CPU value determines the schema to use as follow:
  *      CPU = 0:        Let the Scheduler decide where to run it
- *      0 > CPU < 100:  Use the first VM with enough resources to run the task
+ *      0 &gt; CPU &lt; 100:  Use the first VM with enough resources to run the task
  *      CPU = 100:      Run this task by itself on a new VM
  *  
  * @author Oscar E. Ganteaume
@@ -84,7 +84,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
    * will only contain resources from a single slave. Resources associated with 
    * an offer will not be re-offered to _this_ framework until either (a) this 
    * framework has rejected those resources (see 
-   * SchedulerDriver.launchTasks(Collection<OfferID>, Collection<TaskInfo>, 
+   * SchedulerDriver.launchTasks(Collection&lt;OfferID&gt;, Collection&lt;TaskInfo&gt;, 
    *                             Filters)) 
    * or (b) those resources have been rescinded (see 
    * offerRescinded(SchedulerDriver, OfferID)). Note that resources may be 
@@ -95,7 +95,6 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
    * already launched tasks with those resources then those tasks will fail 
    * with a TASK_LOST status and a message saying as much).
    * 
-   * @param driver - The driver that was used to run this scheduler.
    * @param offers - The resources offered to this framework.
    * 
    */
@@ -170,7 +169,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       }// it does not have a session id
       else if( sid == null )
       {
-        this.logger.info("Resorce does not have session id, adding it to free");
+        this.logger.info("Resource does not have session id, adding it to free");
         this.free_vms.add(vm);
       }
       
@@ -220,7 +219,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
    * either the Task or the Thread is set, then it sends a notification to the
    * client of the change.
    * 
-   * @param @param task the task whose status changed 
+   * @param task the task whose status changed 
    */
   public void handleStatusUpdate( CcdpTaskRequest task )
   {
@@ -473,6 +472,21 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       this.logger.info("Thread " + id + " for Session " + sid + " Complete");
       this.requests.remove(req);
       return null;
+    }
+    List<CcdpVMResource> list = this.sessions.get(sid);
+    if ( list == null )
+    {
+      this.logger.info("The session id " + sid + " does not have resources, checking free");
+      if( this.free_vms.size() > 0 )
+      {
+        CcdpVMResource res = this.free_vms.remove(0);
+        this.logger.info("Assigning VM " + res.getInstanceId() + " to " + sid);
+        res.setAssignedSession(sid);
+        res.setStatus(ResourceStatus.RUNNING);
+        List<CcdpVMResource> resources = new ArrayList<>();
+        resources.add(res);
+        this.sessions.put(sid, resources);
+      }
     }
     
     // Getting all the resources for this session

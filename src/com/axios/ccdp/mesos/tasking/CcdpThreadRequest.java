@@ -248,7 +248,7 @@ public class CcdpThreadRequest
   }
 
   /**
-   * @param runningMode the tasks running mode
+   * @param mode the tasks running mode
    */
   public void setTasksRunningMode( TasksRunningMode mode )
   {
@@ -276,7 +276,7 @@ public class CcdpThreadRequest
    * Removes a Task from the Thread Request.  If the task is found it returns
    * true otherwise it returns false
    * 
-   * @param task the task to remove from the request
+   * @param tasks the tasks to remove from the request
    * 
    * @return true if the task is found and was removed successfully or false 
    *         otherwise

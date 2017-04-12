@@ -208,7 +208,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * The String needs to reflect a bash script such as new lines needs to be
    * added between commands.
    * 
-   * @param imageId the image to use to create new Virtual Machines
+   * @param imgId the image to use to create new Virtual Machines
    * @param min the minimum number of Virtual Machines to create
    * @param max the maximum number of Virtual Machines to create
    * @param tags optional map containing key-value pairs to set

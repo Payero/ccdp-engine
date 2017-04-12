@@ -41,7 +41,6 @@ public class CcdpTaskRequest
    */
   private Logger logger = Logger.getLogger(CcdpTaskRequest.class.getName());
   
-  private double DEF_VAL = 0.0001;
   /**
    * Generates all the JSON objects for this class
    */
@@ -94,11 +93,11 @@ public class CcdpTaskRequest
   /**
    * The amount of CPU this task requires to execute
    */
-  private double cpu = DEF_VAL;
+  private double cpu = 0.01;
   /**
    * The amount of memory this task requires to execute
    */
-  private double mem = DEF_VAL;
+  private double mem = 32;
   /**
    * A list of arguments used to generate the command to be executed by the 
    * agent
@@ -241,7 +240,7 @@ public class CcdpTaskRequest
   }
 
   /**
-   * @param cPU the cPU to set
+   * @param cpu the cPU to set
    */
   @JsonSetter("cpu")
   public void setCPU(double cpu)
@@ -259,7 +258,7 @@ public class CcdpTaskRequest
   }
 
   /**
-   * @param mEM the mEM to set
+   * @param mem the mEM to set
    */
   @JsonSetter("mem")
   public void setMEM(double mem)

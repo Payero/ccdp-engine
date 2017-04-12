@@ -59,6 +59,9 @@ public class CcdpTaskRunner extends Thread
   
   /**
    * Creates a new Task to be executed by a Mesos Executor 
+   * 
+   * @param taskInfo the name of the task to run
+   * @param executor the actual process to execute the task
    */
   public CcdpTaskRunner(TaskInfo taskInfo, CcdpCommandExecutor executor)
   {

@@ -151,6 +151,8 @@ public class AWSCcdpFactoryImpl extends CcdpObjectFactoryAbs
    * @param config a JSON object containing the required configuration to
    *        manipulate resources in AWS
    * 
+   * @return an authentication object using the given parameters
+   * 
    * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         it cannot find at least one of the different methods to 
    *         authenticate the user

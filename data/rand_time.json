@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"oeg-1", "cpu": 100, "mem": 128, "command": ["/home/oeg/dev/oeg/PyMods/src/test/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=300,max=600"]}
+      {"session-id":"oeg-1", "command": ["/data/users/oeg/workspace/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=3,max=5"]}
     ]
 }

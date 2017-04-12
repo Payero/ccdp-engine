@@ -8,8 +8,8 @@ fi
 
 if [ -z ${CCDP_HOME+x} ]; then 
   echo "CCDP_HOME is unset, trying default"; 
-  if [ -d "/home/oeg/dev/oeg/CCDP" ]; then
-    export CCDP_HOME=/home/oeg/dev/oeg/CCDP
+  if [ -d "/data/CCDP" ]; then
+    export CCDP_HOME=/data/CCDP
   else
     echo "Could not find CCDP_HOME, exitint"
   fi

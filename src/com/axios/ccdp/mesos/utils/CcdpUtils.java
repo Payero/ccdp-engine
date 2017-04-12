@@ -126,6 +126,8 @@ public class CcdpUtils
    * classpath using Resources ClassLoader using the default properties filename
    * as given by the CcdpUtils.CFG_FILENAME class variable
    * 
+   * @param cfgFile the name of the file containing the desired configuration
+   * 
    * @throws FileNotFoundException a FileNotFoundException is thrown if the 
    *         given file name does not exists
    * @throws IOException an IOException is thrown if there are problems reading
@@ -451,7 +453,7 @@ public class CcdpUtils
    * This method essentially generates a JsonObject and returns the value from
    * invoking the toCcdpThreadRequest( json ) method.
    * 
-   * @param data the string representation of the tasking to generate
+   * @param file the name of the file with the tasks to execute
    * 
    * @return an object containing all the information needed to run a task or
    *         a processing Thread

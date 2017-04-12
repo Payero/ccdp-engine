@@ -348,7 +348,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * Deletes a given bucket and all its contents.  It returns true if the
    * operation was successful or false otherwise
    * 
-   * @param name the name of the bucket to delete
+   * @param bucket the name of the bucket to delete
    * @return true if the operation was successful or false otherwise
    */
   @Override

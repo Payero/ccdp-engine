@@ -12,10 +12,13 @@ class MesosConfig:
   def __init__(self, cli_data):
     self.__logger = logging.getLogger('MesosConfig')
     handler = logging.StreamHandler()
+    logfile = logging.FileHandler('/tmp/mesos_cfg.log')
     formatter = logging.Formatter(
             '%(asctime)s %(name)-12s %(lineno)d %(levelname)-8s %(message)s')
     handler.setFormatter(formatter)
+    logfile.setFormatter(formatter)
     self.__logger.addHandler(handler)
+    self.__logger.addHandler(logfile)
     
     # Setting root level to warning and THEN set the level for this module
     self.__logger.setLevel(logging.WARN)
@@ -33,15 +36,15 @@ class MesosConfig:
   
     """
     if os.geteuid() != 0:
-      print ""
-      print "    ERROR:  This script must be executed by root"
-      print ""
+      self.__logger.error("")
+      self.__logger.error("    ERROR:  This script must be executed by root")
+      self.__logger.error("")
       sys.exit(-2)
       
-    print "Configuring Mesos Environment"
+    self.__logger.info("Configuring Mesos Environment")
   
     if not cli_data.has_key('mesos-type'):
-      print "ERROR: The mesos-type (MASTER or SLAVE) is required "
+      self.__logger.error("ERROR: The mesos-type (MASTER or SLAVE) is required ")
       sys.exit(-1)
   
     is_aws = True
@@ -49,7 +52,7 @@ class MesosConfig:
       skt = socket.create_connection(("169.254.169.254", 80), 1)
       is_aws = True
     except:
-      print "Could not connect to 169.254.169.254:80, not running on AWS"
+      self.__logger.info("Could not connect to 169.254.169.254:80, not running on AWS")
       is_aws =  False
   
     if is_aws:
@@ -59,7 +62,7 @@ class MesosConfig:
       data = obj.read()
       config = json.loads(data)
     else:
-      print "Running outside of AWS"
+      self.__logger.debug("Running outside of AWS")
       # generates a uuid and takes only the last 2 parts to generate 
       # i-aaaa-bbbbbcccc
       #iid = "i-%s" % "-".join(str(uuid.uuid1()).split('-')[3:])
@@ -77,13 +80,13 @@ class MesosConfig:
     cli_data['image-id']    = config.get('imageId')
     cli_data['ip-address']  = config.get('privateIp')
   
-    print "Testing Config: %s" % str(config)
+    self.__logger.debug("Testing Config: %s" % str(config) )
     if cli_data.has_key('clean-work-dir'):
-      print "Deleting Working Directory"
+      self.__logger.debug("Deleting Working Directory")
       cmd = "rm -fR /var/lib/mesos/*"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)    
-    print "Setting up environment using: %s" % pformat(cli_data)
+    self.__logger.debug("Setting up environment using: %s" % pformat(cli_data) )
   
   
     # Replaces the hostname and hosts file using the private IP Address
@@ -91,9 +94,9 @@ class MesosConfig:
     cli_data['zk'] = self.__set_zookeeper( cli_data, is_aws )
   
   
-    print "***************** Removing Mesos latest  *****************"
+    self.__logger.debug("***************** Removing Mesos latest  *****************")
     cmd = "rm -f /var/lib/mesos/meta/slaves/latest"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
   
@@ -103,27 +106,27 @@ class MesosConfig:
     # If this is to run as a master then, need to changes the ZooKeeper
     # configuration and start services
     if cli_data['mesos-type'] == 'MASTER':
-      print "Setting Mesos Master"
+      self.__logger.info("Setting Mesos Master")
       self.__set_master( cli_data, is_aws )
   
-      print "Starting ZooKeeper"
+      self.__logger.info("Starting ZooKeeper")
       os.system("stop zookeeper")
       os.system("start zookeeper")
   
       time.sleep(1)
-      print "Starting Mesos Master"
+      self.__logger.info("Starting Mesos Master")
       os.system("stop mesos-master")
       os.system("start mesos-master")
   
       time.sleep(1)
-      print "Starting Marathon"
-      os.system("stop marathon")
-      os.system("start marathon")
+      #print "Starting Marathon"
+      #os.system("stop marathon")
+      #os.system("start marathon")
   
     
   
     time.sleep(1)
-    print "Starting Mesos Slave"
+    self.__logger.info("Starting Mesos Slave")
     os.system("stop mesos-slave")
     os.system("start mesos-slave")
   
@@ -142,23 +145,22 @@ class MesosConfig:
       
     """
     if not is_aws:
-      print "Running from an external source, skipping network settings"
+      self.__logger.info("Running from an external source, skipping network settings")
       return
   
-    print "Setting Network Environment"
+    self.__logger.info("Setting Network Environment")
     cmd = "mv -f /etc/hostname /etc/hostname_ORIG"
-    print "Executing cmd: %s" % cmd
+    self.__logger.debug("Executing cmd: %s" % cmd)
     os.system(cmd)
     cmd = 'echo "%s" >> /etc/hostname' % ip
     os.system(cmd)
   
     cmd = "mv -f /etc/hosts /etc/hosts_ORIG"
-    print "Executing cmd: %s" % cmd
+    self.__logger.info("Executing cmd: %s" % cmd)
     os.system(cmd)
   
     txt = """
-127.0.0.1  localhost
-127.0.0.1  %s
+127.0.0.1  localhost localhost.localdomain %s
 
 # The following lines are desirable for IPv6 capable hosts
 ::1 ip6-localhost ip6-loopback
@@ -170,7 +172,7 @@ ff02::3 ip6-allhosts
           """ % ip
   
     cmd = 'echo "%s" >> /etc/hosts' % txt
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
     os.system("hostname %s" % ip )
   
@@ -184,16 +186,16 @@ ff02::3 ip6-allhosts
       is_aws: Flag indicating whether we are running this script from an AWS
               instance or not
     """
-    print "Settting Up ZooKeeper"
+    self.__logger.info("Settting Up ZooKeeper")
     
     ip = data['ip-address']
   
     if data.has_key('masters'):
-      print "Using multiple masters"
+      self.__logger.info("Using multiple masters")
       # First add all masters
       zk = "zk://"
       for master in data['masters']:
-        print "Adding Master: %s" % master
+        self.__logger.info("Adding Master: %s" % master)
         zk = "%s%s:2181," % (zk, master['ip-address'])
   
       # Checks if is already there or not
@@ -204,18 +206,18 @@ ff02::3 ip6-allhosts
         zk = "%s/mesos" % zk[:-1]
   
     else:
-      print "First or only Master"
+      self.__logger.info("First or only Master")
       if data['mesos-type'] == 'MASTER':
         zk = "zk://%s:2181/mesos" % ip
       else:
-        print "ERROR: Attempting to set a SLAVE before a single MASTER is deployed"
+        self.__logger.error("ERROR: Attempting to set a SLAVE before a single MASTER is deployed")
         sys.exit(-1)
   
-    print "Generated zk: %s" % zk
+    self.__logger.info("Generated zk: %s" % zk)
     os.system("rm -f /etc/mesos/zk_ORIG")
     os.system("mv -f /etc/mesos/zk /etc/mesos/zk_ORIG")
     cmd = "echo %s >> /etc/mesos/zk" % zk
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     return zk
@@ -243,23 +245,23 @@ ff02::3 ip6-allhosts
       is_aws: Flag indicating whether we are running this script from an AWS
               instance or not  
     """
-    print "Setting Up a Mesos Master"
+    self.__logger.info("Setting Up a Mesos Master")
     if not data.has_key('server-id'):
-      print "ERROR: If setting a Master then a server-id (1 - 255) is required"
+      self.__logger.error("ERROR: If setting a Master then a server-id (1 - 255) is required")
       sys.exit(-1)
   
-    print "***************** Modifying myid  *****************"
+    self.__logger.debug("***************** Modifying myid  *****************")
     cmd = "rm -f /etc/zookeeper/conf/myid"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     cmd = "echo %s >> /etc/zookeeper/conf/myid" % data['server-id']
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
-    print "***************** Modifying zoo.cfg  *****************"
+    self.__logger.debug("***************** Modifying zoo.cfg  *****************")
     cmd = "rm -f /etc/zookeeper/conf/zoo.cfg"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     found_template = False
@@ -272,9 +274,9 @@ ff02::3 ip6-allhosts
         found_template = True
   
     if not found_template:
-      print ""
-      print "ERROR:  Could not find the ZOO_CFG Template returning"
-      print ""
+      self.__logger.error("")
+      self.__logger.error("ERROR:  Could not find the ZOO_CFG Template returning")
+      self.__logger.error("")
       return
   
     src = Template( file_in.read() )
@@ -283,7 +285,7 @@ ff02::3 ip6-allhosts
     num_masters = 1
     my_port = "2888:3888"
     if data.has_key('masters'):
-      print "Adding this master to list"
+      self.__logger.info("Adding this master to list")
       num_masters = len(data['masters']) + 1
   
       for master in data['masters']:
@@ -296,7 +298,7 @@ ff02::3 ip6-allhosts
         my_port = port 
   
     me = "server.%s=%s:%s" % (data['server-id'], data['ip-address'], my_port)
-    print "Adding this server: %s" % me
+    self.__logger.info("Adding this server: %s" % me )
     servers.append(me)
   
     d = {"ZOO_SERVERS": "\n".join(servers)}
@@ -306,9 +308,9 @@ ff02::3 ip6-allhosts
     out.flush()
     out.close()
   
-    print "***************** Modifying Quorum  *****************"
+    self.__logger.info("***************** Modifying Quorum  *****************")
     cmd = "rm -f /etc/mesos-master/quorum "
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     # The quorum is majority of the total number of servers
@@ -317,24 +319,24 @@ ff02::3 ip6-allhosts
       quorum = 1
   
     cmd = "echo %s >> /etc/mesos-master/quorum" % quorum
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
-    print "***************** Configuring IP and Hostname  *****************"
+    self.__logger.info("***************** Configuring IP and Hostname  *****************")
     cmd = "rm -f /etc/mesos-master/ip"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
     
     cmd = "rm -f /etc/mesos-master/hostname"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     cmd = "echo %s >> /etc/mesos-master/ip" % data['ip-address']
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)  
   
     cmd = "echo %s >> /etc/mesos-master/hostname" % data['ip-address']
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
   
@@ -342,54 +344,54 @@ ff02::3 ip6-allhosts
     fname = "%s/data/credentials" % os.getenv('CCDP_HOME')
   
     if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
-      print "************  Adding Credentials (Master) ************"
+      self.__logger.info("************  Adding Credentials (Master) ************")
       cmd = "rm -f /etc/mesos-master/credentials"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "echo %s >> /etc/mesos-master/credentials" % fname 
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "touch /etc/mesos-master/?authenticate" 
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "touch /etc/mesos-master/?authenticate_agents" 
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
     else:
-      print "************  Skipping Credentials (Master)  ************"
+      self.__logger.info("************  Skipping Credentials (Master)  ************")
       cmd = "rm -f /etc/mesos-master/credentials"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "rm -f /etc/mesos-master/?authenticate"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "rm -f /etc/mesos-master/?authenticate_agents"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)        
   
   
-    print "***************** Configuring Marathon  *****************"
+    self.__logger.info("***************** Configuring Marathon  *****************")
     path = "/etc/marathon/conf"
     if not os.path.isdir(path):
       cmd = "mkdir -p %s" % path
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
     cmd = "cp -f /etc/mesos-master/hostname /etc/marathon/conf"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)  
   
     cmd = "cp -f /etc/mesos/zk /etc/marathon/conf/master"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     cmd = "rm -f /etc/marathon/conf/zk"
-    print "Executing %s" % cmd
+    self.__logger.debug("Executing %s" % cmd)
     os.system(cmd)
   
     zk = data['zk']
@@ -398,18 +400,18 @@ ff02::3 ip6-allhosts
       marathon = "%s/marathon" % zk[:n]
   
       cmd = "echo %s >> /etc/marathon/conf/zk" % marathon
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
     else:
-      print "ERROR: Could not find /mesos in zk"
+      self.__logger.error("ERROR: Could not find /mesos in zk")
   
-    print "***************** Modifying slave.override  *****************"
+    self.__logger.info("***************** Deleting slave.override  *****************")
     cmd = "rm -f /etc/init/mesos-slave.override"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     # cmd = "echo manual >> /etc/init/mesos-slave.override"
-    # print "Executing: %s" % cmd
+    # self.__logger.debug("Executing: %s" % cmd)
     # os.system(cmd)  
   
   
@@ -420,85 +422,85 @@ ff02::3 ip6-allhosts
       is_aws: Flag indicating whether we are running this script from an AWS
               instance or not  
     """
-    print "Setting Up a Mesos Slave"
+    self.__logger.debug("Setting Up a Mesos Slave")
   
-    print "***************** Stopping Zoo and Master  *****************"
+    self.__logger.info("***************** Stopping Zoo and Master  *****************")
     cmd = "stop zookeeper"
-    print "Executing %s" % cmd
+    self.__logger.debug("Executing %s" % cmd)
     os.system(cmd)
   
     cmd = "stop mesos-master"
-    print "Executing %s" % cmd
+    self.__logger.debug("Executing %s" % cmd)
     os.system(cmd)
   
   
-    print "***************** Modifying zookeeper.override  *****************"
+    self.__logger.info("***************** Modifying zookeeper.override  *****************")
     cmd = "rm -f /etc/init/zookeeper.override"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
     # cmd = "echo manual >> /etc/init/zookeeper.override"
-    # print "Executing: %s" % cmd
+    # self.__logger.debug("Executing: %s" % cmd)
     # os.system(cmd)
   
-    print "***************** Modifying master.override  *****************"
+    self.__logger.info("***************** Modifying master.override  *****************")
     cmd = "rm -f /etc/init/mesos-master.override"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     # cmd = "echo manual >> /etc/init/mesos-master.override"
-    # print "Executing: %s" % cmd
+    # self.__logger.error("Executing: %s" % cmd)
     # os.system(cmd) 
   
-    print "***************** Configuring IP and Hostname  *****************"
+    self.__logger.info("***************** Configuring IP and Hostname  *****************")
     cmd = "rm -f /etc/mesos-slave/ip"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
     
     cmd = "rm -f /etc/mesos-slave/hostname"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
     cmd = "echo %s >> /etc/mesos-slave/ip" % data['ip-address']
-    print "Executing: %s" % cmd
+    self.__logger.error("Executing: %s" % cmd)
     os.system(cmd)  
   
     cmd = "echo %s >> /etc/mesos-slave/hostname" % data['ip-address']
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
-    print "***************** Adding Attributes  *****************"
+    self.__logger.info("***************** Adding Attributes  *****************")
     cmd = "rm -f /etc/mesos-slave/attributes"
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
     
     iid = data['instance-id']
       
     if data.has_key('session-id'):
       sid = data['session-id']
-      print "Setting attributes IID: %s and SID: %s" % (iid, sid)
+      self.__logger.info("Setting attributes IID: %s and SID: %s" % (iid, sid) )
       cmd = 'echo "instance-id:%s;session-id:%s" >> /etc/mesos-slave/attributes' % (iid, sid)
     else:
-      print "Setting attributes IID: %s" % (iid)
+      self.__logger.info("Setting attributes IID: %s" % (iid) )
       cmd = "echo instance-id:%s >> /etc/mesos-slave/attributes" % iid
     
-    print "Executing: %s" % cmd
+    self.__logger.debug("Executing: %s" % cmd)
     os.system("%s" % cmd) 
   
     fname = "%s/data/agent_credential" % os.getenv('CCDP_HOME')
   
     if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
-      print "************  Adding Credentials (Slave) ************"
+      self.__logger.info("************  Adding Credentials (Slave) ************")
       cmd = "rm -f /etc/mesos-slave/credential"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
   
       cmd = "echo %s >> /etc/mesos-slave/credential" % fname 
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
     else:
-      print "************  Skipping Credentials (Slave)  ************"
+      self.__logger.info("************  Skipping Credentials (Slave)  ************")
       cmd = "rm -f /etc/mesos-slave/credential"
-      print "Executing: %s" % cmd
+      self.__logger.debug("Executing: %s" % cmd)
       os.system(cmd)
 
 if __name__ == '__main__':
@@ -510,7 +512,13 @@ if __name__ == '__main__':
   print args
   if sz == 1:
     print "The Configuration: %s" % args[0]
-    _DATA = json.loads(args[0])
+    if os.path.isfile(args[0]):
+      print "Using file %s" % args[0]
+      data = open( args[0] ). read()
+      _DATA = json.loads(data)
+    else:
+      print "Loading data"
+      _DATA = json.loads(str(args[0]))
 
   else:
     print "ERROR: Need to pass the configuration parameters such as:"

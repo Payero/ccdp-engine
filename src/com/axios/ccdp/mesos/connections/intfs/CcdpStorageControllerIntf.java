@@ -105,6 +105,7 @@ public interface CcdpStorageControllerIntf
    *             {'name':'file2.txt', "creation-time':'01-28-2017::09:09:20'}
    *            ]
    *  ]
+   * @param where the location to retrieve all elements from
    *  
    * @return a list of dictionaries containing the name of the storage and the
    *         creation time.
@@ -124,6 +125,9 @@ public interface CcdpStorageControllerIntf
    *  [{'name':'file1.txt', "creation-time':'01-28-2017::09:09:20'},
    *   {'name':'file2.txt', "creation-time':'01-28-2017::09:09:20'}
    *  ]
+   * 
+   * @param where the location to retrieve all elements from
+   * @param prefix the string to search for matching elements
    *  
    * @return a list of dictionaries containing the name of the files matching 
    *         the criteria and the creation time

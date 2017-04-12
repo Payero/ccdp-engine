@@ -1,5 +1,6 @@
 package com.axios.ccdp.mesos.test.unittest;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,11 +11,11 @@ import org.junit.Test;
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSControlerUnitTest
 {
+  private static final String IMAGE_ID = "ami-8077fc96";
 
   /**
    * Generates debug print statements based on the verbosity level.
@@ -33,8 +34,8 @@ public class AWSControlerUnitTest
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
     
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-b28aafcf");
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-7c6dfc51");
+    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-54410d2f");
+    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-d7008b8f");
     this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
   }
@@ -67,41 +68,30 @@ public class AWSControlerUnitTest
     this.logger.debug("Running Test Start Instance");
     this.aws.configure(this.jsonCfg);
     
-    ObjectNode json = this.mapper.createObjectNode();
-    json.put("server-id", "1");
-    json.put("mesos-type", "SLAVE");
-    json.put("session-id", "oeg-1");
-    
-    ObjectNode master = this.mapper.createObjectNode();
-    master.put("server-id", "1");
-    master.put("ip-address", "10.0.2.135");
-    master.put("port", "23888:3888");
-    
-    ArrayNode masters = this.mapper.createArrayNode();
-    masters.add(master);
-    json.set("masters", masters);
-    
-    
     String user_data = "#!/bin/bash\n\n " +
-                       "cd /home/ubuntu\n " +
-                       "/home/ubuntu/mesos_config.py '" + json.toString() +"'\n ";
+                       "/data/ccdp_env.py -a download -i\n";
     
     Map<String, String> tags = new HashMap<String, String>();
     tags.put("Name", "Test-1");
     tags.put("SessionId", "Test-Session");
-    List<String> launched = this.aws.startInstances("ami-417e6156", 1, 1, 
+    List<String> launched = this.aws.startInstances(IMAGE_ID, 1, 1, 
         tags, user_data);
     
     assert(launched.size() == 1);
   }
   
-//  @Test 
+  @Test 
   public void testTerminateInstance()
   {
     this.logger.debug("Running Test Stop Instance");
     this.aws.configure(this.jsonCfg);
+    List<String> ids = new ArrayList<>();
+    ids.add("i-01fb4aae366fa2114");
+    ids.add("i-03105658bc49a826d");
     
-//    List<String> launched = this.aws.startInstances("ami-091f031e", 1, 1, null);
+    this.aws.terminateInstances(ids);
+    
+//    List<String> launched = this.aws.startInstances(IMAGE_ID, 1, 1, null);
 //    assert(launched.size() == 1);
 //    this.logger.debug("Waiting 60 seconds before shutting it down");
 //
@@ -143,7 +133,7 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting Instance by Id");
     this.aws.configure(this.jsonCfg);
-    ObjectNode node = this.aws.getStatusFilteredById("i-0146423181872f36f");
+    ObjectNode node = this.aws.getStatusFilteredById("i-01fb4aae366fa2114");
     this.logger.debug("Items: " + node);
   }
   

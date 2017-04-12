@@ -65,11 +65,11 @@ public class CcdpJob
   /**
    * The amount of CPU required to run this task
    */
-  private double cpus = 0.0;
+  private double cpus = 0.01;
   /**
    * The amount of memory required to run this task
    */
-  private double mem = 0.0;
+  private double mem = 0.01;
   /**
    * The command to execute
    */
@@ -129,12 +129,12 @@ public class CcdpJob
    * CPU influence the behavior of the system as follow:
    * 
    *  - CPU = 0:        Let the Scheduler decide where to run it
-   *  - 0 > CPU < 100:  Use the first VM with enough resources to run the task
+   *  - 0 &gt; CPU &lt; 100:  Use the first VM with enough resources to run the task
    *  - CPU = 100:      Run this task by itself on a new VM
    * 
    * @param cpus the amount of CPU this job requires to run
    * 
-   * @throws InvalidArgumentException an InvalidArgumentException is thrown if
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         the value for this resource is less than zero
    */
   public void setCpus(double cpus) throws IllegalArgumentException
@@ -160,7 +160,7 @@ public class CcdpJob
    * 
    * @param mem the amount of memory this job requires to run
    * 
-   * @throws InvalidArgumentException an InvalidArgumentException is thrown if
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         the value for this resource is less than zero
    */
   public void setMemory(double mem) throws IllegalArgumentException
@@ -186,7 +186,7 @@ public class CcdpJob
    * 
    * @param command the command to be executed by this task
    * 
-   * @throws InvalidArgumentException an InvalidArgumentException is thrown if
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
    *         the command is null
    */
   public void setCommand(String command) throws IllegalArgumentException
@@ -208,6 +208,8 @@ public class CcdpJob
 
   /**
    * Sets the optional configuration to be executed by this task.  
+   * 
+   * @param config the object containing the required configuration
    * 
    */
   public void setConfig(ObjectNode config)
@@ -309,8 +311,6 @@ public class CcdpJob
    * @param obj the JSON object containing details of the Job to execute
    * @return an instance of this class with all the fields appropriate set
    * 
-   * @throws JSONException a JSONException is thrown if there is a problem 
-   *         parsing the JSON object
    */
   public static CcdpJob fromJSON( JsonNode obj) 
   {

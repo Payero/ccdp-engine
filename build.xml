@@ -26,7 +26,7 @@
   <property name="scripts.dir" location="scripts" />
 
   <!--The location of the javadoc directory -->
-  <property name="doc.dir" location="doc" />
+  <property name="doc.dir" location="docs" />
 
 	<path id="classpath">
         <fileset dir="${lib.dir}" includes="**/*.jar"/>

@@ -5,6 +5,7 @@
 logs
 build
 dist
+docs
 *.pyc
 
 classes/

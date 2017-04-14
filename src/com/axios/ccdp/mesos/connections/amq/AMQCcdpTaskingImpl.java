@@ -279,7 +279,7 @@ public class AMQCcdpTaskingImpl
   public void onEvent( Object event )
   {
     String msg = (String)event;
-    this.logger.debug("Got a Task Request " + msg);
+    this.logger.trace("Got a Task Request " + msg);
     
     try
     {
@@ -289,7 +289,6 @@ public class AMQCcdpTaskingImpl
         this.logger.debug("Got " + reqs.size() + " Thread requests");
         for( CcdpThreadRequest req : reqs )
         {
-          this.logger.debug("Tasking Consumer: " + req.toString());
           this.consumer.onTask(req);
         }
       }

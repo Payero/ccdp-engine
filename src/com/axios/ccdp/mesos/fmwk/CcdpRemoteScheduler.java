@@ -105,7 +105,18 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
     // generates a list of resources using the offers
     for( Offer offer : offers )
     {
-      this.logger.debug("Offer: " + offer.toString());
+      StringBuffer buf = new StringBuffer();
+      buf.append("----------------- Offer -----------------\n");
+      
+      buf.append("Agent ID: ");
+      buf.append(offer.getSlaveId().getValue());
+      buf.append("\n");
+      
+      buf.append("\tHost: ");
+      buf.append(offer.getHostname());
+      buf.append("\n");
+      
+      
       String id = null;
       String sid = null;
       String aid = offer.getSlaveId().getValue();
@@ -117,12 +128,22 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
         {
         case CcdpUtils.KEY_INSTANCE_ID:
           id = attr.getText().getValue();
+          buf.append("\tInstance Id: ");
+          buf.append(id);
+          buf.append("\n");
           break;
         case CcdpUtils.KEY_SESSION_ID:
           sid = attr.getText().getValue();
+          buf.append("\tSession ID: ");
+          buf.append(sid);
+          buf.append("\n");
           break;
         }
       }
+      
+      buf.append("-----------------------------------------\n");
+      buf.append( this.getSummarizedRequests() );
+      this.logger.debug("\n" + buf.toString() );
       
       // if the instance id was not set use the agent id
       if( id == null )
@@ -131,7 +152,9 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
       // creating a CcdpVMResource object to compare
       CcdpVMResource vm = new CcdpVMResource(id);
       vm.setAssignedSession(sid);
-      this.logger.debug("The Agent ID: [" + aid + "]");
+      vm.setHostname(offer.getHostname());
+      
+      this.logger.debug("Offer InstanceID[" + id + "]");
       vm.setAgentId(aid);
       
       // We always need to extract the resource info from the offer
@@ -154,6 +177,12 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
 
       this.logger.debug("Checking SID " + sid );
       
+      if( sid == null && !this.hasBeenAllocated(id) )
+      {
+        this.logger.info("No session was assigned, adding it to free");
+        this.free_vms.add(vm);
+      }
+      
       // if it has not been assigned, then check free
       if( sid != null && !this.updateResource( vm, this.sessions.get(sid) ) )
       {
@@ -167,11 +196,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
         
         this.sessions.put(sid, newList);
       }// it does not have a session id
-      else if( sid == null )
-      {
-        this.logger.info("Resource does not have session id, adding it to free");
-        this.free_vms.add(vm);
-      }
+
       
       List<Offer.Operation> allOps = new ArrayList<>();
       
@@ -265,20 +290,43 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
     for( String sid : this.sessions.keySet() )
     {
       this.logger.debug("Looking task in session " + sid );
-      for( CcdpVMResource resource : this.sessions.get(sid) )
+      List<CcdpVMResource> resources = this.sessions.get(sid);
+      for( CcdpVMResource resource : resources )
       {
         if( resource.removeTask(task) )
         {
-          this.logger.debug("Found task in resource " + resource.getAgentId());
+          this.logger.debug("Found task in resource " + resource.getInstanceId());
           found = true;
           break;
         }
       }
       // no need to keep looking for the task in remaining sessions
       if( found )
+      {
+        // Do we need to deallocate resources?
+        List<CcdpVMResource> vms = this.tasker.deallocateResource(resources);
+        List<String> terminate = new ArrayList<>();
+        for( CcdpVMResource vm : vms )
+        {
+          String host = vm.getHostname();
+          String id = vm.getInstanceId();
+          this.logger.debug("Comparing Master " + this.master + " and " + host);
+          if( host != null && !host.equals(this.master) )
+          {
+            this.logger.info("Terminating VM " + id);
+            terminate.add(id);
+          }
+          else
+          {
+            this.logger.info("Will not terminate master " + host);
+          }
+        }
+        this.controller.terminateInstances(terminate);
         break;
+      }
     }// end of the session's loop
   }
+  
   
   /**
    * Updates the item in the list if the instance id matches one of the free
@@ -315,6 +363,8 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
   /***************************************************************************/
   /***************************************************************************/
   
+  
+  
   /**
    * It determines which tasks in the given thread can be executed in the 
    * target VM.  If all the tasks are completed, then the request is removed 
@@ -334,7 +384,7 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
   private List<Offer.Operation> assignTasks( CcdpVMResource target, 
                                           CcdpThreadRequest req )
   {
-    this.logger.debug("Assinging Tasks to Request " + req.toString() );
+    this.logger.debug("Assinging Tasks from Request " + req.getThreadId() );
     if( req.threadRequestCompleted() )
     {
       this.logger.info("Thread " + req.getThreadId() + " is Complete!!");
@@ -387,11 +437,13 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
             this.logger.info("Resource " + target.getInstanceId() + 
                              " is empty, using it");
             target.setSingleTask(task.getTaskId() );
+            task.setHostId(target.getInstanceId());
           }
           else
           {
             this.logger.info("Did not find available resource, launching one");
-            List<String> ids = this.controller.startInstances(1, 1);
+            List<String> ids = 
+                this.controller.startInstances(1, 1, req.getSessionId());
             for( String id : ids )
             {
               CcdpVMResource vm = new CcdpVMResource(id);
@@ -494,6 +546,39 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
   }
   
   /**
+   * Determines whether or not this resource have been allocated to a given 
+   * session previously.  If the instance id belongs to at least one of the 
+   * assigned running sessions it returns true, false otherwise
+   * 
+   * @param instId the instance-id of the resource to find
+   * @return true if this resource has been previously allocated
+   */
+  private boolean hasBeenAllocated(String instId)
+  {
+    for( String session : this.sessions.keySet() )
+    {
+      this.logger.debug("Checking Session " + session );
+      for( CcdpVMResource res : this.sessions.get(session) )
+      {
+        String iid = res.getInstanceId();
+        if( iid != null && iid.equals(instId) )
+          return true;
+      }
+    }
+    
+    this.logger.debug("Was not assigned to a session, checking free");
+    for( CcdpVMResource res : this.free_vms )
+    {
+      String iid = res.getInstanceId();
+      if( iid != null && iid.equals(instId) )
+        return true;
+    }
+    
+    return false;
+  }
+  
+  
+  /**
    * Generates all the TaskInfo objects required to run the assigned tasks in
    * the given mesos agent.
    * 
@@ -540,7 +625,6 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
     resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getCPU()));
     Resource cpuRes = resBldr.build();
     bldr.addResources(cpuRes);
-    this.logger.debug("Adding CPU Resource " + cpuRes.toString());
     
     // Adding the Memory
     resBldr.setName("mem");
@@ -548,7 +632,6 @@ public class CcdpRemoteScheduler extends CcdpMesosScheduler
     resBldr.setScalar(Value.Scalar.newBuilder().setValue(task.getMEM()));
     Resource memRes = resBldr.build();
     bldr.addResources(memRes);
-    this.logger.debug("Adding MEM Resource " + memRes.toString());
     
     Protos.CommandInfo.Builder cmdBldr = CommandInfo.newBuilder();
     StringJoiner joiner = new StringJoiner(" ");

@@ -10,12 +10,13 @@ import org.junit.Test;
 
 import com.axios.ccdp.mesos.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSControlerUnitTest
 {
-  private static final String IMAGE_ID = "ami-8077fc96";
+//  private static final String IMAGE_ID = "ami-8077fc96";
 
   /**
    * Generates debug print statements based on the verbosity level.
@@ -33,10 +34,30 @@ public class AWSControlerUnitTest
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
+    String cfg_file = System.getProperty("ccdp.config.file");
+    this.logger.debug("THe config file " + cfg_file);
+    if( cfg_file != null )
+    {
+      try
+      {
+        CcdpUtils.loadProperties(cfg_file);
+        this.jsonCfg = 
+            CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+      }
+      catch( Exception e )
+      {
+        e.printStackTrace();
+      }
+    }
     
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-54410d2f");
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-d7008b8f");
-    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
+    this.logger.debug("Running");
+    
+    
+    
+    
+//    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SECURITY_GRP, "sg-54410d2f");
+//    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-d7008b8f");
+//    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
   }
   
@@ -62,49 +83,47 @@ public class AWSControlerUnitTest
     this.aws.configure(this.jsonCfg);
   }
   
-  //@Test
+  @Test
   public void testStartInstance()
   {
-    this.logger.debug("Running Test Start Instance");
+    this.logger.debug("Running Test Start Instance using " + this.jsonCfg);
     this.aws.configure(this.jsonCfg);
     
-    String user_data = "#!/bin/bash\n\n " +
-                       "/data/ccdp_env.py -a download -i\n";
+    boolean inclusive = false;
     
-    Map<String, String> tags = new HashMap<String, String>();
-    tags.put("Name", "Test-1");
-    tags.put("SessionId", "Test-Session");
-    List<String> launched = this.aws.startInstances(IMAGE_ID, 1, 1, 
-        tags, user_data);
+    List<String> launched = new ArrayList<>();
+    if( inclusive )
+    {
+      String img_id = 
+          this.jsonCfg.get(AWSCcdpVMControllerImpl.FLD_IMAGE_ID).asText();
+      
+      String user_data = "#!/bin/bash\n\n "
+          + "/data/ccdp_env.py -a download -i\n";
+      
+      Map<String, String> tags = new HashMap<String, String>();
+      tags.put("Name", "Test-1");
+      tags.put("SessionId", "Test-Session");
+          
+      launched = this.aws.startInstances(img_id, 1, 1, tags);
+    }
+    else
+    {
+      launched = this.aws.startInstances(1, 1);
+    }
     
     assert(launched.size() == 1);
   }
   
-  @Test 
+  //@Test 
   public void testTerminateInstance()
   {
     this.logger.debug("Running Test Stop Instance");
     this.aws.configure(this.jsonCfg);
     List<String> ids = new ArrayList<>();
-    ids.add("i-01fb4aae366fa2114");
-    ids.add("i-03105658bc49a826d");
+    ids.add("i-0299eb42ecdb10143");
     
     this.aws.terminateInstances(ids);
-    
-//    List<String> launched = this.aws.startInstances(IMAGE_ID, 1, 1, null);
-//    assert(launched.size() == 1);
-//    this.logger.debug("Waiting 60 seconds before shutting it down");
-//
-//    CcdpUtils.pause(20);
-//    Iterator<String> ids = launched.iterator();
-//    while( ids.hasNext() )
-//    {
-//      String id = ids.next();
-//      this.logger.debug("Shutting Down InstanceId: " + id);
-//    }
-//
-//    boolean res = this.aws.terminateInstances(launched);
-//    Assert.assertTrue(res);
+
   }
   
   //@Test
@@ -128,7 +147,7 @@ public class AWSControlerUnitTest
     this.logger.debug("Items: " + items);
   }
   
-  @Test
+  //@Test
   public void testGetFilteredInstancesById()
   {
     this.logger.debug("Testing Getting Instance by Id");

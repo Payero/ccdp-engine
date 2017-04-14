@@ -3,8 +3,10 @@
  */
 package com.axios.ccdp.mesos.fmwk;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -25,6 +27,7 @@ import org.apache.mesos.Protos.TaskStatus.Reason;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 
+import com.amazonaws.services.elastictranscoder.model.Warning;
 import com.axios.ccdp.mesos.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
@@ -59,6 +62,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerIntf
 {
   /**
+   * Provides a consolidated way to format dates
+   */
+  protected SimpleDateFormat formatter = 
+      new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+  /**
    * Creates all the ArrayNode and ObjectNode
    */
   protected ObjectMapper mapper = new ObjectMapper();
@@ -74,6 +82,10 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
    * Stores the scheduler driver requesting the command execution
    */
   protected SchedulerDriver driver = null;
+  /**
+   * Stores the master's hostname
+   */
+  protected String master = null;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -118,6 +130,11 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
    * Stores all the VMs allocated to different sessions
    */
   protected Map<String, List<CcdpVMResource>> sessions = new HashMap<>();
+  
+  /**
+   * Maps the instance or host id to the resource itself
+   */
+  protected Map<String, CcdpVMResource> iid2res = new HashMap<>();
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -177,6 +194,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
             CcdpVMResource resource = new CcdpVMResource(id);
             resource.setStatus(ResourceStatus.LAUNCHED);
             this.free_vms.add(resource);
+            this.iid2res.put(id, resource);
           }
         }
       }
@@ -221,6 +239,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
     
     this.fmwkId = fmwkId;
     this.driver = driver;
+    this.master = master.getHostname();
     
     this.taskingInf.setTaskConsumer(this);
     this.taskingInf.register(this.fmwkId.getValue());
@@ -267,8 +286,6 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
   @Override
   public void resourceOffers(SchedulerDriver driver, List<Offer> offers)
   {
-    if( this.requests.size() > 0 )
-      this.printStatus();
     
     boolean done = true;
     synchronized( this.requests )
@@ -288,6 +305,9 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
     if( done )
     {
       this.logger.info("No tasks to run, declining offers");
+      this.logger.debug("Current Requests Status:");
+      this.logger.debug(this.getSummarizedRequests());
+      
       for( Offer offer : offers )
       {
         OfferID id = offer.getId();
@@ -307,40 +327,37 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
   /***************************************************************************/
   
   /**
-   * Prints the current Request and Resources Status.  Useful method to take a
-   * quick look at what is happening in the system.  This is invoked every
-   * time a resource is offered.
+   * Gets a String object representing a summary of the pending requests
+   * 
+   * @return String object representing a summary of the pending requests
    */
-  private void printStatus()
+  public String getSummarizedRequests()
   {
-    this.logger.debug("******************************************************");
-    this.logger.debug("**********    Current Requests Status    *************");
-    this.logger.debug("******************************************************");
+    StringBuffer buf = new StringBuffer();
     for( CcdpThreadRequest req : this.requests )
     {
-      this.logger.debug("Request " + req.toString() );
-    }
-    
-    this.logger.debug("******************************************************");
-    this.logger.debug("******************************************************");
-    
-    this.logger.debug("======================================================");
-    this.logger.debug("==========    Current Resources    ===================");
-    this.logger.debug("======================================================");
-    
-    for( String sid : this.sessions.keySet() )
-    {
-      this.logger.debug("----------------------------------------------------");
-      this.logger.debug(sid);
-      this.logger.debug("----------------------------------------------------");
-      for( CcdpVMResource res : this.sessions.get(sid) )
+      buf.append("\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+      buf.append("Thread ID:  " + req.getThreadId() + "\n");
+      buf.append("Session ID: " + req.getSessionId() + "\n");
+      buf.append("Tasks:\n");
+      buf.append("---------------------------------------------------------\n");
+      for( CcdpTaskRequest task : req.getTasks() )
       {
-        this.logger.debug(res.toString());
+        Date date = new Date(task.getLaunchedTimeMillis());
+        
+        buf.append("\tTask ID:     " + task.getTaskId() + "\n");
+        buf.append("\tState:       " + task.getState() + "\n");
+        buf.append("\tHostID:      " + task.getHostId() + "\n");
+        buf.append("\tSubmitted:   " + task.isSubmitted() + "\n");
+        buf.append("\tLaunched at: " + this.formatter.format(date) + "\n");
+        buf.append("\tCommand:     " + task.getCommand() + "\n");
       }
-      this.logger.debug("----------------------------------------------------");
-      this.logger.debug("----------------------------------------------------");
+      buf.append("---------------------------------------------------------\n");
     }
+    
+    return buf.toString();
   }
+  
   
   /**
    * Makes sure that what the Master Mesos believes is the state of the cluster
@@ -363,7 +380,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
               .setValue( task.getTaskId() )
               .build();
           SlaveID slaveId = SlaveID.newBuilder()
-             .setValue( task.getAgentId() )
+             .setValue( task.getHostId() )
              .build();
           
           this.logger.debug("Reconciling Task: " + task.getTaskId() );
@@ -410,6 +427,11 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
     
     // do we need to assign a new resource to this session?
     this.logger.info("Got a new Request: " + request.toString() );
+    
+    
+    this.logger.warn("\nNEED TO CHECK AVAILABILITY!!");
+    this.logger.warn("NEED TO CHECK AVAILABILITY!!");
+    this.logger.warn("NEED TO CHECK AVAILABILITY!!\n");
     String sid = request.getSessionId();
     this.checkResourcesAvailability(sid);
     
@@ -470,7 +492,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
     CcdpVMResource resource = null;
     
     int free_sz = this.free_vms.size();
-    
+    this.logger.info("Got " + free_sz + " free VMS");
     if( free_sz > 0 )
     {
       this.logger.info("Getting VM from available resources");
@@ -482,6 +504,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
       List<String> vms = this.controller.startInstances(1, 1);
       resource = new CcdpVMResource(vms.get(0));
       resource.setStatus(ResourceStatus.INITIALIZING);
+      this.iid2res.put(resource.getInstanceId(), resource);
     }
     
     // now let's make sure we have enough free VMs
@@ -501,6 +524,7 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
         CcdpVMResource res = new CcdpVMResource(id);
         res.setStatus(ResourceStatus.INITIALIZING);
         this.free_vms.add(res);
+        this.iid2res.put(id, res);
       }
     }
     
@@ -655,6 +679,8 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
              boolean changed = false;
              switch ( status.getState() )
              {
+               case TASK_STARTING:
+               
                case TASK_RUNNING:
                  task.started();
                  changed = true;
@@ -670,8 +696,13 @@ public abstract class CcdpMesosScheduler implements Scheduler, CcdpTaskConsumerI
                case TASK_LOST:
                case TASK_ERROR:
                  task.fail();
-                 toRemove.add(task);
-                 changed = true;
+                 // if tried enough times, then remove it
+                 if( task.getState().equals(CcdpTaskState.FAILED))
+                 {
+                   this.logger.info("Task Failed after enough tries, removing");
+                   toRemove.add(task);
+                   changed = true;
+                 }
                  break;
                default:
                  break;

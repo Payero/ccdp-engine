@@ -12,6 +12,7 @@ import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.mesos.resources.CcdpVMResource;
 import com.axios.ccdp.mesos.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -54,16 +55,59 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
 
   /**
    * Sets all the parameters required for this object to determine resource
-   * allocation and deallocation.
+   * allocation and deallocation.  If the CPU, Memory, and time are set in the
+   * configuration file then it uses those values otherwise it uses the 
+   * following:
    * 
+   *    Allocation:
+   *        CPU:  70
+   *        MEM:  70
+   *        Time: 3
+   *        
+   *    Deallocation:
+   *        CPU:  20
+   *        MEM:  20
+   *        Time: 5
+   * 
+   * @param config the configuration used to set the allocation/deallocation
+   *        parameters
    */
   public void configure(ObjectNode config)
   {
+    // set all the defaults first
+    ObjectNode allocate = this.mapper.createObjectNode();
+    allocate.put("cpu", 70);
+    allocate.put("mem", 70);
+    allocate.put("time", 2);
+    
+    ObjectNode deallocate = this.mapper.createObjectNode();
+    deallocate.put("cpu", 20);
+    deallocate.put("mem", 20);
+    deallocate.put("time", 5);
+    
+    // if a configuration is given then check values
     if( config != null )
     {
-      this.config = config;
-      this.logger.info("Configuring Tasker using " + this.config.toString());
+      // Setting all the allocation parameters
+      if( config.has("allocate.avg.load.cpu") )
+        allocate.put("cpu", config.get("allocate.avg.load.cpu").asDouble());
+      if( config.has("allocate.avg.load.mem") )
+        allocate.put("mem", config.get("allocate.avg.load.mem").asDouble());
+      if( config.has("allocate.avg.load.time") )
+        allocate.put("time", config.get("allocate.avg.load.time").asInt());
+      
+      // Setting all the de-allocation parameters
+      if( config.has("deallocate.avg.load.cpu") )
+        deallocate.put("cpu", config.get("deallocate.avg.load.cpu").asDouble());
+      if( config.has("deallocate.avg.load.mem") )
+        deallocate.put("mem", config.get("deallocate.avg.load.mem").asDouble());
+      if( config.has("deallocate.avg.load.time") )
+        deallocate.put("time", config.get("deallocate.avg.load.time").asInt());
     }
+    
+    this.config.set("allocate", allocate);
+    this.config.set("deallocate", deallocate);
+    this.logger.info("Configuring Tasker using " + this.config.toString());    
   }
 
   /**
@@ -76,7 +120,53 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
    */
   public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
-    // TODO Auto-generated method stub
+    if( resources == null )
+      return true;
+    
+    int sz = resources.size();
+    double[] cpus = new double[sz];
+    double[] mems = new double[sz];
+    
+    for( int i = 0; i < sz; i++ )
+    {
+      CcdpVMResource vm = resources.get(i);
+      cpus[i] = vm.getCPU();
+      mems[i] = vm.getMEM();
+    }
+    
+    // Now let's check averages...
+    double avgCpu = this.getAverage(cpus);
+    double avgMem = this.getAverage(mems);
+    
+    
+    this.logger.debug("Average CPU Utilization: " + avgCpu);
+    this.logger.debug("Average MEM Utilization: " + avgMem);
+    long now = System.currentTimeMillis();
+    JsonNode alloc = this.config.get("allocate");
+    double cpu = alloc.get("cpu").asDouble();
+    double mem = alloc.get("mem").asDouble();
+    
+    if( avgCpu >= cpu && avgMem >= mem )
+    {
+      this.logger.info("High utilization for this session, checking time");
+      long last = 0;
+      for( CcdpVMResource vm : resources )
+      {
+        if( vm.getLastAssignmentTime() > last )
+          last = vm.getLastAssignmentTime();
+      }  
+      int diff = (int)( ( (now - last) / 1000) / 60 );
+      // if the last time a task was allocated is less than the allocation time
+      // then we need more resources
+      if( diff <= alloc.get("time").asInt() )
+      {
+        this.logger.info("Last allocation was recent, need resources");
+        return true;  
+      }
+    }
+    else
+      this.logger.info("Low utilization rate, don't need additional resources");
+    
     return false;
   }
   
@@ -91,8 +181,55 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
    */
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
-    // TODO Auto-generated method stub
-    return null;
+    List<CcdpVMResource> terminate = new ArrayList<>();
+    int sz = resources.size();
+    double[] cpus = new double[sz];
+    double[] mems = new double[sz];
+    
+    for( int i = 0; i < sz; i++ )
+    {
+      CcdpVMResource vm = resources.get(i);
+      if( vm.isSingleTasked() && ( vm.getTasks().size() == 0 ) )
+      {
+        this.logger.info("VM Single Tasked and task is complete, terminating");
+        terminate.add(vm);
+      }
+      else
+      {
+        this.logger.debug("Adding resources to average lists");
+        cpus[i] = vm.getCPU();
+        mems[i] = vm.getMEM();
+      }
+    }
+    
+    // Now let's check averages...
+    double avgCpu = this.getAverage(cpus);
+    double avgMem = this.getAverage(mems);
+    
+    
+    this.logger.debug("Average CPU Utilization: " + avgCpu);
+    this.logger.debug("Average MEM Utilization: " + avgMem);
+    long now = System.currentTimeMillis();
+    JsonNode dealloc = this.config.get("deallocate");
+    double cpu = dealloc.get("cpu").asDouble();
+    double mem = dealloc.get("mem").asDouble();
+    
+    if( avgCpu <= cpu && avgMem <= mem )
+    {
+      this.logger.info("Low Utilization for this Session, checking assignement time");
+      for( CcdpVMResource vm : resources )
+      {
+        long last = vm.getLastAssignmentTime();
+        int diff = (int)( ( (now - last) / 1000) / 60 );
+        if( diff >= dealloc.get("time").asInt() )
+        {
+          this.logger.info("VM has not been allocated for a while, terminating");
+          terminate.add(vm);  
+        }
+      }  
+    }
+    
+    return terminate;
   }
   
   /**
@@ -127,6 +264,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
           task.setSubmitted(true);
           task.assigned();
           target.addTask(task);
+          task.setHostId(target.getInstanceId());
           assigned.add( task );
         }
       }
@@ -140,6 +278,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
           task.setCPU(target.getCPU());
           task.setSubmitted(true);
           task.assigned();
+          task.setHostId(target.getInstanceId());
           target.addTask(task);
           assigned.add( task );
         }
@@ -152,6 +291,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
           task.setSubmitted(true);
           task.assigned();
           target.addTask(task);
+          task.setHostId(target.getInstanceId());
           assigned.add( task );
         }
       }
@@ -263,7 +403,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
        if( resource.getStatus().equals(ResourceStatus.RUNNING) )
        {
          String iid = resource.getInstanceId();
-         this.logger.info("VM " + iid + " was assigned to " + tid);
+         this.logger.info("VM " + iid + " was assigned to task " + tid);
          return true;
        }
        else
@@ -274,4 +414,23 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
      
      return false;
    }
+   
+   /**
+    * Gets the average of the given list.  This is obtain by simply adding all
+    * the values and dividing it by the size of the array
+    * 
+    * @param dbls the list of values to get the average
+    * 
+    * @return the average value of the given list
+    */
+   private double getAverage( double[] dbls )
+   {
+     double total = 0;
+     for( double dbl: dbls )
+       total += dbl;
+     
+     return total / dbls.length;
+   }
+   
 }
+

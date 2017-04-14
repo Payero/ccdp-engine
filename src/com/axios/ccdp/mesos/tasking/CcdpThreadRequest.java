@@ -66,6 +66,11 @@ public class CcdpThreadRequest
    * Indicates whether or not all the tasks have been submitted for this thread
    */
   private boolean tasksSubmitted = false;
+  /**
+   * Determines whether or not all the tasks need to run on a single processing 
+   * node
+   */
+  private boolean runSingleNode = false;
   
   /**
    * Instantiates a new object using a self-generated UUID as the ThreadID
@@ -255,6 +260,24 @@ public class CcdpThreadRequest
     this.runningMode = mode;
   }
 
+  /**
+   * @return whether or not need to run in a single processing node
+   */
+  @JsonGetter("single-node")
+  public boolean runSingleNode()
+  {
+    return this.runSingleNode;
+  }
+
+  /**
+   * @param single_node whether or not need to run in a single processing node
+   */
+  @JsonSetter("single-node")
+  public void runSingleNode(boolean single_node)
+  {
+    this.runSingleNode = single_node;
+  }
+  
   /**
    * @return the tasksSubmitted
    */

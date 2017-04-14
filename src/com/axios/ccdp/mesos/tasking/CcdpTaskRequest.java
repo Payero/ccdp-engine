@@ -37,6 +37,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpTaskRequest
 {
   /**
+   * The minimum amount of CPU that can be allocated by Mesos.  Value less than
+   * this causes the mesos-mater to fail (bug 7382)
+   */
+  public static final double MIN_CPU_REQ = 0.01;
+  /**
+   * The minimum amount of memory that can be allocated by Mesos. Value less
+   * than this causes the mesos-mater to fail (bug 7382)
+   */
+  public static final double MIN_MEM_REQ = 32;
+  
+  /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CcdpTaskRequest.class.getName());
@@ -81,7 +92,7 @@ public class CcdpTaskRequest
   /** 
    * The unique identifier of the Agent responsible for the task
    */
-  private String agentId;
+  private String hostId;
   /**
    * The number of times this task needs to be executed before set it as failed
    */
@@ -91,13 +102,15 @@ public class CcdpTaskRequest
    */
   private boolean submitted = false;
   /**
-   * The amount of CPU this task requires to execute
+   * The amount of CPU this task requires to execute.  DO NOT MAKE THIS VALUE
+   * LESS THAN 0.01 as it will cause the mesos-master to crash
    */
-  private double cpu = 0.01;
+  private double cpu = MIN_CPU_REQ;
   /**
-   * The amount of memory this task requires to execute
+   * The amount of memory this task requires to execute.  DO NOT MAKE THIS VALUE
+   * LESS THAN 32 as it will cause the mesos-master to crash
    */
-  private double mem = 32;
+  private double mem = MIN_MEM_REQ;
   /**
    * A list of arguments used to generate the command to be executed by the 
    * agent
@@ -120,6 +133,10 @@ public class CcdpTaskRequest
    * The session this task belongs to
    */
   private String sessionId = null;
+  /**
+   * The time this task was launched
+   */
+  private long launchedTime = 0;
   
   /**
    * Instantiates a new Task using default values such as:
@@ -245,7 +262,8 @@ public class CcdpTaskRequest
   @JsonSetter("cpu")
   public void setCPU(double cpu)
   {
-    this.cpu = cpu;
+    if( cpu >= MIN_CPU_REQ )
+      this.cpu = cpu;
   }
 
   /**
@@ -263,7 +281,8 @@ public class CcdpTaskRequest
   @JsonSetter("mem")
   public void setMEM(double mem)
   {
-    this.mem = mem;
+    if( mem >= MIN_MEM_REQ )
+      this.mem = mem;
   }
 
   /**
@@ -403,22 +422,21 @@ public class CcdpTaskRequest
   }
 
   /**
-   * @return the agentId
+   * @return the hostId
    */
-  @JsonGetter("agent-id")
-  public String getAgentId()
+  @JsonGetter("host-id")
+  public String getHostId()
   {
-    return this.agentId;
+    return this.hostId;
   }
 
   /**
-   * @param agentId the agentId to set
+   * @param hosttId the hostId to set
    */
-  @JsonSetter("agent-id")
-  public void setAgentId(String agentId)
+  @JsonSetter("host-id")
+  public void setHostId(String hostId)
   {
-    this.logger.debug("\n\nSetting Agent id to " + agentId + "\n\n");
-    this.agentId = agentId.trim();
+    this.hostId = hostId;
   }
 
   /**
@@ -445,6 +463,16 @@ public class CcdpTaskRequest
     return this.submitted;
   }
 
+  /**
+   * Gets the time when this task was launched in milliseconds.
+   * 
+   * @return the time when this task was launched in milliseconds.
+   */
+  public long getLaunchedTimeMillis()
+  {
+    return this.launchedTime;
+  }
+  
   /**
    * @param submitted the submitted to set
    */
@@ -476,6 +504,7 @@ public class CcdpTaskRequest
    */
   public void started() 
   {
+    this.launchedTime = System.currentTimeMillis();
     this.state = CcdpTaskState.RUNNING;
   }
 
@@ -544,7 +573,7 @@ public class CcdpTaskRequest
     task.put("classname",     this.className);
     task.put("node-type",     this.nodeType);
     task.put("reply-to",      this.replyTo);
-    task.put("agent-id",      this.agentId);
+    task.put("agent-id",      this.hostId);
     task.put("session-id",    this.sessionId);
     task.put("retries",       this.retries);
     task.put("submitted",     this.submitted);

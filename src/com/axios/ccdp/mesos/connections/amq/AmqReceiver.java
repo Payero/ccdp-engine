@@ -50,7 +50,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       {
         TextMessage text = (TextMessage) message;
         String msg = text.getText();
-        this.logger.info("Message is : " + msg);
+        this.logger.trace("Message is : " + msg);
         this.consumer.onEvent(msg);
       }
       else

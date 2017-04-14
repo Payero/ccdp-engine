@@ -41,6 +41,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
+  /** The Image ID to use */
+  public static final String FLD_IMAGE_ID = "image.id";
   /** The security group resource ID to use */
   public static final String FLD_SECURITY_GRP = "security.group";
   /** The subnet resource id to use */
@@ -49,6 +51,16 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   public static final String FLD_INST_TYPE    = "instance.type";
   /** The name of the .pem key file (without the extension) */
   public static final String FLD_KEY_FILE     = "key.file.name";
+  /** The User data to use */
+  public static final String FLD_USER_DATA = "user.data";
+  /** The tags use */
+  public static final String FLD_TAGS = "tags";
+  /**
+   * Stores the command to execute at startup
+   */
+  public static final String USER_DATA =  "#!/bin/bash\n\n "
+      + "/data/ccdp_env.py -a download -i ";
+  
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -156,10 +168,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * max arguments.  If the tags is not null then they are set and the new 
    * Virtual Machine will contain them.
    * 
-   * If an user_data argument is provided then is executed as bash commands.  
-   * The String needs to reflect a bash script such as new lines needs to be
-   * added between commands.
-   * 
    * @param min the minimum number of Virtual Machines to create
    * @param max the maximum number of Virtual Machines to create
    * 
@@ -168,16 +176,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public List<String> startInstances(int min, int max )
   {
-    String imgId = this.config.get("image.id").asText();
-    String user_data = "";
+    String imgId = this.config.get(FLD_IMAGE_ID).asText();
     HashMap<String, String> map = null;
     
-    if(this.config.has("user.data"))
-      user_data = this.config.get("user.data").asText();
-    
-    if(this.config.has("tags"))
+    if(this.config.has(FLD_TAGS))
     {
-      JsonNode tags = this.config.get("tags");
+      JsonNode tags = this.config.get(FLD_TAGS);
       
       try
       {
@@ -194,9 +198,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       }  
     }
     
-    return this.startInstances(imgId, min, max, map, user_data);
+    return this.startInstances(imgId, min, max, null);
   }
-
 
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
@@ -204,21 +207,77 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * max arguments.  If the tags is not null then they are set and the new 
    * Virtual Machine will contain them.
    * 
-   * If an user_data argument is provided then is executed as bash commands.  
-   * The String needs to reflect a bash script such as new lines needs to be
-   * added between commands.
+   * @param min the minimum number of Virtual Machines to create
+   * @param max the maximum number of Virtual Machines to create
+   * 
+   * @return a list of unique Virtual Machine identifiers
+   */
+  @Override
+  public List<String> startInstances(int min, int max, String session_id )
+  {
+    String imgId = this.config.get(FLD_IMAGE_ID).asText();
+    HashMap<String, String> map = null;
+    
+    if(this.config.has(FLD_TAGS))
+    {
+      JsonNode tags = this.config.get(FLD_TAGS);
+      
+      try
+      {
+        if( tags != null )
+        {
+          map = this.mapper.readValue(tags.asText(),
+              new TypeReference<HashMap<String, String>>() {
+              });
+        }
+      }
+      catch( IOException e )
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+      }  
+    }
+    
+    return this.startInstances(imgId, min, max, session_id, map);
+  }
+  
+
+  /**
+   * Starts one or more VM instances using the defined Image ID as given by the
+   * imageId argument.  The number of instances are determined by the min and 
+   * max arguments.  If the tags is not null then they are set and the new 
+   * Virtual Machine will contain them.
    * 
    * @param imgId the image to use to create new Virtual Machines
    * @param min the minimum number of Virtual Machines to create
    * @param max the maximum number of Virtual Machines to create
    * @param tags optional map containing key-value pairs to set
-   * @param user_data a string with the bash commands to run
    * 
    * @return a list of unique Virtual Machine identifiers
    */
   @Override
   public List<String> startInstances(String imgId, int min, int max, 
-                                  Map<String, String> tags, String user_data)
+                                  Map<String, String> tags)
+  {
+    return this.startInstances(imgId, min, max, null, tags);
+  }
+
+  /**
+   * Starts one or more VM instances using the defined Image ID as given by the
+   * imageId argument.  The number of instances are determined by the min and 
+   * max arguments.  If the tags is not null then they are set and the new 
+   * Virtual Machine will contain them.
+   * 
+   * @param imgId the image to use to create new Virtual Machines
+   * @param min the minimum number of Virtual Machines to create
+   * @param max the maximum number of Virtual Machines to create
+   * @param session_id the session id to assign to this resource
+   * @param tags optional map containing key-value pairs to set
+   * 
+   * @return a list of unique Virtual Machine identifiers
+   */
+  @Override
+  public List<String> startInstances(String imgId, int min, int max, 
+                                  String session_id, Map<String, String> tags)
   {
     List<String> launched = null;
     
@@ -227,13 +286,15 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( this.config.has(FLD_INST_TYPE) )
       instType = this.config.get(FLD_INST_TYPE).asText();
     
-    // if the user data is null then there is nothing to do so pass nothing
-    if( user_data == null )
-      user_data = "";
-
+    // Do we need to add session id?
+    String user_data = USER_DATA;
+    if ( session_id != null )
+      user_data += "-s " + session_id;
+    
+    this.logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
-    System.out.println("ecncoded value is " + new String(bytesEncoded ));
+    this.logger.debug("ecncoded value is " + new String(bytesEncoded));
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
@@ -285,8 +346,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     return launched;
+    
   }
-
+  
+  
   /**
    * Stops each one of the Virtual Machines whose unique identifier matches the
    * ones given in the argument
@@ -332,6 +395,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public boolean terminateInstances( List<String> instIDs )
   {
+    if( instIDs == null || instIDs.isEmpty() )
+    {
+      this.logger.info("No instances to terminate");
+      return false;
+    }
+    
     this.logger.info("Terminating Instances");
     boolean terminated = false;
     TerminateInstancesRequest request = new TerminateInstancesRequest(instIDs);

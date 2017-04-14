@@ -1,6 +1,7 @@
 package com.axios.ccdp.mesos.test;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -33,23 +34,10 @@ public class CCDPTest
   {
     this.logger.debug("Running CCDP Test");
     
-    
-    String fname = "/data/users/oeg/workspace/CCDP/data/rand_time.json";
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode root = mapper.readTree(new File(fname));
-    if( root.has("jobs") )
-    {
-      this.logger.debug("Found Jobs");
-      JsonNode jobs = root.get("jobs");
-      for( JsonNode job : jobs )
-      {
-        this.logger.debug("The Job: " + job.toString());
-        CcdpJob tst = CcdpJob.fromJSON(job);
-      }
-    }
-    
-    
-    
+    long last = System.currentTimeMillis();
+    SimpleDateFormat formatter = 
+        new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+    this.logger.debug("The Date: " + formatter.format(new Date(last)));
     
     boolean back = true;
     if( back )

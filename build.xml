@@ -20,7 +20,7 @@
 	<property name="lib.dir" location="lib" />
 
   <!--Scripts used to run -->
-  <property name="install.dir" location="inst" />
+  <property name="install.dir" location="bin" />
 
   <!--Scripts used to run -->
   <property name="scripts.dir" location="scripts" />

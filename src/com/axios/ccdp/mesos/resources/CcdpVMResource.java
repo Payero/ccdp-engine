@@ -66,6 +66,10 @@ public class CcdpVMResource
    */
   private ResourceStatus status = ResourceStatus.OFFLINE;
   /**
+   * Stores the resource's hostname
+   */
+  private String hostname = null;
+  /**
    * Stores the taskId to run alone on this resource
    */
   private String singleTask = null;
@@ -77,6 +81,10 @@ public class CcdpVMResource
    * Stores the last time this resource was tasked
    */
   private long last_assignment = 0;
+  /**
+   * Whether or not this resource was allocated to run a single task
+   */
+  private boolean isSingleTasked = false;
   
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
@@ -327,6 +335,26 @@ public class CcdpVMResource
   }
 
   /**
+   * Gets the resource's hostname
+   * 
+   * @return the resource's hostname
+   */
+  public String getHostname()
+  {
+    return hostname;
+  }
+
+  /**
+   * Sets the resource's hostname
+   * 
+   * @param hostname the resource's hostname
+   */
+  public void setHostname(String hostname)
+  {
+    this.hostname = hostname;
+  }
+
+  /**
    * @return the singleTask
    */
   public String getSingleTask()
@@ -339,9 +367,23 @@ public class CcdpVMResource
    */
   public void setSingleTask(String singleTask)
   {
-    this.singleTask = singleTask;
+    if( singleTask != null )
+    {
+      this.isSingleTasked = true;
+      this.singleTask = singleTask;
+    }
   }
 
+  /**
+   * Gets whether or not this resource was allocated to a single task.
+   * 
+   * @return whether or not this resource was allocated to a single task.
+   */
+  public boolean isSingleTasked()
+  {
+    return this.isSingleTasked;
+  }
+  
   /**
    * Adds the given task to the list of tasks assigned to this VM Resource
    * 

@@ -1,0 +1,6 @@
+{
+ "tasks": 
+   [
+      {"command": ["python", "/opt/modules/CsvReader.python"]}        
+   ]  
+}

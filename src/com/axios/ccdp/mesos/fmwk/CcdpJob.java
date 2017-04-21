@@ -263,6 +263,7 @@ public class CcdpJob
   public TaskInfo makeTask(SlaveID targetSlave, ExecutorInfo exec)
   {
     this.logger.debug("Making Task at Slave " + targetSlave.getValue());
+    
     TaskID id = TaskID.newBuilder().setValue(this.id).build();
     
     Protos.TaskInfo.Builder bldr = TaskInfo.newBuilder();

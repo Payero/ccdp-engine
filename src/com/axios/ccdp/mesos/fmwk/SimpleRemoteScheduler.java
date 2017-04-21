@@ -26,18 +26,14 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.Protos.Attribute;
 
-import com.axios.ccdp.mesos.connections.intfs.CcdpEventConsumerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpStorageControllerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpTaskConsumerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpTaskingIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.mesos.connections.intfs.CcdpObjectFactoryAbs;
-
+import com.amazonaws.services.elastictranscoder.model.Warning;
+import com.axios.ccdp.connections.intfs.CcdpObjectFactoryAbs;
+import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.mesos.fmwk.CcdpJob.JobState;
-import com.axios.ccdp.mesos.tasking.CcdpTaskRequest;
-import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
-import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -75,16 +71,6 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
    * Stores the object responsible for sending and receiving tasking information
    */
   private CcdpTaskingIntf taskingInf = null;
-  /**
-   * Controls all the VMs
-   */
-  private CcdpVMControllerIntf controller =null;
-  /**
-   * Object responsible for creating/deleting files
-   */
-  private CcdpStorageControllerIntf storage = null;
-  
-  ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -96,10 +82,11 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
   public SimpleRemoteScheduler( ExecutorInfo execInfo, List<CcdpJob> jobs)
   {
     this.logger.debug("Creating a new CCDP Remote Scheduler");
+    this.executor = execInfo;
+    
     if( jobs != null )
     {
       this.jobs = jobs;
-      this.executor = execInfo;
       
       for( CcdpJob job : jobs )
       {
@@ -113,12 +100,9 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
     {
       ObjectNode task_msg_node = 
           CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
-      ObjectNode storage_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
       
       this.factory = CcdpObjectFactoryAbs.newInstance(clazz);
       this.taskingInf = this.factory.getCcdpTaskingInterface(task_msg_node);
-      this.storage = this.factory.getCcdpStorageControllerIntf(storage_node);
     }
     else
     {
@@ -243,9 +227,10 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
           break;
         }
         List<OfferID> list = Collections.singletonList( offer.getId() );
+        this.logger.info("Have " + pendingJobs.size() + " pending jobs");
         List<TaskInfo> tasks = this.doFirstFit( offer, pendingJobs );
         Status stat = driver.launchTasks(list, tasks );
-        this.logger.debug("Task Launched with status of: " + stat.toString() );
+        this.logger.debug("Task Launched with driver status of: " + stat.toString() );
       }
     }// end of synch block
   }
@@ -270,6 +255,8 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
   {
     this.logger.info("statusUpdate TaskStatus: " + status.getTaskId().getValue() );
     this.logger.info("Status: " + status.getState());
+    List<CcdpJob> toRemove = new ArrayList<>();
+    
     synchronized( this.jobs )
     {
       Reason reason = status.getReason();
@@ -292,18 +279,27 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
             case TASK_FINISHED:
               job.succeed();
               this.logger.debug("Job (" + job.getId() + ") Finished");
+              toRemove.add(job);
               break;
             case TASK_FAILED:
             case TASK_KILLED:
             case TASK_LOST:
             case TASK_ERROR:
               job.fail();
+              if( job.getStatus().equals(JobState.FAILED) )
+              {
+                this.logger.warn("Job FAILED, removing it");
+                toRemove.add(job);
+              }
               break;
             default:
               break;
           }// end of switch statement
         }// found the job
       }// for loop
+      
+      this.logger.info("Removing " + toRemove.size() + " Jobs");
+      this.jobs.removeAll(toRemove);
     }// end of synch block
   }
   

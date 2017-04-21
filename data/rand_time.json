@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"oeg-1", "cpu":"100", "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=60,max=180"]}
+      {"session-id":"oeg-1", "cpu":"100", "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=3,max=5"]}
     ]
 }

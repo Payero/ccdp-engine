@@ -1,0 +1,6 @@
+{
+  "jobs": 
+    [
+      {"command": ["/home/oeg/dev/oeg/PyMods/src/test/ccdp_mod_test.py", "-a", "testCpuUsage" , "-p", "10"]}
+    ]
+}

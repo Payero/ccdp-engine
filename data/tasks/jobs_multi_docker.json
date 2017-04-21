@@ -1,0 +1,7 @@
+{
+  "jobs": 
+    [
+      {"session-id":"oeg-1", "cpu": 1, "mem": 128, "command": ["docker", "run ubuntu", "/bin/echo", "'Hello world'", ">>", "/tmp/docker.txt"]},
+      {"session-id":"oeg-1", "cpu": 1, "mem": 128, "command": ["/bin/echo", "'Hello world'", ">>", "/tmp/hello.txt"]}
+    ]
+}

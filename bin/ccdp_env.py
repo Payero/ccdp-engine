@@ -160,6 +160,10 @@ class CcdpEnvSetter:
         self.__s3.Object(bkt_name, '%s.tar.gz' % self.__CCDP_DIST).put(
                           Body=open('./%s.tar.gz' % self.__CCDP_DIST, 'rb'))
         self.__logger.debug("File %s was uploaded successfully" % fname)
+        if not params.keep_file:
+          self.__logger.debug("Removing file %s" % fname)
+          os.remove(fname)
+
       else:
         self.__logger.error("Failed to create tar file %s" % fname)
     else:
@@ -305,7 +309,11 @@ if __name__ == '__main__':
   parser.add_option("-i", "--install-ccdp",
                   action="store_true", dest="inst_ccdp", default=False,
                   help="Downloads and install the CCDP baseline")
-  
+ 
+  parser.add_option("-k", "--keep-file",
+                  action="store_true", dest="keep_file", default=False,
+                  help="It does not delete the ccdp-dist.tgz file after upload")
+
   parser.add_option('-t', '--target-install',
                     action='store',
                     dest='tgt_install',

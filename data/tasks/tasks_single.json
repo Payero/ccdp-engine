@@ -1,0 +1,20 @@
+{
+ "tasks": 
+   [
+      {"task-id": "csv_reader",
+       "name": "Csv File Reader",
+       "class-name": "tasks.csv_demo.CsvReader",
+       "node-type": "ec2",
+       "reply-to": "The Sender",
+       "cpu": "10",
+       "mem": "128",
+       "command": ["python", "/opt/modules/CsvReader.python"],
+       "configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv" },
+       "input-ports": 
+            [{"port-id": "from-exterior", 
+              "from-port": ["source-1", "source-2"],
+              "to-port": ["dest-1", "dest-2"]}
+            ]
+     }        
+   ]  
+}

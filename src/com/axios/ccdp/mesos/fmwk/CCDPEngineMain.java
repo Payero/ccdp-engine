@@ -21,8 +21,8 @@ import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.Status;
 import org.apache.mesos.Scheduler;
 
-import com.axios.ccdp.mesos.tasking.CcdpThreadRequest;
-import com.axios.ccdp.mesos.utils.CcdpUtils;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -46,10 +46,6 @@ public class CCDPEngineMain
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
-  /**
-   * If set to true it runs the simple framework rather than the normal one
-   */
-  private boolean run_simple = false;
   
   /**
    * Instantiates a new object which will deployed a custom executor.  The 
@@ -173,7 +169,7 @@ public class CCDPEngineMain
     else
     {
       this.logger.info("Running Remote Framework");
-      scheduler = new CcdpRemoteScheduler( ccdpExec, requests );
+      scheduler = new CcdpMesosScheduler( ccdpExec, requests );
     }
     
     
@@ -208,7 +204,7 @@ public class CCDPEngineMain
     } 
     else 
     {
-      this.logger.debug("Skippig Credentials");
+      this.logger.debug("Skipping Credentials");
       frameworkBuilder.setPrincipal("ccdp-framework");
       FrameworkInfo fmwk = frameworkBuilder.build();
       driver = new MesosSchedulerDriver(scheduler, fmwk, master);

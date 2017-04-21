@@ -15,9 +15,9 @@ import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.Protos.Status;
 
-import com.axios.ccdp.mesos.utils.CcdpUtils;
-import com.axios.ccdp.mesos.utils.TaskEventIntf;
-import com.axios.ccdp.mesos.utils.ThreadedTimerTask;
+import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.TaskEventIntf;
+import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -60,7 +60,6 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public CcdpCommandExecutor()
   {
     this.logger.info("Running the Executor");
-    this.timer = new ThreadedTimerTask(this, 2000);
   }
 
   /**
@@ -100,14 +99,17 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void onEvent()
   {
     this.logger.debug("Sending Heartbeat");
-    ObjectNode node = this.mapper.createObjectNode();
-    node.put("agent-id", this.agentInfo.getId().getValue() );
-    node.put("hostname", this.agentInfo.getHostname() );
-    node.put("executor-id", this.execInfo.getExecutorId().getValue() );
-    
-    // if we have a driver then send heartbeat messages
-    if( this.driver != null )
-      this.driver.sendFrameworkMessage(node.asText().getBytes());
+    if( this.agentInfo != null )
+    {
+      ObjectNode node = this.mapper.createObjectNode();
+      node.put("agent-id", this.agentInfo.getId().getValue() );
+      node.put("hostname", this.agentInfo.getHostname() );
+      node.put("executor-id", this.execInfo.getExecutorId().getValue() );
+      
+      // if we have a driver then send heartbeat messages
+      if( this.driver != null )
+        this.driver.sendFrameworkMessage(node.asText().getBytes());
+    }
   }
   
   /**
@@ -245,6 +247,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.info(msg);
     this.agentInfo = slave;
     this.execInfo = exec;
+    this.timer = new ThreadedTimerTask(this, 2000);
   }
 
   /**

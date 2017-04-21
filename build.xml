@@ -13,6 +13,10 @@
 	<!-- Java classes -->
 	<property name="build.dir" location="build" />
 
+	<!-- Java classes -->
+	<property name="main.dir" location="${build.dir}/main" />
+
+	
 	<!-- Output, Jar -->
 	<property name="dist.dir" location="dist/CCDP" />
 
@@ -27,25 +31,102 @@
 
   <!--The location of the javadoc directory -->
   <property name="doc.dir" location="docs" />
-
+	
+	<!--The location of the report directory -->
+	<property name="report.dir" location="reports" />
+	
+	<!--The location of the test directory -->
+	<property name="test.src.dir" location="src/com/axios/ccdp/test/unittest" />
+	<property name="test.bld.dir" location="${build.dir}/test" />
+	
+	<property name="ccdp.config.file" value="${basedir}/config/ccdp-config.properties" />
+	
 	<path id="classpath">
-        <fileset dir="${lib.dir}" includes="**/*.jar"/>
-    </path>
+	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
+  </path>
+	
+	<!-- ***************************************************************** -->
+	<!-- ****************  Start  Testing Targets (JUnit) **************** -->
+	
+	<path id="classpath.test">
+	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
+		<pathelement location="${main.dir}" />
+	</path>
+	
+  <target name="test-compile" depends="compile">
+    <mkdir dir="${test.bld.dir}"/>
+  	<mkdir dir="${report.dir}"/>
+    <javac srcdir="${test.src.dir}" destdir="${test.bld.dir}" includeantruntime="false">
+        <classpath refid="classpath.test"/>
+    </javac>
+  </target>
 
+	<!-- Runs all the unit tests by calling each one of the test target -->
+	<target name="test.all" depends="test.tasks.gen, test.aws.controller, test.amq.connection" />
+	<target name="which.test">
+	  <echo message="The Tests available to run:" />
+		<echo message="    test.tasks.gen" />
+		<echo message="    test.aws.controller" />
+		<echo message="    test.amq.connection" />
+	</target>
+	
+	<!-- Runs all the unit tests generating Thread Requests -->
+	<target name="test.tasks.gen" depends="test-compile">
+		<antcall target="junit.testing">
+			<param name="test.pattern" value="ThreadRequestsGeneratorUnitTest" />
+		</antcall>
+	</target>
+	
+	<!-- Runs all the unit tests to the the AWS tasking controller interface -->
+	<target name="test.aws.controller" depends="test-compile">
+	  <antcall target="junit.testing">
+	    <param name="test.pattern" value="AWSControllerUnitTest" />
+	  </antcall>
+	</target>
 
+  <!-- Runs all the unit tests to the the AWS tasking controller interface -->
+  <target name="test.amq.connection" depends="test-compile">
+	  <antcall target="junit.testing">
+	    <param name="test.pattern" value="AmqConnectionsUnitTest" />
+	  </antcall>
+	 </target>
+
+	<!-- Runs all the unit tests based on the file name pattern to include -->
+  <target name="junit.testing" depends="test-compile">
+    <junit printsummary="yes" haltonfailure="no" fork="true">
+    	<sysproperty key="ccdp.config.file" 
+    		           value="${basedir}/config/ccdp-config.properties" />
+    	
+        <classpath>
+          <path refid="classpath.test"/>
+          <pathelement location="${main.dir}"/>
+        </classpath>
+        <formatter type="brief" usefile="false" />
+        <batchtest todir="${report.dir}">
+        	<fileset dir="${src.dir}" includes="**/${test.pattern}.java" />
+            <!-- <fileset dir="${src.dir}" includes="**/*UnitTest.java" /> -->
+        </batchtest>
+    </junit>
+  </target>
+	
+	
+	
+	<!-- ******************  End  Testing Targets (JUnit) ***************** -->
+	<!-- ****************************************************************** -->
+	
 	<target name="init">
 		<!-- Create the time stamp -->
 		<tstamp />
 		<!-- Create the build directory structure used by compile -->
-		<mkdir dir="${build.dir}" />
+		<mkdir dir="${main.dir}" />
 	</target>
 
 	<target name="compile" depends="init" description="compile the source ">
-		<!-- Compile the java code from ${src.dir} into ${build.dir} -->
+		<!-- Compile the java code from ${src.dir} into ${main.dir} -->
 		<javac includeantruntime="false" 
 				 debug="true"
 			   srcdir="${src.dir}" 
-			   destdir="${build.dir}" 
+			   destdir="${main.dir}" 
 			   classpathref="classpath"/>
 	</target>
 
@@ -54,9 +135,9 @@
 		<!-- Create the distribution directory -->
 		<mkdir dir="${dist.dir}" />
 
-		<!-- Put everything in ${build} into a jar file -->
+		<!-- Put everything in ${main} into a jar file -->
 		<jar jarfile="${dist.dir}/${project.name}-${DSTAMP}.jar" 
-         basedir="${build.dir}" >
+         basedir="${main.dir}" >
 		    <manifest>
 			    <!-- create an executable Jar -->
 			    <attribute name="Main-Class" 
@@ -69,6 +150,7 @@
 		<delete dir="${build.dir}" />
 		<delete dir="${dist.dir}" />
     <delete dir="${doc.dir}" />
+		<delete dir="${report.dir}" />
 	</target>
 	
   <!-- Creates a README file explaining that is is just an install directory -->
@@ -82,34 +164,36 @@
        in the right places by using other targets
   -->
 	<target name="gen.jars" depends="compile,copy.scripts,create.file">
-		<!-- <copy file="${basedir}/config/log4j.properties" todir="${build.dir}" /> -->
+		<!-- <copy file="${basedir}/config/log4j.properties" todir="${main.dir}" /> -->
 
     <jar destfile="${dist.dir}/${executor.name}.jar" >
         <manifest>
             <attribute name="Main-Class" 
                        value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
         </manifest>
-        <fileset dir="${build.dir}" includes="*.properties" />
-  		<fileset dir="${build.dir}"/>
+        <fileset dir="${main.dir}" includes="*.properties" />
+  		<fileset dir="${main.dir}"/>
 
         <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
     </jar>
 
-    <copy file="${basedir}/config/ccdp-config.properties" todir="${build.dir}"/>
+    <copy file="${basedir}/config/ccdp-config.properties" todir="${main.dir}"/>
     <jar destfile="${dist.dir}/${engine.name}.jar" >
         <manifest>
             <attribute name="Main-Class" 
-                       value="com.axios.ccdp.mesos.fmwk.CCDPEngineMain"/>
+                       value="com.axios.ccdp.fmwk.CCDPEngineMain"/>
         </manifest>
-        <fileset dir="${build.dir}" includes="*.properties" />
-      <fileset dir="${build.dir}"/>
+        <fileset dir="${main.dir}" includes="*.properties" />
+      <fileset dir="${main.dir}"/>
 
         <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
     </jar>
 
 	</target>
 
+
   <!-- Generates the JavaDoc for the whole project -->
+  <target name="javadocs" depends="javadoc" />
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
     <javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
       <classpath>
@@ -148,4 +232,5 @@
  	<!-- Default, run this -->
 	<target name="main" depends="clean, compile, dist, gen.jars,javadoc" />
 
+	
 </project>

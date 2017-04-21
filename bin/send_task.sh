@@ -84,7 +84,7 @@ if [ -z "$JAR_FILE" ]; then
 	exit 1
 fi
 
-CMD="java -cp ${JAR_FILE} com.axios.ccdp.mesos.test.CcdpTaskSender $APP_ARGS"
+CMD="java -cp ${JAR_FILE} com.axios.ccdp.test.CcdpTaskSender $APP_ARGS"
 
 echo "Running: ${CMD} "
 exec $CMD 

@@ -69,6 +69,10 @@ public class CcdpUtils
   public static final String CFG_KEY_FACTORY_IMPL = "factory.interface.impl";
   /** The key name of the property used determine min number of free agents **/
   public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
+  /** The key name of the property used add or not an agent at initialization **/
+  public static final String CFG_KEY_SKIP_AGENT = "skip.local.agent";
+  /** The key name of the property used to set the checking cycle in seconds **/
+  public static final String CFG_KEY_CHECK_CYCLE = "resources.checking.cycle";
   
   /** Properties used by the tasking object receiving external tasks */
   public static final String CFG_KEY_TASK_MSG = "taskingIntf";
@@ -94,6 +98,26 @@ public class CcdpUtils
   /** The name of the public session-id to use when none found in requests   */
   public static final String PUBLIC_SESSION_ID = "public-session";
   
+
+  /****************************************************************************/
+  /****************************************************************************/
+  
+  /** Properties used by the tasking object receiving external tasks */
+  public static final String CFG_KEY_CONN_INTF = "connectionIntf";
+  /** Stores the number of seconds to send/receive heartbeats **/
+  public static final String CFG_KEY_HB_FREQ = "heartbeat.freq.secs";
+  /** Stores the name of the Queue where to send events to the main app **/
+  public static final String CFG_KEY_MAIN_CHANNEL = "ccdp.main.queue";
+  /** Stores the name of the configuration key with the log folder location **/
+  public static final String CFG_KEY_LOG_DIR = "ccdp.log.dir";
+  /** Stores the name of the key with the log directory location **/
+  public static final String KEY_CCDP_LOG_DIR = "ccdp-log-dir";
+  
+  public static enum EventType { HEARTBEAT, TASK_STATUS, 
+                                 TASK_REQUEST, KILL_TASK };
+  
+  /****************************************************************************/
+  /****************************************************************************/
   /**
    * Stores all the properties used by the system
    */
@@ -158,7 +182,25 @@ public class CcdpUtils
     else
     {
       logger.debug("Configuring CCDP using file: " + cfgFile);
-      CcdpUtils.loadProperties(cfgFile);
+      File file = new File(cfgFile);
+      if( file.isFile() )
+        CcdpUtils.loadProperties(cfgFile);
+      else
+      {
+        String name = CcdpUtils.CFG_FILENAME;
+        URL url = CcdpUtils.class.getClassLoader().getResource(name);
+        
+        // making sure it was found
+        if( url != null )
+        {
+          logger.debug("Configuring CCDP using URL: " + url);
+          CcdpUtils.loadProperties( url.openStream() );
+        }
+        else
+        {
+          logger.error("Could not find " + name + " file");
+        }
+      }
     }
   }
   
@@ -666,6 +708,53 @@ public class CcdpUtils
     }
     in.close();
     return EC2Id;
+  }
+ 
+  /**
+   * Gets any of the entries stored as meta-data.  As of 04/22/2017 the only 
+   * valid keys are the following:
+   * 
+   *    ami-id
+   *    ami-launch-index
+   *    ami-manifest-path
+   *    block-device-mapping/
+   *    hostname
+   *    instance-action
+   *    instance-id
+   *    instance-type
+   *    local-hostname
+   *    local-ipv4
+   *    mac
+   *    metrics/
+   *    network/    
+   *    placement/
+   *    profile
+   *    public-hostname
+   *    public-ipv4
+   *    public-keys/
+   *    reservation-id
+   *    security-groups
+   *    services/   
+   * 
+   * @return a string representing the unique instance id of the EC2 instance
+   * @throws Exception an Exception is thrown if there is a problem invoking 
+   *         the meta-data URL
+   */
+  public static String retrieveEC2Info(String key) throws Exception
+  {
+    String data = "";
+    String inputLine;
+    URL EC2MetaData = 
+        new URL("http://169.254.169.254/latest/meta-data/" + key );
+    URLConnection EC2MD = EC2MetaData.openConnection();
+    BufferedReader in = new BufferedReader(
+    new InputStreamReader( EC2MD.getInputStream()) );
+    while ((inputLine = in.readLine()) != null)
+    {
+      data = inputLine;
+    }
+    in.close();
+    return data;
   }
   
 }

@@ -1,9 +1,10 @@
-package com.axios.ccdp.connections.amq;
+package com.axios.ccdp.newgen;
 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.TextMessage;
@@ -121,6 +122,60 @@ public class AmqSender extends AmqConnector
       
       message.setText(body);
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
+      
+      this.logger.info("Sent: " + message.getText());
+  
+    } 
+    catch (JMSException e) 
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+  }
+  
+  /**
+   * Sends a message to the subscribe channel.  If the props argument is not 
+   * null then is used to set the TextMessage properties or header.
+   * 
+   * @param dest the name of the topic or queue to send the message to
+   * @param props and optional set of properties to attach to the message
+   * @param body the actual message or event to send
+   */
+  public void sendMessage(String dest, Map<String, String> props, String body) 
+  {
+    this.sendMessage(dest, props,  body, this.defTTL);
+  }
+
+  /**
+   * Sends a message to the subscribe channel.  If the props argument is not 
+   * null then is used to set the TextMessage properties or header.
+   * 
+   * @param destination the name of the topic or queue to send the message to
+   * @param props and optional set of properties to attach to the message
+   * @param body the actual message or event to send
+   * @param ttl the message's time to live in milliseconds
+   */
+  public void sendMessage(String destination, Map<String, String> props, 
+                          String body, long ttl) 
+  {
+    try 
+    {
+      TextMessage message = session.createTextMessage();
+      
+      if( props != null )
+      {
+        Iterator<String> keys = props.keySet().iterator();
+        while( keys.hasNext() )
+        {
+          String key = keys.next();
+          String val = props.get(key);
+          this.logger.debug("Setting " + key + " = " + val);
+          message.setStringProperty(key, val);
+        }
+      }
+      
+      message.setText(body);
+      Destination dest = this.session.createQueue(destination);
+      producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
       this.logger.info("Sent: " + message.getText());
   

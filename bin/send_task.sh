@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEMP=`getopt -o hc:f:j: --longoptions help,config-file:,file:,jobs: -n $0 -- "$@"`
+TEMP=`getopt -o hc:f:j:d: --longoptions help,config-file:,file:,jobs:dest: -n $0 -- "$@"`
 
 # Prints the Usage
 usage()
@@ -15,6 +15,7 @@ usage()
     echo '   -h,--help                Shows this message'
     echo '   -j,--jobs <arg>          Optional JSON file with the jobs to run'
     echo '                            passed as a string'
+    echo '   -d,--dest <arg>          The name of the Queue to send the job'
     echo ''
     exit 0
 }
@@ -38,6 +39,7 @@ CFG_FILE=${CCDP_HOME}/config/ccdp-config.properties
 TASK=""
 APP_ARGS=""
 JSON=""
+DEST=""
 
 
 eval set -- "$TEMP"
@@ -48,6 +50,7 @@ while true ; do
 	-f | --file ) TASK=$2 ; shift 2 ;;
 	-c | --config-file ) CFG_FILE=$2 ; shift 2 ;;
 	-j | --jobs ) JSON=$2 ; shift 2 ;;
+	-d | --dest ) DEST=$2 ; shift 2 ;;
     * ) break ;;
   esac
 done
@@ -58,6 +61,12 @@ if [ -z "$CFG_FILE" ] ; then
 fi
 
 APP_ARGS="-c ${CFG_FILE} "
+
+# Was the destination specified?
+if [ ! -z "$DEST" ] ; then
+	APP_ARGS+=" -d $DEST"
+fi
+
 
 # If the task file was not passed
 if [ -z "$TASK" ] ; then

@@ -2,6 +2,7 @@ package com.axios.ccdp.controllers.aws;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 
 import com.amazonaws.util.Base64;
 
@@ -21,6 +22,7 @@ import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.InstanceStatus;
 import com.amazonaws.services.ec2.model.InstanceStatusDetails;
 import com.amazonaws.services.ec2.model.Reservation;
@@ -33,6 +35,8 @@ import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.AWSCcdpFactoryImpl;
+import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -294,7 +298,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     this.logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
-    this.logger.debug("ecncoded value is " + new String(bytesEncoded));
+    this.logger.debug("encoded value is " + new String(bytesEncoded));
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
@@ -424,16 +428,17 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   }
   
   /**
-   * Gets all the instances status that are currently assigned to the user
+   * Gets all the instances status that are currently 'available' on different
+   * states
    * 
-   * @return an object containing details of each of the Virtual Machines 
-   *         assigned to the user
+   * @return a list with all the instances status that are currently 
+   *         'available' on different state
    */
   @Override
-  public ObjectNode getAllInstanceStatus()
+  public List<CcdpVMResource> getAllInstanceStatus()
   {
     this.logger.debug("Getting all the Instances Status");
-    ObjectNode instancesJson = this.mapper.createObjectNode();
+    Map<String, CcdpVMResource> resources = new HashMap<>();
     
     DescribeInstanceStatusRequest descInstReq = 
         new DescribeInstanceStatusRequest()
@@ -450,24 +455,46 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       InstanceStatus stat = states.next();
       
       String instId = stat.getInstanceId();
+      CcdpVMResource res = new CcdpVMResource(instId);
+      
       String status = stat.getInstanceState().getName();
-      ObjectNode obj = this.mapper.createObjectNode();
-      
-      obj.put("status", status);
-      List<InstanceStatusDetails>  dets = stat.getInstanceStatus().getDetails();
-      Iterator<InstanceStatusDetails> details = dets.iterator();
-      ObjectNode jDets = this.mapper.createObjectNode();
-      
-      while( details.hasNext() )
+      switch( status )
       {
-        InstanceStatusDetails detail = details.next();
-        String name = detail.getName();
-        String val = detail.getStatus();
-        jDets.put(name, val);
+      case "pending":
+        res.setStatus(ResourceStatus.INITIALIZING);
+        break;
+      case "running":
+        res.setStatus(ResourceStatus.RUNNING);
+        break;
+      case "shutting-down":
+        res.setStatus(ResourceStatus.SHUTTING_DOWN);
+        break;
+      case "terminated":
+        res.setStatus(ResourceStatus.TERMINATED);
+        break;
+      case "stopping":
+      case "stopped":
+        res.setStatus(ResourceStatus.STOPPED);
+        break;
+        
       }
-      obj.set("details", jDets);
-      this.logger.debug("Adding: " + obj);
-      instancesJson.set(instId, obj);
+      resources.put(instId, res);
+      
+//      
+//      List<InstanceStatusDetails>  dets = stat.getInstanceStatus().getDetails();
+//      Iterator<InstanceStatusDetails> details = dets.iterator();
+//      ObjectNode jDets = this.mapper.createObjectNode();
+//      
+//      while( details.hasNext() )
+//      {
+//        InstanceStatusDetails detail = details.next();
+//        String name = detail.getName();
+//        String val = detail.getStatus();
+//        jDets.put(name, val);
+//      }
+//      obj.set("details", jDets);
+//      this.logger.debug("Adding: " + obj);
+//      instancesJson.set(instId, obj);
     }
     
     
@@ -484,27 +511,23 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         String id = instance.getInstanceId();
         String pubIp = instance.getPublicIpAddress();
         String privIp = instance.getPrivateIpAddress();
-        if( instancesJson.has(id) )
+        if( resources.containsKey(id) )
         {
           try
           {
-            JsonNode node = instancesJson.get(id);
-            this.logger.debug("The JSON Node: " + node.toString());
-            ObjectNode instJson = node.deepCopy(); 
+            CcdpVMResource vm = resources.get(id);
+            vm.setHostname(pubIp);
             
-            instJson.put("public-ip", pubIp);
-            instJson.put("private-ip", privIp);
-            
-            ObjectNode jsonTag = this.mapper.createObjectNode();
             Iterator<Tag> tags = instance.getTags().iterator();
+            Map<String, String> map = new HashMap<>();
             while( tags.hasNext() )
             {
               Tag tag = tags.next();
               String key = tag.getKey();
               String val = tag.getValue();
-              jsonTag.put(key, val);
+              map.put(key, val);
             }
-            instJson.set("tags", jsonTag);
+            vm.setTags(map);
           }
           catch( Exception ioe )
           {
@@ -514,7 +537,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         }// instance ID found
       }
     }
-    return instancesJson;
+    
+    return new ArrayList<CcdpVMResource>( resources.values() );
   }
   
   /**
@@ -532,25 +556,22 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public ObjectNode getStatusFilteredByTags( ObjectNode filter )
+  public List<CcdpVMResource> getStatusFilteredByTags( ObjectNode filter )
   {
     this.logger.debug("Getting Filtered Status using: " + filter);
-    ObjectNode all = this.getAllInstanceStatus();
-    ObjectNode some = this.mapper.createObjectNode();
+    List<CcdpVMResource> all = this.getAllInstanceStatus();
+    List<CcdpVMResource> some = new ArrayList<>();
     
     this.logger.debug("All Instances: " + all);
-    Iterator<String> all_keys = all.fieldNames();
     
-    while( all_keys.hasNext() )
+    for(CcdpVMResource inst : all )
     {
-      String id = all_keys.next();
+      String id = inst.getInstanceId();
       this.logger.debug("Looking at ID " + id);
+      Map<String, String> tags = inst.getTags();
       
-      JsonNode inst = all.get(id);
-      
-      if( inst.has("tags") )
+      if( tags != null  )
       {
-        JsonNode tags = inst.get("tags");
         Iterator<String> filter_keys = filter.fieldNames();
         boolean found = true;
         while( filter_keys.hasNext() )
@@ -558,7 +579,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
           String key = filter_keys.next();
           Object val = filter.get(key);
           this.logger.debug("Evaluating Filter[" + key + "] = " + val );
-          if( !tags.has(key) || !tags.get(key).equals(val) )
+          if( !tags.containsKey(key) || !tags.get(key).equals(val) )
           {
             this.logger.info("Instance " + id + " does not have matching tag " + key);
             found = false;
@@ -570,7 +591,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         if( found )
         {
           this.logger.info("Adding Instance to list");
-          some.set(id, inst);
+          some.add(inst);
         }
       }// it has tags to compare
     }// All instances checked
@@ -579,34 +600,30 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   }
   
   
-  
   /**
    * Returns information about the instance matching the unique id given as 
-   * argument.  
+   * argument.  If the object is not found it returns null 
    * 
-   * The result is a JSON Object whose key is the Virtual Machine identifier and
-   * the value is detailed information of the VM.
    * 
    * @param uuid the unique identifier used to select the appropriate resource
    *        
-   * @return A JSON Object containing all the information about the VM
+   * @return the resource whose unique identifier matches the given argument
    */
-  public ObjectNode getStatusFilteredById( String uuid )
+  public CcdpVMResource getStatusFilteredById( String uuid )
   {
     this.logger.debug("Getting Filtered Status for: " + uuid);
-    ObjectNode all = this.getAllInstanceStatus();
+    List<CcdpVMResource> all = this.getAllInstanceStatus();
     
     this.logger.debug("All Instances: " + all);
-    Iterator<String> all_keys = all.fieldNames();
     
-    while( all_keys.hasNext() )
+    for( CcdpVMResource res : all )
     {
-      String id = all_keys.next();
+      String id = res.getInstanceId();
       this.logger.debug("Looking at ID " + id);
       
       // found it
       if(id.equals(uuid))
-        return all.get(id).deepCopy();
+        return res;
       
     }// All instances checked
     

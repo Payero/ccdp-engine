@@ -75,7 +75,8 @@ public class CcdpTaskRequest
   /**
    * All the different states the job can be at any given time
    */
-  public enum CcdpTaskState { PENDING, ASSIGNED, STAGING, RUNNING, SUCCESSFUL, FAILED }
+  public enum CcdpTaskState { PENDING, ASSIGNED, STAGING, RUNNING, SUCCESSFUL, 
+                              FAILED, KILLED }
   /**
    * Stores the unique identifier for this task 
    */

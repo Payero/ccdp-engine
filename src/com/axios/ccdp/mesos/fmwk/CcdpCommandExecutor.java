@@ -6,6 +6,7 @@ import org.apache.log4j.Logger;
 import org.apache.mesos.Executor;
 import org.apache.mesos.ExecutorDriver;
 import org.apache.mesos.MesosExecutorDriver;
+import org.apache.mesos.Protos.Attribute;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.FrameworkInfo;
 import org.apache.mesos.Protos.SlaveInfo;
@@ -16,6 +17,7 @@ import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.Protos.Status;
 
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,6 +54,10 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * Generates all the different JSON objects
    */
   private ObjectMapper mapper = new ObjectMapper();
+  /**
+   * Retrieves all the system's resources as a JSON object
+   */
+  private SystemResourceMonitor monitor = new SystemResourceMonitor();
   
   /**
    * Instantiates a new instance of the agent responsible for running all the
@@ -102,13 +108,32 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     if( this.agentInfo != null )
     {
       ObjectNode node = this.mapper.createObjectNode();
+      String iid = null; 
+      String sid = null;
+      
+      // Getting the attribute information
+      for( Attribute attr : this.agentInfo.getAttributesList() )
+      {
+        switch( attr.getName() )
+        {
+        case CcdpUtils.KEY_INSTANCE_ID:
+          iid = attr.getText().getValue();
+          break;
+        case CcdpUtils.KEY_SESSION_ID:
+          sid = attr.getText().getValue();
+          break;
+        }
+      }
+      node.put("instance-id", iid);
+      node.put("session-id", sid);
       node.put("agent-id", this.agentInfo.getId().getValue() );
       node.put("hostname", this.agentInfo.getHostname() );
       node.put("executor-id", this.execInfo.getExecutorId().getValue() );
+      node.set("resources", this.monitor.toJSON());
       
       // if we have a driver then send heartbeat messages
       if( this.driver != null )
-        this.driver.sendFrameworkMessage(node.asText().getBytes());
+        this.driver.sendFrameworkMessage(node.toString().getBytes());
     }
   }
   

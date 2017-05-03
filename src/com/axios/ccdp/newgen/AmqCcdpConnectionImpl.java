@@ -1,4 +1,4 @@
-package com.axios.ccdp.connections.amq;
+package com.axios.ccdp.newgen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,6 +14,7 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -24,18 +25,18 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class AMQCcdpTaskingImpl 
-                          implements CcdpTaskingIntf, CcdpEventConsumerIntf
+public class AmqCcdpConnectionImpl 
+                          implements CcdpConnectionIntf, CcdpEventConsumerIntf
 {
-
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(AMQCcdpTaskingImpl.class.getName());
+  private Logger logger = 
+      Logger.getLogger(AmqCcdpConnectionImpl.class.getName());
   /**
    * Sends messages to particular channels or destinations
    */
-  private AmqSender sender = null;
+  private Map<String, AmqSender> senders = new HashMap<>();
   /**
    * Receives messages sent to the CcdpEventConsumer and notifies it every time
    * an event is received
@@ -50,26 +51,39 @@ public class AMQCcdpTaskingImpl
   /**
    * The object interested on receiving the actual task
    */
-  private CcdpTaskConsumerIntf consumer = null;
-  
+  private CcdpEventConsumerIntf consumer = null;
   /**
    * Stores the configuration for the tasking interface
    */
   private ObjectNode config = null;
-
   /**
-   * Generates all the JSON objects
+   * Stores the time to live for the heartbeats
+   */
+  private long hbTTLMills;
+  /**
+   * Generates all the JSON structure objects
    */
   private ObjectMapper mapper = new ObjectMapper();
+  
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
    * setEventConsumer is invoked.
    */
-  public AMQCcdpTaskingImpl()
+  public AmqCcdpConnectionImpl()
   {
     this.logger.debug("Creating new connections");
-    this.sender = new AmqSender();
     this.receiver = new AmqReceiver(this);
+    
+    this.hbTTLMills = 3000;
+    try
+    {
+      this.hbTTLMills = 
+          CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_HB_FREQ) * 1000;
+    }
+    catch( Exception e )
+    {
+      this.logger.warn("The heartbeat frequency was not set using 3 seconds");
+    }
   }
 
   /**
@@ -78,7 +92,7 @@ public class AMQCcdpTaskingImpl
    * @param consumer the object interested on receiving events.
    */
   @Override
-  public void setTaskConsumer( CcdpTaskConsumerIntf consumer )
+  public void setConsumer( CcdpEventConsumerIntf consumer )
   {
     this.consumer = consumer;
   }
@@ -96,38 +110,42 @@ public class AMQCcdpTaskingImpl
   public void configure( ObjectNode config )
   {
     this.config = config;
+    this.logger.debug("Using Configuration " + this.config.toString());
+    if( this.config.has(CcdpUtils.CFG_KEY_MAIN_CHANNEL) )
+    {
+      String channel = this.config.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
+      this.registerProducer(channel);
+    }
   }
   
   /**
-   * Registers a unique identifier with a specific channels.  
+   * Registers a message producer to send messages to a particular channel  
    * 
-   * IMPORTANT NOTE: The registration will allow to start receiving external 
-   * events and therefore the setEventConsumer() needs to be called first, 
-   * failing to do so could have unexpected behavior.
-   * 
+   * @param channel the channel to send messages
    */
   @Override
-  public void register()
+  public void registerProducer(String channel)
   {
-    this.register(this.config.get(CcdpUtils.CFG_KEY_TASKING_UUID).asText());
+    synchronized( this.senders )
+    {
+      if( !this.senders.containsKey(channel) )
+      {
+        this.logger.info("Registering Producer: " + channel);
+        String brkr = 
+            this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
+        AmqSender sender = new AmqSender();
+        sender.connect(brkr, channel);
+        
+          this.senders.put(channel, sender);
+        
+      }
+      else
+      {
+        this.logger.info( channel + " already has a Sender" );
+      }
+    }
   }
   
-  /**
-   * Registers a unique identifier with a specific channels.  
-   * 
-   * IMPORTANT NOTE: The registration will allow to start receiving external 
-   * events and therefore the setEventConsumer() needs to be called first, 
-   * failing to do so could have unexpected behavior.
-   * 
-   * @param uuid the consumer unique identifier to use
-   */
-  @Override
-  public void register(String uuid)
-  {
-    String channel = 
-        this.config.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL).asText();
-    this.register(uuid, channel);
-  }
   
   /**
    * Registers a unique identifier with a specific channels.  
@@ -140,8 +158,9 @@ public class AMQCcdpTaskingImpl
    * @param channel the channel to subscribe or register
    */
   @Override
-  public void register(String uuid, String channel)
+  public void registerConsumer(String uuid, String channel)
   {
+    
     this.logger.info("Registering " + uuid + " with channel " + channel);
     if( this.receiver == null )
     {
@@ -172,30 +191,30 @@ public class AMQCcdpTaskingImpl
   }
 
   /**
-   * Sends an event to the destination specified in the given channel.  The
-   * props Map is an optional set of properties to be set in the header and the 
-   * body is the actual payload or event to send.
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object.
    * 
-   * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param channel the destination where to send the message
+   * @param body A JSON structure with the actual message to send
    */
   @Override
-  public void sendEvent(Map<String, String> props, Object body)
+  public void sendMessage( String channel, JsonNode body)
   {
-    if( this.config.has(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL) )
-    {
-      String channel = 
-          this.config.get(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL).asText();
-      this.logger.debug("Sending to channel " + channel);
-      this.sendEvent(channel, props, body);
-    }
-    else
-    {
-      String txt = "The property " + CcdpUtils.CFG_KEY_RESPONSE_CHANNEL + 
-          " is not set!!";
-      this.logger.error(txt);
-    }
-        
+    this.sendMessage(channel, new HashMap<String, String>(), body );
+  }
+  
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It specifies how
+   * long this particular message should remain in the server.
+   * 
+   * @param channel the destination where to send the message
+   * @param body A JSON structure with the actual message to send
+   * @param ttl the time to live of the message being setn
+   */
+  public void sendMessage( String channel, JsonNode body, long ttl )
+  {
+    this.sendMessage(channel, new HashMap<String, String>(), body, ttl );
   }
   
   /**
@@ -203,40 +222,41 @@ public class AMQCcdpTaskingImpl
    * props Map is an optional set of properties to be set in the header and the 
    * body is the actual payload or event to send.
    * 
-   * @param channel the destination channel to send the event
+   * @param channel the destination where to send the message
    * @param props a series of optional header information
    * @param body the actual body or event to send
    */
   @Override
-  public void sendEvent(String channel, Map<String, String> props, Object body)
+  public void sendMessage(String channel, Map<String, String> props, 
+      JsonNode body)
   {
-    this.logger.info("Sending Event to " + channel);
-    String brkr = this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
-    this.sender.connect(brkr, channel);
-    this.sender.sendMessage(props, body.toString());
+    this.sendMessage(channel, props, body, 0);
   }
 
   /**
-   * Unregisters the UUID from receiving incoming events from the given channel
+   * Sends an event to the destination specified in the given channel.  The
+   * props Map is an optional set of properties to be set in the header and the 
+   * body is the actual payload or event to send.
    * 
+   * @param props a series of optional header information
+   * @param body the actual body or event to send
    */
   @Override
-  public void unregister()
+  public void sendMessage(String channel, Map<String, String> props, 
+      JsonNode body, long ttl)
   {
-    this.unregister(this.config.get(CcdpUtils.CFG_KEY_TASKING_UUID).asText());
-  }
-  
-  /**
-   * Unregisters the UUID from receiving incoming events from the given channel
-   * 
-   * @param uuid the unique identifier to remove from receiving events
-   */
-  @Override
-  public void unregister(String uuid)
-  {
-    String channel = 
-        this.config.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL).asText();
-    this.unregister(uuid, channel);
+    synchronized( this.senders )
+    {
+      if( this.senders.containsKey(channel) )
+      {
+        AmqSender sender = this.senders.get(channel);
+        sender.sendMessage(channel, props,  body.toString(), ttl);
+      }
+      else
+      {
+        this.logger.error("Could not find a registered sender for " + channel );
+      }
+    }
   }
   
   /**
@@ -246,7 +266,7 @@ public class AMQCcdpTaskingImpl
    * @param channel the channel to unsubscribe
    */
   @Override
-  public void unregister(String uuid, String channel)
+  public void unregisterConsumer(String uuid, String channel)
   {
     this.logger.info("Disconnecting " + uuid + " from channel " + channel);
     ArrayList<String> registered = this.registrations.get(channel);
@@ -275,9 +295,6 @@ public class AMQCcdpTaskingImpl
         this.logger.warn("Could not find UUID: " + uuid);
       }
     }
-    
-    if( this.sender != null )
-      this.sender.disconnect();
   }
   
   /**
@@ -288,46 +305,57 @@ public class AMQCcdpTaskingImpl
    * 
    * @param event the JSON configuration of the tasking request
    */
-  @SuppressWarnings("unchecked")
   public void onEvent( Object event )
   {
-    ObjectNode node = (ObjectNode)event;
-    this.logger.trace("Got a Task Request " + node.toString());
+    if( event instanceof JsonNode )
+    {
+      JsonNode node = (JsonNode)event;
+      this.logger.trace("Got an Event " + node.toString());
+      this.consumer.onEvent(node);
+    }
+    else
+    {
+      this.logger.error("Only JsonNode objects are allowed");
+    }
+  }
+
+  
+  /**
+   * Sends a hearbeat message to the channel specified provided as argument.
+   * The heartbeat contains information about the current resource utilization 
+   * as well as other information concerning the health of the node.
+   * 
+   * The time to leave of each heartbeat is set in the CcdpUtils class as the 
+   * HEARTBEAT_TIME_SECS property
+   * 
+   * @param channel the destination to send the hearbeats
+   * @param node A JSON structure with information about the node's health
+   */
+  @Override
+  public void sendHeartbeat( String channel, JsonNode node )
+  {
+    ObjectNode hb = this.mapper.createObjectNode();
+    hb.put("event-type", CcdpUtils.EventType.HEARTBEAT.toString());
+    hb.set("event", node);
     
-    try
-    {
-      String msg = node.get("body").asText();
-      Map<String, String> cfg = null;
-      
-      if( node.has("config") )
-        cfg = this.mapper.convertValue(node.get("config"), Map.class);
-      
-      List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(msg);
-      if( reqs != null )
-      {
-        this.logger.debug("Got " + reqs.size() + " Thread requests");
-        for( CcdpThreadRequest req : reqs )
-        {
-          if( cfg != null )
-          {
-            for( CcdpTaskRequest task : req.getTasks() )
-            {
-              if( task.getConfiguration().isEmpty() )
-              {
-                this.logger.debug("Setting the Configuration to " + cfg.toString());
-                task.setConfiguration(cfg);
-              }
-            }
-          }
-          this.consumer.onTask(req);
-        }
-      }
-    }
-    catch( Exception e )
-    {
-      String err = "\n\nERROR: Could not parse the incoming event due to "
-          + "the following:\n" + e.getMessage() + "\nIgnoring Event!!\n";
-      this.logger.error(err);
-    }
+    this.sendMessage(channel, hb, this.hbTTLMills );
+  }
+  
+  /**
+   * Sends a task update message to the channel provided as an argument.
+   * The task update contains information about the state of a task assigned to 
+   * this node
+   * 
+   * @param channel the destination to send the task updates
+   * @param node A JSON structure with information about a specific task
+   */
+  @Override
+  public void sendTaskUpdate( String channel, JsonNode node )
+  {
+    ObjectNode status = this.mapper.createObjectNode();
+    status.put("event-type", CcdpUtils.EventType.TASK_STATUS.toString());
+    status.set("event", node);
+    
+    this.sendMessage(channel, status);
   }
 }

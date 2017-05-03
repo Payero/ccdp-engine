@@ -170,6 +170,7 @@ public class CcdpMesosScheduler implements Scheduler
     // generates a list of resources using the offers
     for( Offer offer : offers )
     {
+      this.logger.warn("The Offer " + offer.toString() );
       StringBuffer buf = new StringBuffer();
       buf.append("----------------- Offer -----------------\n");
       
@@ -488,6 +489,7 @@ public class CcdpMesosScheduler implements Scheduler
    {
      this.logger.error("executorLost: " + " Driver: " + driver.toString() + 
                  " ExecId " + execId + " SlaveId: " + slvId + " Int? " + status) ;
+     this.engine.resourceLost( slvId.getValue() );
    }
 
    /**
@@ -507,6 +509,10 @@ public class CcdpMesosScheduler implements Scheduler
    {
      this.logger.debug("frameworkMessage: " + new String(data) + " Driver: " + 
              driver.toString() + " ExecId " + execId + " SlaveId: " + slvId);
+     ObjectNode node = this.mapper.createObjectNode();
+     node.put("type", "message");
+     node.put("data", new String(data));
+     this.engine.onMessage(node);
    }
 
    /**

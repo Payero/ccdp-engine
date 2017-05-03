@@ -5,7 +5,8 @@
 
 	<property name="project.name" value="mesos-dra" />
 	<property name="executor.name" value="mesos-ccdp-exec" />
-  <property name="engine.name" value="mesos-engine" />
+	<property name="agent.name" value="ccdp-agent" />
+    <property name="engine.name" value="mesos-engine" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -185,6 +186,17 @@
         </manifest>
         <fileset dir="${main.dir}" includes="*.properties" />
       <fileset dir="${main.dir}"/>
+
+        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+    </jar>
+
+	<jar destfile="${dist.dir}/${agent.name}.jar" >
+        <manifest>
+            <attribute name="Main-Class" 
+                       value="com.axios.ccdp.newgen.CcdpAgent"/>
+        </manifest>
+        <fileset dir="${main.dir}" includes="*.properties" />
+  		<fileset dir="${main.dir}"/>
 
         <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
     </jar>

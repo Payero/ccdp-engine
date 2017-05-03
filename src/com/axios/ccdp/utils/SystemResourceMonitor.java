@@ -318,6 +318,29 @@ public class SystemResourceMonitor
    */
   public String toString()
   {
+
+    return this.toJSON().toString();
+  }
+  
+  /**
+   * Gets a JSON object representing the object.  The following are the keys
+   * 
+   *  - CommittedVirtualMemorySize
+   *  - TotalSwapSpaceSize
+   *  - FreeSwapSpaceSize
+   *  - ProcessCpuTime
+   *  - FreePhysicalMemorySize
+   *  - TotalPhysicalMemorySize
+   *  - OpenFileDescriptorCount
+   *  - MaxFileDescriptorCount
+   *  - SystemCpuLoad
+   *  - ProcessCpuLoad
+   *   
+   * 
+   * @return a JSON object representing an instance of this class
+   */
+  public ObjectNode toJSON()
+  {
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode json = mapper.createObjectNode();
     
@@ -341,8 +364,8 @@ public class SystemResourceMonitor
         this.getSystemCpuLoad());
     json.put("ProcessCpuLoad", 
         this.getProcessCpuLoad());
-
-    return json.toString();
+    
+    return json;
   }
   
   /**

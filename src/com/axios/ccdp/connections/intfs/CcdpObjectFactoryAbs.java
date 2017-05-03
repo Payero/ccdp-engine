@@ -1,5 +1,6 @@
 package com.axios.ccdp.connections.intfs;
 
+import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -62,6 +63,17 @@ public abstract class CcdpObjectFactoryAbs
     
     return CcdpObjectFactoryAbs.factory;
   }
+  
+  /**
+   * Gets the object that is used communicate among elements in the sustem.  
+   * The same interface is also used to send messages back to a specific 
+   * destination
+   * 
+   * @param cfg a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the main 
+   *         application to send and receive tasking events
+   */
+  public abstract CcdpConnectionIntf getCcdpConnectionInterface(ObjectNode cfg);
   
   /**
    * Gets the object that is used to task the scheduler.  The same interface

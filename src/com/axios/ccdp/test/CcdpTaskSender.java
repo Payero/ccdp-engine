@@ -39,15 +39,20 @@ public class CcdpTaskSender
    */
   private AmqSender sender = null;
   
-  public CcdpTaskSender( String jobs )
+  public CcdpTaskSender( String channel, String jobs )
   {
+    jobs = jobs.trim();
     this.logger.debug("Running a Task sender, sending " + jobs);
     this.sender = new AmqSender();
     
     Map<String, String> map = CcdpUtils.getKeysByFilter("taskingIntf");
     
     String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
-    String channel = map.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL);
+    if( channel == null )
+      channel = map.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL);
+    
+    channel = channel.trim();
+    
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);
     this.sender.sendMessage(null,  jobs);
@@ -98,6 +103,13 @@ public class CcdpTaskSender
     jobs_string.setRequired(false);
     options.addOption(jobs_string);
     
+    // the destination to send the jobs
+    Option dest_string = new Option("d", "destination", true, 
+        "The name of the queue to send the jobs");
+    dest_string.setRequired(false);
+    options.addOption(dest_string);
+    
+    
     CommandLineParser parser = new DefaultParser();
     
     CommandLine cmd;
@@ -125,6 +137,7 @@ public class CcdpTaskSender
     String cfg_file = null;
     String filename = null;
     String jobs = null;
+    String dest = null;
         
     String key = CcdpUtils.CFG_KEY_CFG_FILE;
     
@@ -148,6 +161,11 @@ public class CcdpTaskSender
       jobs = cmd.getOptionValue('j');
     }
     
+    if( cmd.hasOption('d') )
+    {
+      dest = cmd.getOptionValue('d');
+    }
+    
     if( cmd.hasOption('f') )
     {
       String fname = cmd.getOptionValue('f');
@@ -168,12 +186,12 @@ public class CcdpTaskSender
     {
       byte[] data = Files.readAllBytes( Paths.get( filename ) );
       String job = new String(data, "utf-8");
-      new CcdpTaskSender(job);
+      new CcdpTaskSender(dest, job);
     }
     
     if( jobs != null )
     {
-      new CcdpTaskSender(jobs);
+      new CcdpTaskSender(dest, jobs);
     }
     
   }

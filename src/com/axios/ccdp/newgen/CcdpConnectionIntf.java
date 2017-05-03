@@ -1,0 +1,134 @@
+package com.axios.ccdp.newgen;
+
+import java.util.Map;
+
+import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
+/**
+ * Interface used to define the protocol used to send and receive tasking 
+ * information from and to the Mesos Scheduler
+ * 
+ * @author Oscar E. Ganteaume
+ *
+ */
+public interface CcdpConnectionIntf
+{
+  /**
+   * Sets the consumer that will be expecting events from external sources
+   * 
+   * @param consumer the object interested on receiving external events
+   */
+  public void setConsumer( CcdpEventConsumerIntf consumer );
+  
+  /**
+   * Registers a unique identifier with a specific channels.  
+   * 
+   * IMPORTANT NOTE: The registration will allow to start receiving external 
+   * events and therefore the setEventConsumer() needs to be called first, 
+   * failing to do so could have unexpected behavior.
+   * 
+   * @param uuid the consumer unique identifier to use
+   * @param channel the channel to subscribe or register
+   */
+  public void registerConsumer(String uuid, String channel);
+  
+  /**
+   * Registers a unique identifier with a specific channels.  
+   * 
+   * @param channel the channel to send messages
+   */
+  public void registerProducer(String channel);
+  
+  
+  
+  /**
+   * Configures the running environment and/or connections required to perform
+   * the operations.  The JSON Object contains all the different fields 
+   * necessary to operate.  These fields might change on each actual 
+   * implementation
+   * 
+   * @param config a JSON Object containing all the necessary fields required 
+   *        to operate
+   */
+  public void configure( ObjectNode config );
+  
+  /**
+   * Sends a hearbeat message to the channel specified provided as argument.
+   * The heartbeat contains information about the current resource utilization 
+   * as well as other information concerning the health of the node
+   * 
+   * @param channel the destination to send the hearbeats
+   * @param node A JSON structure with information about the node's health
+   */
+  public void sendHeartbeat( String channel, JsonNode node );
+  
+  /**
+   * Sends a task update message to the channel provided as an argument.
+   * The task update contains information about the state of a task assigned to 
+   * this node
+   * 
+   * @param channel the destination to send the task updates
+   * @param node A JSON structure with information about a specific task
+   */
+  public void sendTaskUpdate( String channel, JsonNode node );
+
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object.
+   * 
+   * @param channel the destination where to send the message
+   * @param body A JSON structure with the actual message to send
+   */
+  public void sendMessage( String channel, JsonNode body );
+  
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It sets all the 
+   * properties passed as argument in the message's header
+   * 
+   * @param channel the destination where to send the message
+   * @param props a map containing all the properties to be attached to the
+   *        message that is being sent
+   * @param body A JSON structure with the actual message to send
+   */
+  public void sendMessage( String channel, Map<String, String> props, 
+      JsonNode body );
+
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It specifies how
+   * long this particular message should remain in the server.
+   * 
+   * @param channel the destination where to send the message
+   * @param body A JSON structure with the actual message to send
+   * @param ttl the time to live of the message being setn
+   */
+  public void sendMessage( String channel, JsonNode body, long ttl );
+  
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It sets all the 
+   * properties passed as argument in the message's header.  It specifies how
+   * long this particular message should remain in the server.
+   * 
+   * @param channel the destination where to send the message
+   * @param props a map containing all the properties to be attached to the
+   *        message that is being sent
+   * @param body A JSON structure with the actual message to send
+   * @param ttl the time to live of the message being setn
+   */
+  public void sendMessage( String channel, Map<String, String> props, 
+      JsonNode body, long ttl );
+  
+
+  
+  /**
+   * Unregisters the UUID from receiving incoming events from the given channel
+   * 
+   * @param uuid the unique identifier to remove from receiving events
+   * @param channel the channel to unsubscribe
+   */
+  public void unregisterConsumer(String uuid, String channel);
+}

@@ -18,6 +18,8 @@ import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.controllers.aws.AWSCcdpStorageControllerImpl;
 import com.axios.ccdp.controllers.aws.AWSCcdpTaskingControllerImpl;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.newgen.AmqCcdpConnectionImpl;
+import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSCcdpFactoryImpl extends CcdpObjectFactoryAbs
@@ -50,6 +52,24 @@ public class AWSCcdpFactoryImpl extends CcdpObjectFactoryAbs
 
   }
 
+  /**
+   * Gets the object that is used communicate among elements in the sustem.  
+   * The same interface is also used to send messages back to a specific 
+   * destination
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the main 
+   *         application to send and receive tasking events
+   */
+  @Override
+  public CcdpConnectionIntf getCcdpConnectionInterface(ObjectNode config)
+  {
+    CcdpConnectionIntf tasking = new AmqCcdpConnectionImpl();
+    tasking.configure(config);
+    return tasking;
+  }
+  
+  
   /**
    * Gets the object that is used to task the scheduler.  The same interface
    * is also used to send messages back to a specific destination

@@ -23,7 +23,15 @@ class MesosConfig:
     # Setting root level to warning and THEN set the level for this module
     self.__logger.setLevel(logging.WARN)
     logging.getLogger('MesosConfig').setLevel(self.__DBG_LVL)
-    
+
+    self.__root = os.getenv('CCDP_HOME')
+    if self.__root == None:
+      if os.path.isdir("/data/CCDP"):
+        self.__logger.info("Using '/data/CCDP' as CCDP_HOME")
+        self.__root = '/data/CCDP'
+      else:
+        self.__logger.error("CCDP_HOME is not set and is not in default location")
+
     self.__run_config(cli_data)
     
     
@@ -341,9 +349,12 @@ ff02::3 ip6-allhosts
   
   
    
-    fname = "%s/data/credentials" % os.getenv('CCDP_HOME')
-  
-    if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
+    fname = "%s/scripts/master_credentials" % self,__root
+
+    self.__logger.info("Authenticating?    %s " % data.has_key('authenticate') )
+    self.__logger.info("Found Credntials (%s) ?  %s " % (fname, os.path.isfile( fname ) ) )
+
+    if data.has_key('authenticate') and os.path.isfile( fname ):
       self.__logger.info("************  Adding Credentials (Master) ************")
       cmd = "rm -f /etc/mesos-master/credentials"
       self.__logger.debug("Executing: %s" % cmd)
@@ -422,7 +433,7 @@ ff02::3 ip6-allhosts
       is_aws: Flag indicating whether we are running this script from an AWS
               instance or not  
     """
-    self.__logger.debug("Setting Up a Mesos Slave")
+    self.__logger.debug("Setting Up a mesos-agent using: %s" % str(data))
   
     self.__logger.info("***************** Stopping Zoo and Master  *****************")
     cmd = "stop zookeeper"
@@ -486,9 +497,15 @@ ff02::3 ip6-allhosts
     self.__logger.debug("Executing: %s" % cmd)
     os.system("%s" % cmd) 
   
-    fname = "%s/data/agent_credential" % os.getenv('CCDP_HOME')
+
+
+
+    fname = "%s/scripts/agent_credential" % self.__root
+
+    self.__logger.info("Authenticating Agents? %s " % data.has_key('authenticate') )
+    self.__logger.info("Found Credntial file (%s)?  %s " % (fname, os.path.isfile( fname ) ) )
   
-    if os.getenv('MESOS_AUTHENTICATE') != None and os.path.isfile( fname ):
+    if data.has_key('authenticate') and os.path.isfile( fname ):
       self.__logger.info("************  Adding Credentials (Slave) ************")
       cmd = "rm -f /etc/mesos-slave/credential"
       self.__logger.debug("Executing: %s" % cmd)

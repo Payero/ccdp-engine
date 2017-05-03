@@ -2,6 +2,7 @@ package com.axios.ccdp.test.unittest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -9,8 +10,11 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSControlerUnitTest
@@ -59,7 +63,8 @@ public class AWSControlerUnitTest
 //    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
   }
-  @Test
+  
+//  @Test
   public void testThisIsATest()
   {
     org.junit.Assert.assertEquals(20, 20);
@@ -130,14 +135,17 @@ public class AWSControlerUnitTest
 
   }
   
-  //@Test
+  @Test
   public void testGetAllInstancesStatus()
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    ObjectNode items = this.aws.getAllInstanceStatus();
-    this.logger.debug("Items: " + items);
+    List<CcdpVMResource> items = this.aws.getAllInstanceStatus();
     
+    for(CcdpVMResource vm : items )
+    {
+      this.logger.debug("Instance[" + vm.toString() );
+    }
   }
   
   //@Test
@@ -147,8 +155,13 @@ public class AWSControlerUnitTest
     this.aws.configure(this.jsonCfg);
     ObjectNode filter = this.mapper.createObjectNode();
     filter.put(CcdpUtils.KEY_INSTANCE_ID, "i-0146423181872f36f");
-    ObjectNode items = this.aws.getStatusFilteredByTags(filter);
-    this.logger.debug("Items: " + items);
+    List<CcdpVMResource> items = this.aws.getStatusFilteredByTags(filter);
+    
+    for(CcdpVMResource vm : items )
+    {
+      this.logger.debug("Instance[" + vm.toString() );
+    }
+    
   }
   
   //@Test
@@ -156,7 +169,7 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting Instance by Id");
     this.aws.configure(this.jsonCfg);
-    ObjectNode node = this.aws.getStatusFilteredById("i-01fb4aae366fa2114");
+    CcdpVMResource node = this.aws.getStatusFilteredById("i-01fb4aae366fa2114");
     this.logger.debug("Items: " + node);
   }
   

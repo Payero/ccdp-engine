@@ -2,7 +2,9 @@ package com.axios.ccdp.resources;
 
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -70,8 +72,8 @@ public class CcdpVMResource
   /**
    * All the different states a resource can have
    */
-  public enum ResourceStatus { OFFLINE, LAUNCHED, INITIALIZING, RUNNING, 
-                               STOPPED, TERMINATED, SHUTTING_DOWN, FAILED }
+  public enum ResourceStatus { OFFLINE, LAUNCHED, INITIALIZING, REASSIGNED, 
+                      RUNNING, STOPPED, TERMINATED, SHUTTING_DOWN, FAILED }
   /**
    * Generates all the JSON objects
    */
@@ -136,6 +138,10 @@ public class CcdpVMResource
    * Whether or not this resource was allocated to run a single task
    */
   private boolean isSingleTasked = false;
+  /**
+   * Stores all the tags assigned to this resource
+   */
+  private Map<String, String> tags = new HashMap<>();
   
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
@@ -338,6 +344,27 @@ public class CcdpVMResource
   }
 
   /**
+   * Sets all the tags assigned to the resource 
+   * 
+   * @return all the tags assigned to the resource
+   */
+  public Map<String, String> getTags()
+  {
+    return tags;
+  }
+
+  /**
+   * Gets all the tags assigned to the resource 
+   * 
+   * @param tags all the tags assigned to the resource
+   */
+  public void setTags(Map<String, String> tags)
+  {
+    if( tags != null )
+      this.tags = tags;
+  }
+
+  /**
    * @return the assignedSession
    */
   public String getAssignedSession()
@@ -423,6 +450,8 @@ public class CcdpVMResource
       this.isSingleTasked = true;
       this.singleTask = singleTask;
     }
+    else
+      this.isSingleTasked = false;
   }
 
   /**

@@ -19,8 +19,10 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.mesos.fmwk.CcdpJob;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.jsonFormatVisitors.JsonArrayFormatVisitor;
@@ -36,7 +38,10 @@ public class CCDPTest
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
   
-
+  private long latest_time;
+  private SimpleDateFormat formatter = 
+      new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+  
   public CCDPTest()
   {
     this.logger.debug("Running CCDP Test");
@@ -55,23 +60,53 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    ObjectMapper mapper = new ObjectMapper();
     
-    CcdpVMResource vm = new CcdpVMResource(UUID.randomUUID().toString());
-    vm.setAgentId(UUID.randomUUID().toString());
-    vm.setAssignedCPU(0.25);
-    vm.setAssignedDisk(500);
-    vm.setAssignedMEM(2048);
-    vm.setAssignedSession("user-session-2");
-    vm.setCPU(4);
-    vm.setDisk(2000);
-    vm.setHostname("127.0.0.1");
-    vm.setInstanceId(UUID.randomUUID().toString());
-    vm.setMEM(8000);
-    vm.setSingleTask(UUID.randomUUID().toString());
-    vm.setStatus(ResourceStatus.RUNNING);
+    ObjectNode task = mapper.createObjectNode();
+    task.put("task-id", "csv_reader");
+    task.put("name", "Csv File Reader");
+    task.put("class-name", "tasks.csv_demo.CsvReader");
+    task.put("node-type", "ec2");
+    task.put("reply-to", "The Sender");
+    task.put("cpu", "10");
+    task.put("mem", "128");
+    ArrayNode cmd = mapper.createArrayNode();
+    cmd.add("python"); 
+    cmd.add("/opt/modules/CsvReader.python");
+    task.set("command", cmd);
+    ObjectNode cfg = mapper.createObjectNode();
+    cfg.put("filename", "${CCDP_HOME}/data/csv_test_file.csv");
+    task.set("configuration",  cfg);
+    ArrayNode ips = mapper.createArrayNode();
+    ObjectNode ip = mapper.createObjectNode();
+    ips.add(ip);
+    task.set("input-ports", ips);
+
+    ArrayNode fp = mapper.createArrayNode();
+    ArrayNode tp = mapper.createArrayNode();
+    fp.add("source-1");
+    fp.add("source-2");
     
-    this.logger.debug(vm.toString());
+    tp.add("dest-1");
+    tp.add("dest-2");
+    
+    ip.put("port-id", "from-exterior");
+    ip.set("from-port", fp);
+    ip.set("to-port", tp);
+    
+    this.logger.debug("The Task " + task.toString());
+    
+    ObjectNode event = mapper.createObjectNode();
+    event.set("event", task);
+    event.put("event-type",  "TASK_REQUEST");
+    
+    CcdpTaskRequest taskObj = 
+        mapper.treeToValue(event.get("event"), CcdpTaskRequest.class);
+    this.logger.debug("Task " + taskObj.toString());
+    
   }
+  
+  
   
   public static void main( String[] args ) throws Exception
   {

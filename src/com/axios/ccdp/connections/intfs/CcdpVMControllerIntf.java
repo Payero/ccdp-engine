@@ -1,8 +1,10 @@
 package com.axios.ccdp.connections.intfs;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.axios.ccdp.resources.CcdpVMResource;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -109,15 +111,13 @@ public interface CcdpVMControllerIntf
   public boolean terminateInstances(List<String> instIDs);
   
   /**
-   * Gets all the instances status that are currently assigned to the user
+   * Gets all the instances status that are currently 'available' on different
+   * states
    * 
-   * The result is a JSON Object whose key is the Virtual Machine identifier and
-   * the value is detailed information of the VM.
-   * 
-   * @return an object containing details of each of the Virtual Machines 
-   *         assigned to the user
+   * @return a list with all the instances status that are currently 
+   *         'available' on different state
    */
-  public ObjectNode getAllInstanceStatus();
+  public List<CcdpVMResource> getAllInstanceStatus();
   
   /**
    * Returns information about all instances matching the set of filters given
@@ -125,28 +125,23 @@ public interface CcdpVMControllerIntf
    * matching ALL the names and values of the given in the filter then is 
    * flagged as a valid result.
    * 
-   * The result is a JSON Object whose key is the Virtual Machine identifier and
-   * the value is detailed information of the VM.
    * 
    * @param filter a JSON object containing the criteria to filter the Virtual
    *        Machines
    *        
-   * @return A JSON Object containing all the Virtual Machines matching the 
-   *         criteria
+   * @return a List containing all the Virtual Machines matching the criteria
    */
-  public ObjectNode getStatusFilteredByTags( ObjectNode filter );
+  public List<CcdpVMResource>  getStatusFilteredByTags( ObjectNode filter );
   
   /**
    * Returns information about the instance matching the unique id given as 
-   * argument.  
+   * argument.  If the object is not found it returns null 
    * 
-   * The result is a JSON Object whose key is the Virtual Machine identifier and
-   * the value is detailed information of the VM.
    * 
    * @param uuid the unique identifier used to select the appropriate resource
    *        
-   * @return A JSON Object containing all the information about the VM
+   * @return the resource whose unique identifier matches the given argument
    */
-  public ObjectNode getStatusFilteredById( String uuid );
+  public CcdpVMResource  getStatusFilteredById( String uuid );
   
 }

@@ -1,12 +1,18 @@
 package com.axios.ccdp.tasking;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.log4j.Logger;
+import org.fusesource.hawtbuf.ByteArrayInputStream;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -49,8 +55,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpTaskRequest
+public class CcdpTaskRequest implements Serializable
 {
+  /**
+   * Random generated version id for serialization
+   */
+  private static final long serialVersionUID = -8881962810179967763L;
   /**
    * The minimum amount of CPU that can be allocated by Mesos.  Value less than
    * this causes the mesos-mater to fail (bug 7382)
@@ -61,11 +71,6 @@ public class CcdpTaskRequest
    * than this causes the mesos-mater to fail (bug 7382)
    */
   public static final double MIN_MEM_REQ = 32;
-  
-  /**
-   * Generates debug print statements based on the verbosity level.
-   */
-  private Logger logger = Logger.getLogger(CcdpTaskRequest.class.getName());
   
   /**
    * Generates all the JSON objects for this class
@@ -179,7 +184,6 @@ public class CcdpTaskRequest
    */
   public CcdpTaskRequest(String taskId)
   {
-    this.logger.debug("Creating a new CCDP Task Request");
     this.setTaskId(taskId);
     this.setState(CcdpTaskState.PENDING);
     
@@ -517,6 +521,15 @@ public class CcdpTaskRequest
   }
   
   /**
+   * Indicates that this job has been killed and therefore it sets its status
+   * to KILLED
+   */
+  public void killed() 
+  {
+    this.state = CcdpTaskState.KILLED;
+  }
+  
+  /**
    * Indicates that this job started and therefore it sets its status to RUNNING 
    */
   public void started() 
@@ -595,7 +608,7 @@ public class CcdpTaskRequest
     }
     catch( JsonProcessingException e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
     
     return str;
@@ -666,4 +679,41 @@ public class CcdpTaskRequest
     
     return task;
   }
+  
+  /** 
+   * Generates a String representing this object serialized.
+   * 
+   * @return a String representation of this object serialized
+   * @throws IOException an IOException is thrown if there is a problem during
+   *         the serialization of the object
+   */
+  public String toSerializedString( ) throws IOException 
+  {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream( baos );
+    oos.writeObject( this );
+    oos.close();
+    return Base64.getEncoder().encodeToString(baos.toByteArray()); 
+  }  
+  
+  /** Reads a serialized string object and generates a CcdpTaskRequest object
+   * 
+   * @param s the string representing the serialized version of the object
+   * @return a CcdpTaskRequest object that was serialized previously
+   * 
+   * @throws IOException is thrown if the object cannot be de-serialized
+   * @throws ClassNotFoundException is thrown if the stream cannot be read into
+   *         an object
+   */
+  public static CcdpTaskRequest fromSerializedString( String s ) 
+                                  throws IOException, ClassNotFoundException 
+  {
+     byte [] data = Base64.getDecoder().decode( s );
+     ObjectInputStream ois = new ObjectInputStream( 
+                                     new ByteArrayInputStream(  data ) );
+     Object o  = ois.readObject();
+     ois.close();
+     return (CcdpTaskRequest)o;
+  }
+  
 }

@@ -146,6 +146,17 @@ class CcdpEnvSetter:
       self.__logger.error("Need to set the CCDP_HOME env variable, exiting!!")
       sys.exit(-1)
     
+    if params.compile:
+      self.__logger.info("Compiling the source code")
+      fname = os.path.join(path, "build.xml")
+      rc = os.system("ant -f %s" % fname)
+      if rc != 0: 
+        self.__logger.error("Error on ant compile")
+        sys.exit(1)
+      else:
+        self.__logger.info("Source code compiled successfully")
+
+
     if params.inst_ccdp:
       fname = '%s.tar.gz' % self.__CCDP_DIST
       self.__logger.debug("Creating file: %s" % fname)
@@ -309,7 +320,11 @@ if __name__ == '__main__':
   parser.add_option("-i", "--install-ccdp",
                   action="store_true", dest="inst_ccdp", default=False,
                   help="Downloads and install the CCDP baseline")
- 
+
+  parser.add_option("-c", "--compile",
+                    action="store_true", dest="compile", default=False,
+                    help="Compiles the source code by using ant")
+
   parser.add_option("-k", "--keep-file",
                   action="store_true", dest="keep_file", default=False,
                   help="It does not delete the ccdp-dist.tgz file after upload")

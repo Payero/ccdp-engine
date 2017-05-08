@@ -3,6 +3,8 @@ package com.axios.ccdp.newgen;
 import java.util.Map;
 
 import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -41,8 +43,6 @@ public interface CcdpConnectionIntf
    */
   public void registerProducer(String channel);
   
-  
-  
   /**
    * Configures the running environment and/or connections required to perform
    * the operations.  The JSON Object contains all the different fields 
@@ -60,9 +60,9 @@ public interface CcdpConnectionIntf
    * as well as other information concerning the health of the node
    * 
    * @param channel the destination to send the hearbeats
-   * @param node A JSON structure with information about the node's health
+   * @param resource an object with the node's health
    */
-  public void sendHeartbeat( String channel, JsonNode node );
+  public void sendHeartbeat( String channel, CcdpVMResource resource );
   
   /**
    * Sends a task update message to the channel provided as an argument.
@@ -70,9 +70,9 @@ public interface CcdpConnectionIntf
    * this node
    * 
    * @param channel the destination to send the task updates
-   * @param node A JSON structure with information about a specific task
+   * @param task an object with information about a specific task
    */
-  public void sendTaskUpdate( String channel, JsonNode node );
+  public void sendTaskUpdate( String channel, CcdpTaskRequest task );
 
   /**
    * Sends a message to the channel given as an argument.  The JSON object will 

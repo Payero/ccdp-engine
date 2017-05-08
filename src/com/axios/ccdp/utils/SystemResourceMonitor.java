@@ -1,11 +1,15 @@
 package com.axios.ccdp.utils;
 
+import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -27,7 +31,13 @@ public class SystemResourceMonitor
    */
   private Logger logger = Logger.getLogger(SystemResourceMonitor.class
       .getName());
-
+  /**
+   * Stores the units to return some of the values such as memory and disk space
+   * 
+   * @author Oscar E. Ganteaume
+   *
+   */
+  public static enum UNITS { BYTE, KB, MB, GB };
   /**
    * The Operating System implementation used to get all the resources
    * 
@@ -35,11 +45,63 @@ public class SystemResourceMonitor
   private OperatingSystemMXBean os;
   
   /**
+   * Used to generate all the JSON structure objects
+   */
+  private ObjectMapper mapper = new ObjectMapper();
+  /**
+   * Stores all the values in to divide the memory based on the UNITS
+   */
+  private Map<UNITS, Long> divisors = new HashMap<>();
+  /**
+   * Stores the default units base to use
+   */
+  private long units = 1L;
+  /**
+   * The Root directory of the filesystem
+   */
+  private File filesystem = null;
+  
+  /**
    * Instantiates a new resource monitor
    */
   public SystemResourceMonitor()
   {
+    this(UNITS.KB);
+  }
+  
+  /**
+   * Instantiates a new resource monitor
+   * 
+   * @param units the units to use when displaying some of the values
+   */
+  public SystemResourceMonitor( String units )
+  {
+    this(UNITS.valueOf(units));
+  }
+  
+  /**
+   * Instantiates a new resource monitor
+   * 
+   * @param units the units to use when displaying some of the values
+   */
+  public SystemResourceMonitor( UNITS units)
+  {
     this.logger.debug("Initiating new Monitor");
+    this.divisors.put( UNITS.BYTE, new Long(1) );
+    this.divisors.put( UNITS.KB, new Long(1024) );
+    this.divisors.put( UNITS.MB, new Long(1024*1024) );
+    this.divisors.put( UNITS.GB, new Long(1024*1024*1024) );
+    
+    this.filesystem = new File("/");
+    // if is not Linux or Mac, Windows?
+    if( !this.filesystem.isDirectory() )
+      this.filesystem = new File("c:");
+    
+    // if it does not exists then make sure we don't send wrong information
+    if( !this.filesystem.isDirectory() )
+      this.filesystem = null;
+    
+    this.units = this.divisors.get(units);
     this.os = ManagementFactory.getOperatingSystemMXBean();
   }
   
@@ -56,7 +118,7 @@ public class SystemResourceMonitor
     Object obj = this.getResource("getCommittedVirtualMemorySize");
     if( obj != null )
     {
-      return new Long((long)obj);
+      return ( new Long((long)obj) ) / this.units;
     }
     else
     {
@@ -78,7 +140,7 @@ public class SystemResourceMonitor
     Object obj = this.getResource("getTotalSwapSpaceSize");
     if( obj != null )
     {
-      return new Long((long)obj);
+      return ( new Long((long)obj) ) / this.units;
     }
     else
     {
@@ -100,7 +162,7 @@ public class SystemResourceMonitor
     Object obj = this.getResource("getFreeSwapSpaceSize");
     if( obj != null )
     {
-      return new Long((long)obj);
+      return ( new Long((long)obj) ) / this.units;
     }
     else
     {
@@ -121,7 +183,7 @@ public class SystemResourceMonitor
    */
   public long getProcessCpuTime()
   {
-    Object obj = this.getResource("getProcessCpuTime");
+    Object obj = this.getResource("c");
     if( obj != null )
     {
       return new Long((long)obj);
@@ -146,7 +208,7 @@ public class SystemResourceMonitor
     Object obj = this.getResource("getFreePhysicalMemorySize");
     if( obj != null )
     {
-      return new Long((long)obj);
+      return ( new Long((long)obj) ) / this.units;
     }
     else
     {
@@ -163,12 +225,12 @@ public class SystemResourceMonitor
    * @return the total amount of physical memory in bytes or -1 if the value  
    *         cannot be obtained
    */
-  public double getTotalPhysicalMemorySize()
+  public long getTotalPhysicalMemorySize()
   {
     Object obj = this.getResource("getTotalPhysicalMemorySize");
     if( obj != null )
     {
-      return new Long((long)obj);
+      return ( new Long((long)obj) ) / this.units;
     }
     else
     {
@@ -177,6 +239,44 @@ public class SystemResourceMonitor
     
     return -1L;      
   }
+  
+  /**
+   * Returns the total amount of physical memory used in bytes or -1 if the value  
+   * cannot be obtained
+   * 
+   * @return the total amount of physical memory in bytes or -1 if the value  
+   *         cannot be obtained
+   */
+  public long getUsedPhysicalMemorySize()
+  {
+    long total;
+    long free;
+    
+    Object obj = this.getResource("getTotalPhysicalMemorySize");
+    if( obj != null )
+    {
+      total =  (long)obj ;
+    }
+    else
+    {
+      this.logger.error("Could not get Total Physical Memory Size");
+      return -1L;
+    }
+    
+    obj = this.getResource("getFreePhysicalMemorySize");
+    if( obj != null )
+    {
+      free =  (long)obj ;
+    }
+    else
+    {
+      this.logger.error("Could not get Total Physical Memory Size");
+      return -1L;
+    }
+    
+    return ( total - free ) / this.units;
+  }
+  
   
   /**
    * Returns the number of open file descriptors or -1 if the value cannot 
@@ -266,7 +366,6 @@ public class SystemResourceMonitor
    */
   public double getProcessCpuLoad()
   {
-    
     Object obj = this.getResource("getProcessCpuLoad");
     if( obj != null )
     {
@@ -279,6 +378,78 @@ public class SystemResourceMonitor
     
     return -1L;
   }
+  
+  /**
+   * Gets the total number of CPU or cores available in this machine
+   * 
+   * @return the total number of CPU or cores available in this machine
+   */
+  public int getTotalNumberCpuCores()
+  {
+    return Runtime.getRuntime().availableProcessors();
+  }
+  
+  /**
+   * Gets the total amount of disk space of the root partition ('/' for Linux
+   * based systems and 'c:' for Windows).  If the system does not have neither 
+   * of the two partitions mentioned above then it return -1L
+   * 
+   * @return the total amount of disk space of the root partition
+   */
+  public long getTotalDiskSpace()
+  {
+    if( this.filesystem != null )
+      return this.filesystem.getTotalSpace() / this.units ;
+    else
+      return -1L;
+  }
+
+  /**
+   * Gets the total usable amount of disk space of the root partition ('/' for
+   * Linux based systems and 'c:' for Windows).  If the system does not have
+   * neither of the two partitions mentioned above then it return -1L
+   * 
+   * @return the total usable amount of disk space of the root partition
+   */
+  public long getUsableDiskSpace()
+  {
+    if( this.filesystem != null )
+      return this.filesystem.getUsableSpace() / this.units ;
+    else
+      return -1L;
+  }
+
+  /**
+   * Gets the total amount of disk space of the root partition ('/' for Linux
+   * based systems and 'c:' for Windows) that is being used .  If the system 
+   * does not have neither of the two partitions mentioned above then it 
+   * return -1L
+   * 
+   * @return the total amount of disk space of the root partition being used
+   */
+  public long getUsedDiskSpace()
+  {
+    if( this.filesystem != null )
+      return (this.getTotalDiskSpace() - this.getFreeDiskSpace()) / this.units ;
+    else
+      return -1L;
+  }
+  
+  /**
+   * Gets the total free amount of disk space of the root partition ('/' for
+   * Linux based systems and 'c:' for Windows).  If the system does not have
+   * neither of the two partitions mentioned above then it return -1L
+   * 
+   * @return the total free amount of disk space of the root partition
+   */
+  public long getFreeDiskSpace()
+  {
+    if( this.filesystem != null )
+      return this.filesystem.getFreeSpace() / this.units ;
+    else
+      return -1L;
+  }
+  
   
   /**
    * Gets the value of a given resource usage or availability.  Java does not 
@@ -319,7 +490,19 @@ public class SystemResourceMonitor
   public String toString()
   {
 
-    return this.toJSON().toString();
+    ObjectNode node = this.toJSON();
+    String str = node.toString();
+    try
+    {
+      str = 
+          this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+    }
+    catch( JsonProcessingException e )
+    {
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
+    }
+    
+    return str;
   }
   
   /**
@@ -344,12 +527,20 @@ public class SystemResourceMonitor
     ObjectMapper mapper = new ObjectMapper();
     ObjectNode json = mapper.createObjectNode();
     
+    json.put("TotalDiskSpace", 
+        this.getTotalDiskSpace());
+    json.put("UsableDiskSpace", 
+        this.getUsableDiskSpace());
+    json.put("FreeDiskSpace", 
+        this.getFreeDiskSpace());
     json.put("CommittedVirtualMemorySize", 
              this.getCommittedVirtualMemorySize());
     json.put("TotalSwapSpaceSize", 
         this.getTotalSwapSpaceSize());
     json.put("FreeSwapSpaceSize", 
         this.getFreeSwapSpaceSize());
+    json.put("TotalNumberCpuCores", 
+        this.getTotalNumberCpuCores());
     json.put("ProcessCpuTime", 
         this.getProcessCpuTime());
     json.put("FreePhysicalMemorySize", 
@@ -377,7 +568,7 @@ public class SystemResourceMonitor
   {
     CcdpUtils.configLogger();
     
-    SystemResourceMonitor srm = new SystemResourceMonitor();
+    SystemResourceMonitor srm = new SystemResourceMonitor(UNITS.KB);
     
     
 //    while( true )

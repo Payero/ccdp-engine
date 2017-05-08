@@ -349,7 +349,7 @@ ff02::3 ip6-allhosts
   
   
    
-    fname = "%s/scripts/master_credentials" % self,__root
+    fname = "%s/scripts/master_credentials" % self.__root
 
     self.__logger.info("Authenticating?    %s " % data.has_key('authenticate') )
     self.__logger.info("Found Credntials (%s) ?  %s " % (fname, os.path.isfile( fname ) ) )
@@ -503,7 +503,7 @@ ff02::3 ip6-allhosts
     fname = "%s/scripts/agent_credential" % self.__root
 
     self.__logger.info("Authenticating Agents? %s " % data.has_key('authenticate') )
-    self.__logger.info("Found Credntial file (%s)?  %s " % (fname, os.path.isfile( fname ) ) )
+    self.__logger.info("Found Credential file (%s)?  %s " % (fname, os.path.isfile( fname ) ) )
   
     if data.has_key('authenticate') and os.path.isfile( fname ):
       self.__logger.info("************  Adding Credentials (Slave) ************")

@@ -170,7 +170,7 @@ public class CcdpMesosScheduler implements Scheduler
     // generates a list of resources using the offers
     for( Offer offer : offers )
     {
-      this.logger.warn("The Offer " + offer.toString() );
+//      this.logger.warn("The Offer " + offer.toString() );
       StringBuffer buf = new StringBuffer();
       buf.append("----------------- Offer -----------------\n");
       
@@ -211,7 +211,16 @@ public class CcdpMesosScheduler implements Scheduler
       // if the instance id was not set use the agent id
       if( id == null )
         id = aid;
-
+      
+      if( sid == null )
+      {
+        sid = this.engine.getSessionIdFromAgentId(aid);
+        if( sid != null )
+        {
+          this.logger.info("Found a SID, sending it to the agent");
+          this.driver.sendFrameworkMessage(this.executor.getExecutorId(), offer.getSlaveId(), sid.getBytes());
+        }
+      }
       // creating a CcdpVMResource object to compare
       CcdpVMResource vm = new CcdpVMResource(id);
       this.logger.debug("Resource " + id + " was not found creating it");
@@ -319,6 +328,7 @@ public class CcdpMesosScheduler implements Scheduler
 
     this.engine.taskUpdate(taskId, state);
   }
+  
   
   /***************************************************************************/
   /***************************************************************************/

@@ -158,7 +158,7 @@ case $1 in
 		JMX_PROP="-Dcom.sun.management.jmxremote=disabled"
 	fi
 	
-	
+	echo "RUnning nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_DIR}/ccdp.log "
 	nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_DIR}/ccdp.log &
 	echo $! > ${CCDP_PIDFILE}
 	echo "."

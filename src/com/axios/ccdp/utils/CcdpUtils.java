@@ -44,9 +44,9 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpUtils
 {
   /**  The default name of the configuration file  */
-  public static String CFG_FILENAME = "ccdp-config.properties";
+  public static final String CFG_FILENAME = "ccdp-config.properties";
   /**  The default name of the log4j configuration file  */
-  public static String LOG4J_CFG_FILENAME = "log4j.properties";
+  public static final String LOG4J_CFG_FILENAME = "log4j.properties";
   /**  The key name of the property storing the log4j config filename  */
   public static final String CFG_KEY_LOG4J_CFG_FILE = "log4j.config.file";
   /**  The key name of the property storing the configuration filename  */
@@ -65,8 +65,6 @@ public class CcdpUtils
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
   /**  The key name of the property used to connect to a broker  */
   public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
-  /**  The key name of the property used to generate an object factory  */
-  public static final String CFG_KEY_FACTORY_IMPL = "factory.interface.impl";
   /** The key name of the property used determine min number of free agents **/
   public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
   /** The key name of the property used add or not an agent at initialization **/
@@ -84,6 +82,17 @@ public class CcdpUtils
   public static final String CFG_KEY_STORAGE = "storageIntf";
   
 
+  /** Class handling connection to external entities */
+  public static final String CFG_KEY_TASKING_CLASSNAME = "tasking.intf.classname";
+  /** Class handling task allocation and determining when to start/stop VMs */
+  public static final String CFG_KEY_TASKER_CLASSNAME = "task.allocator.intf.classname";
+  /** Class used to interact with the cloud provider to start/stop VMs */
+  public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
+  /** Class used to interact with the storage solution */
+  public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
+
+  
+  
   /** The JSON key used to store the user's session id **/
   public static final String KEY_SESSION_ID = "session-id";
   /** The JSON key used to store the resource's instance id **/
@@ -114,7 +123,7 @@ public class CcdpUtils
   public static final String KEY_CCDP_LOG_DIR = "ccdp-log-dir";
   
   public static enum EventType { HEARTBEAT, TASK_STATUS, 
-                                 TASK_REQUEST, KILL_TASK };
+                                 TASK_REQUEST, KILL_TASK, SET_SESSION };
   
   /****************************************************************************/
   /****************************************************************************/
@@ -695,19 +704,7 @@ public class CcdpUtils
    */
   public static String retrieveEC2InstanceId() throws Exception
   {
-    String EC2Id = "";
-    String inputLine;
-    URL EC2MetaData = 
-        new URL("http://169.254.169.254/latest/meta-data/instance-id");
-    URLConnection EC2MD = EC2MetaData.openConnection();
-    BufferedReader in = new BufferedReader(
-    new InputStreamReader( EC2MD.getInputStream()) );
-    while ((inputLine = in.readLine()) != null)
-    {
-      EC2Id = inputLine;
-    }
-    in.close();
-    return EC2Id;
+    return CcdpUtils.retrieveEC2Info("instance-id");
   }
  
   /**
@@ -747,6 +744,9 @@ public class CcdpUtils
     URL EC2MetaData = 
         new URL("http://169.254.169.254/latest/meta-data/" + key );
     URLConnection EC2MD = EC2MetaData.openConnection();
+    // if not an AWS Instance will return after 1 second
+    EC2MD.setConnectTimeout(1000);
+    
     BufferedReader in = new BufferedReader(
     new InputStreamReader( EC2MD.getInputStream()) );
     while ((inputLine = in.readLine()) != null)

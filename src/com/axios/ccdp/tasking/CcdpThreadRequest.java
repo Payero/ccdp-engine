@@ -1,11 +1,10 @@
 package com.axios.ccdp.tasking;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
-
-import org.apache.log4j.Logger;
 
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.fasterxml.jackson.annotation.JsonGetter;
@@ -58,17 +57,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpThreadRequest 
+public class CcdpThreadRequest implements Serializable
 {
+  /**
+   * Randomly generated version id used by the serialization
+   */
+  private static final long serialVersionUID = 359027303587612779L;
   /**
    * Determines whether to run all the tasks in this thread in parallel or in 
    * sequence mode.
    */
   public enum TasksRunningMode { PARALLEL, SEQUENCE, SEQUENTIAL }
-  /**
-   * Generates debug print statements based on the verbosity level.
-   */
-  private Logger logger = Logger.getLogger(CcdpThreadRequest.class);
   /**
    * Generates all the JSON objects for this thread
    */
@@ -137,7 +136,6 @@ public class CcdpThreadRequest
    */
   public CcdpTaskRequest getNextTask()
   {
-    this.logger.debug("Getting Next task for thread: " + this.threadId);
     Iterator<CcdpTaskRequest> tasks = this.tasks.iterator();
     while( tasks.hasNext() )
     {
@@ -146,7 +144,6 @@ public class CcdpThreadRequest
         return task;
     }
     
-    this.logger.debug("All the Tasks have been submitted");
     this.setTasksSubmitted(true);
     
     return null;
@@ -439,7 +436,7 @@ public class CcdpThreadRequest
     }
     catch( JsonProcessingException e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
     return str;
   }

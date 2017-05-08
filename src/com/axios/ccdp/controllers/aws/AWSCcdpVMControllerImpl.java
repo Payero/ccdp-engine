@@ -1,5 +1,6 @@
 package com.axios.ccdp.controllers.aws;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,6 +15,10 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.amazonaws.http.SdkHttpMetadata;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
@@ -34,7 +39,6 @@ import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.services.ec2.model.TerminateInstancesRequest;
 import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.factory.AWSCcdpFactoryImpl;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -45,6 +49,20 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
+  /** Stores the name of the ACCESS KEY Environment Variable **/
+  public static final String ACCESS_KEY_ID_ENV_VAR = "AWS_ACCESS_KEY_ID";
+  /** Stores the name of the ACCESS SECRET Environment Variable **/
+  public static final String ACCESS_SECRET_ENV_VAR = "AWS_SECRET_ACCESS_KEY";
+  /** Stores the name of the ACCESS KEY System Property **/
+  public static final String ACCESS_KEY_ID_PROPERTY = "aws.accessKeyId";
+  /** Stores the name of the ACCESS SECRET System Property **/
+  public static final String ACCESS_SECRET_PROPERTY = "aws.secretKey";
+  
+  /** The name of the files with access keys */
+  public static final String FLD_CREDS_FILE   = "credentials-file";
+  /** The profile to use in the given file */
+  public static final String FLD_PROFILE_NAME = "profile-name";
+  
   /** The Image ID to use */
   public static final String FLD_IMAGE_ID = "image.id";
   /** The security group resource ID to use */
@@ -68,7 +86,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(AWSCcdpVMControllerImpl.class
+  private static Logger logger = Logger.getLogger(AWSCcdpVMControllerImpl.class
       .getName());
   
   /**
@@ -90,7 +108,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public AWSCcdpVMControllerImpl()
   {
-    this.logger.debug("Creating new Controller");
+    logger.debug("Creating new Controller");
   }
 
   /**
@@ -134,7 +152,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public void configure( ObjectNode config )
   {
-    this.logger.debug("Configuring ResourceController using: " + config);
+    logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
     if( config == null )
       throw new IllegalArgumentException("The config cannot be null");
@@ -158,7 +176,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     this.config = config;
     
-    AWSCredentials credentials = AWSCcdpFactoryImpl.getAWSCredentials(config);
+    AWSCredentials credentials = 
+        AWSCcdpVMControllerImpl.getAWSCredentials(config);
     
     if( credentials != null )
     {
@@ -198,7 +217,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       }
       catch( IOException e )
       {
-        this.logger.error("Message: " + e.getMessage(), e);
+        logger.error("Message: " + e.getMessage(), e);
       }  
     }
     
@@ -237,7 +256,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       }
       catch( IOException e )
       {
-        this.logger.error("Message: " + e.getMessage(), e);
+        logger.error("Message: " + e.getMessage(), e);
       }  
     }
     
@@ -295,10 +314,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if ( session_id != null )
       user_data += "-s " + session_id;
     
-    this.logger.info("Using User Data: " + user_data);
+    logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
-    this.logger.debug("encoded value is " + new String(bytesEncoded));
+    logger.debug("encoded value is " + new String(bytesEncoded));
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
@@ -312,7 +331,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     int code = shm.getHttpStatusCode();
     if( code == 200 )
     {
-      this.logger.info("EC2 start request sent successfully");
+      logger.info("EC2 start request sent successfully");
       launched = new ArrayList<String>();
       
       Reservation reservation = result.getReservation();
@@ -327,14 +346,14 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         
         if( tags != null )
         {
-          this.logger.info("Setting Tags");
+          logger.info("Setting Tags");
           
           Iterator<String> keys = tags.keySet().iterator();
           while( keys.hasNext() )
           {
             String key = keys.next();
             String val = tags.get(key);
-            this.logger.debug("Setting Tag[" + key + "] = " + val);
+            logger.debug("Setting Tag[" + key + "] = " + val);
             new_tags.add(new Tag(key , val));
           }
           
@@ -346,7 +365,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     else
     {
-      this.logger.error("Could not start instances, error code: " + code);
+      logger.error("Could not start instances, error code: " + code);
     }
     
     return launched;
@@ -375,12 +394,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     int code = shm.getHttpStatusCode();
     if( code == 200 )
     {
-      this.logger.debug("Stop Request Successful");
+      logger.debug("Stop Request Successful");
       stopped = true;
     }
     else
     {
-      this.logger.error("Could not stop instances, error code: " + code);
+      logger.error("Could not stop instances, error code: " + code);
       stopped = false;
     }
     
@@ -401,11 +420,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     if( instIDs == null || instIDs.isEmpty() )
     {
-      this.logger.info("No instances to terminate");
+      logger.info("No instances to terminate");
       return false;
     }
     
-    this.logger.info("Terminating Instances");
+    logger.info("Terminating Instances");
     boolean terminated = false;
     TerminateInstancesRequest request = new TerminateInstancesRequest(instIDs);
     TerminateInstancesResult result = this.ec2.terminateInstances(request);
@@ -415,12 +434,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     int code = shm.getHttpStatusCode();
     if( code == 200 )
     {
-      this.logger.debug("Stop Request Successful");
+      logger.debug("Stop Request Successful");
       terminated = true;
     }
     else
     {
-      this.logger.error("Could not stop instances, error code: " + code);
+      logger.error("Could not stop instances, error code: " + code);
       terminated = false;
     }
     
@@ -437,7 +456,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public List<CcdpVMResource> getAllInstanceStatus()
   {
-    this.logger.debug("Getting all the Instances Status");
+    logger.debug("Getting all the Instances Status");
     Map<String, CcdpVMResource> resources = new HashMap<>();
     
     DescribeInstanceStatusRequest descInstReq = 
@@ -449,7 +468,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     List<InstanceStatus> state = descInstRes.getInstanceStatuses();
     
     Iterator<InstanceStatus> states = state.iterator();
-    this.logger.debug("Found " + state.size() + " instances");
+    logger.debug("Found " + state.size() + " instances");
     while( states.hasNext() )
     {
       InstanceStatus stat = states.next();
@@ -493,7 +512,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 //        jDets.put(name, val);
 //      }
 //      obj.set("details", jDets);
-//      this.logger.debug("Adding: " + obj);
+//      logger.debug("Adding: " + obj);
 //      instancesJson.set(instId, obj);
     }
     
@@ -531,7 +550,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
           }
           catch( Exception ioe )
           {
-            this.logger.error("Message: " + ioe.getMessage(), ioe);
+            logger.error("Message: " + ioe.getMessage(), ioe);
           }
           
         }// instance ID found
@@ -558,16 +577,16 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public List<CcdpVMResource> getStatusFilteredByTags( ObjectNode filter )
   {
-    this.logger.debug("Getting Filtered Status using: " + filter);
+    logger.debug("Getting Filtered Status using: " + filter);
     List<CcdpVMResource> all = this.getAllInstanceStatus();
     List<CcdpVMResource> some = new ArrayList<>();
     
-    this.logger.debug("All Instances: " + all);
+    logger.debug("All Instances: " + all);
     
     for(CcdpVMResource inst : all )
     {
       String id = inst.getInstanceId();
-      this.logger.debug("Looking at ID " + id);
+      logger.debug("Looking at ID " + id);
       Map<String, String> tags = inst.getTags();
       
       if( tags != null  )
@@ -578,10 +597,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         {
           String key = filter_keys.next();
           Object val = filter.get(key);
-          this.logger.debug("Evaluating Filter[" + key + "] = " + val );
+          logger.debug("Evaluating Filter[" + key + "] = " + val );
           if( !tags.containsKey(key) || !tags.get(key).equals(val) )
           {
-            this.logger.info("Instance " + id + " does not have matching tag " + key);
+            logger.info("Instance " + id + " does not have matching tag " + key);
             found = false;
             break;
           }
@@ -590,7 +609,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         // if all the keys and values matched, then add it to the final result
         if( found )
         {
-          this.logger.info("Adding Instance to list");
+          logger.info("Adding Instance to list");
           some.add(inst);
         }
       }// it has tags to compare
@@ -611,15 +630,15 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public CcdpVMResource getStatusFilteredById( String uuid )
   {
-    this.logger.debug("Getting Filtered Status for: " + uuid);
+    logger.debug("Getting Filtered Status for: " + uuid);
     List<CcdpVMResource> all = this.getAllInstanceStatus();
     
-    this.logger.debug("All Instances: " + all);
+    logger.debug("All Instances: " + all);
     
     for( CcdpVMResource res : all )
     {
       String id = res.getInstanceId();
-      this.logger.debug("Looking at ID " + id);
+      logger.debug("Looking at ID " + id);
       
       // found it
       if(id.equals(uuid))
@@ -630,4 +649,124 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     return null;
   }
   
+
+  /**
+   * Sets the configuration object containing all the related information 
+   * regarding credential, EC2 type, etc.  In order to authenticate this object
+   * uses the following:
+   * 
+   *  - Environment Variables:
+   *      AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+   *  - Java System Properties: 
+   *      aws.accessKeyId and aws.secretKey
+   *  - Credential File:
+   *      ~/.aws/credentials as the default location and uses 'default' as the
+   *      profile name, or credential-file and profile-name in the configuration
+   *  - ECS Container Credentials
+   *      AWS_CONTAINER_CREDENTIALS_RELATIVE_URI
+   * 
+   *  At least one of this methods need to be valid otherwise it throws an 
+   *  exception
+   *  
+   *  Required Fields:
+   *    security-group:     The security group resource ID to use
+   *    subnet-id:          The subnet resource id to use
+   *    key-file-name:      The name of the .pem key file 
+   *  
+   *  If the configuration file is missing one or more of the required fields 
+   *  it throws an IllegalArgumentException
+   *  
+   *  Additional Fields:
+   *     credentials-file:  The name of the files with access keys
+   *     profile-name:      The profile to use in the given file
+   *     instance-type:     The type of instance to deploy (default t2.micro)   
+   *      
+   * @param config a JSON object containing the required configuration to
+   *        manipulate resources in AWS
+   * 
+   * @return an authentication object using the given parameters
+   * 
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
+   *         it cannot find at least one of the different methods to 
+   *         authenticate the user
+   */
+  public static AWSCredentials getAWSCredentials( ObjectNode config )
+  {
+    logger.debug("Configuring ResourceController using: " + config);
+    // the configuration is required
+    if( config == null )
+      throw new IllegalArgumentException("The config cannot be null");
+    
+    AWSCredentials credentials = null;
+    // Attempting all different ways 
+    if( System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && 
+        System.getenv(ACCESS_SECRET_ENV_VAR) != null )
+    {
+      logger.info("Setting Credentials using Environment Variables");
+      credentials = 
+          new EnvironmentVariableCredentialsProvider().getCredentials();
+    }
+    else if( System.getProperty(ACCESS_KEY_ID_PROPERTY) != null &&
+             System.getProperty(ACCESS_SECRET_PROPERTY) != null)
+    {
+      logger.info("Setting Credentials using System Properties");
+      credentials = 
+          new SystemPropertiesCredentialsProvider().getCredentials();
+    }
+    else if( config.has(FLD_CREDS_FILE) &&  
+             config.has(FLD_PROFILE_NAME))
+    {
+      logger.info("Setting Credentials using JSON Configuration");
+      String fname = config.asText(FLD_CREDS_FILE);
+      String profile = config.asText(FLD_PROFILE_NAME);
+      credentials = AWSCcdpVMControllerImpl.getCredentials(fname, profile);
+    }
+    else if( System.getenv("HOME") != null )
+    {
+      logger.info("Setting Credentials using default");
+      String fname = System.getenv("HOME") + "/.aws/credentials";
+      String profile = "default";
+      credentials = AWSCcdpVMControllerImpl.getCredentials(fname, profile);
+    }
+    else
+    {
+      String txt = "Was not able to find any of the different ways to "
+          + "authenticate.  At least one method needs to be available";
+      throw new IllegalArgumentException(txt);
+    }
+    
+    return credentials;
+  }
+  
+  /**
+   * Gets the credentials from an AWS credentials file given by the fname 
+   * argument.  The profile arguments refers to the profile name inside the file
+   * to be used for authentication
+   * 
+   * @param fname the full path of the file containing the required fields
+   * @param profile the name of the profile to use
+   * 
+   * @return an AWSCredentials object if properly set or null otherwise
+   * @throws IllegalArgumentException an IllegalArgumentException is thrown if
+   *         there is a problem during the authentication process
+   */
+  private static AWSCredentials getCredentials(String fname, String profile)
+  {
+    AWSCredentials creds = null;
+    File file = new File(fname);
+    if( file.isFile() )
+    {
+      ProfilesConfigFile cfgFile = new ProfilesConfigFile(file);
+      creds = 
+          new ProfileCredentialsProvider( cfgFile, profile ).getCredentials();
+    }
+    else
+    {
+      String txt = "The profiles file (" + fname + ") is invalid.  Please set"
+          + " the credentials-file field properly";
+      throw new IllegalArgumentException(txt);
+    }
+    
+    return creds;
+  }
 }

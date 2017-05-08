@@ -181,24 +181,26 @@ public class CCDPEngineMain
     if (System.getenv("MESOS_AUTHENTICATE") != null) 
     {
       this.logger.info("Enabling authentication for the framework");
-
-      if (System.getenv("DEFAULT_PRINCIPAL") == null) 
+      String principal = System.getenv("DEFAULT_PRINCIPAL");
+      String secret = System.getenv("DEFAULT_SECRET");
+      this.logger.info("Credentials: Principal " + principal + " Secret " + secret);
+      if ( principal == null) 
       {
         this.logger.error("Expecting authentication principal in the environment");
         System.exit(1);
       }
 
-      if (System.getenv("DEFAULT_SECRET") == null) 
+      if ( secret == null) 
       {
         this.logger.error("Expecting authentication secret in the environment");
         System.exit(1);
       }
       Credential.Builder bldr = Credential.newBuilder();
-      bldr.setPrincipal( System.getenv("DEFAULT_PRINCIPAL") );
-      bldr.setSecret(System.getenv("DEFAULT_SECRET"));
+      bldr.setPrincipal( principal );
+      bldr.setSecret(secret);
       Credential credential = bldr.build();
 
-      frameworkBuilder.setPrincipal(System.getenv("DEFAULT_PRINCIPAL"));
+      frameworkBuilder.setPrincipal(principal);
       FrameworkInfo fmwk = frameworkBuilder.build();
       driver = new MesosSchedulerDriver(scheduler, fmwk, master, credential);
     } 

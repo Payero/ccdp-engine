@@ -17,7 +17,9 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpObjectFactoryAbs;
+import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -41,7 +43,10 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
-  
+  /**
+   * Stores all the information about this resource
+   */
+  private CcdpVMResource me;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -62,10 +67,6 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    * Retrieves all the system's resources as a JSON object
    */
   private SystemResourceMonitor monitor = new SystemResourceMonitor();
-  /**
-   * The unique identifier for this agent
-   */
-  private String instanceId = null;
   /**
    * Object used to send and receive messages such as incoming tasks to process
    * and sending heartbeats and tasks updates
@@ -94,38 +95,38 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
     
- // creating the factory that generates the objects used by the scheduler
-    String clazz = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_FACTORY_IMPL);
-    if( clazz != null )
-    {
-      CcdpObjectFactoryAbs factory = CcdpObjectFactoryAbs.newInstance(clazz);
-      ObjectNode task_msg_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
-      
-      this.connection = factory.getCcdpConnectionInterface(task_msg_node);
-      this.connection.configure(task_msg_node);
-      this.connection.setConsumer(this);
-      
-    }
-    else
-    {
-      String txt = "Could not find factory.  Please check configuration." +
-                   "The key " + CcdpUtils.CFG_KEY_FACTORY_IMPL + " is missing";
-      this.logger.error(txt);
-      System.exit(-1);
-    }
+    // creating the factory that generates the objects used by the scheduler
+    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
+    ObjectNode task_msg_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     
+    this.connection = factory.getCcdpConnectionInterface(task_msg_node);
+    this.connection.configure(task_msg_node);
+    this.connection.setConsumer(this);
+    this.logger.debug("Done with the connections");
+
     
+    String hostId = null;
     try
     {
-      this.instanceId = CcdpUtils.retrieveEC2InstanceId();
+      this.logger.debug("Retrieving Instance ID");
+      hostId = CcdpUtils.retrieveEC2InstanceId();
     }
     catch( Exception e )
     {
       this.logger.error("Could not retrieve Instance ID");
-      this.instanceId = UUID.randomUUID().toString();
+      hostId = UUID.randomUUID().toString();
     }
+    this.logger.info("Using Host Id: " + hostId);
+    this.me = new CcdpVMResource(hostId);
+//    this.me.setAssignedSession("available");
+    this.me.setStatus(ResourceStatus.RUNNING);
+    this.updateResourceInfo();
     
+    this.me.setCPU(this.monitor.getTotalNumberCpuCores());
+    this.me.setMEM(this.monitor.getTotalPhysicalMemorySize());
+    this.me.setDisk(this.monitor.getTotalDiskSpace());
+
     
     long hb = 3000;
     try
@@ -138,12 +139,12 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
     }
     
     this.toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
-    this.logger.info("Registering as " + this.instanceId);
-    this.connection.registerConsumer(this.instanceId, this.instanceId);
+    this.logger.info("Registering as " + hostId);
+    this.connection.registerConsumer(hostId, hostId);
     this.connection.registerProducer(this.toMain);
     
     // sends the heartbeat 
-    //this.timer = new ThreadedTimerTask(this, hb, hb);
+    this.timer = new ThreadedTimerTask(this, hb, hb);
     
     this.runMain();
   }
@@ -161,6 +162,16 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
     }
   }
   
+  /**
+   * Updates the resource information by getting the CPU, Memory, and Disk space
+   * currently used by the system.
+   */
+  private void updateResourceInfo()
+  {
+    this.me.setAssignedMEM(this.monitor.getUsedPhysicalMemorySize());
+    this.me.setAssignedDisk(this.monitor.getUsedDiskSpace());
+    this.me.setAssignedCPU(this.monitor.getSystemCpuLoad());
+  }
   
   /**
    * Gets a JsonNode event of the form:
@@ -214,6 +225,9 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
       case TASK_REQUEST:
         this.launchTask(node.get("event"));
         break;
+      case SET_SESSION:
+        this.setSessionId( node.get("event").asText() );
+        break;
       case KILL_TASK:
         this.killTask(node.get("event"));
         break;
@@ -236,7 +250,7 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
     this.logger.debug("Got a new Task Status for " + task.getTaskId());
-    this.connection.sendTaskUpdate(this.toMain, task.toJSON());
+    this.connection.sendTaskUpdate(this.toMain, task);
     
     CcdpTaskState state = task.getState();
     
@@ -244,6 +258,7 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
         state.equals(CcdpTaskState.SUCCESSFUL) )
     {
       this.tasks.remove(task);
+      this.me.getTasks().remove(task);
     }
     
     this.logger.debug("Have " + this.tasks.size() + " tasks remaining");
@@ -255,20 +270,25 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
   public void onEvent()
   {
     this.logger.debug("Sending Heartbeat");
-    ObjectNode node = this.mapper.createObjectNode();
-    node.put("instance-id", this.instanceId);
-    node.put("number-tasks", this.tasks.size());
-    node.put("last-assignment", this.lastAssignment);
-    node.set("resources", this.monitor.toJSON());
-    
-    this.connection.sendHeartbeat(this.toMain, node);
+    this.updateResourceInfo();
+    this.connection.sendHeartbeat(this.toMain, this.me);
   }
   
 
   /**
+   * Assigns a session-id to this agent.
+   * 
+   * @param sid the session id of this resource
+   */
+  public void setSessionId( String sid )
+  {
+    this.me.setAssignedSession(sid);
+  }
+  
+  /**
    * Kills the task referenced by the taskId argument if is running.
    * 
-   * @param task the object containing enough information to identify the
+   * @param node the object containing enough information to identify the
    *        task to kill
    */
   public void killTask(JsonNode node)
@@ -286,6 +306,7 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
         if( runner != null )
         {
           runner.killTask();
+          this.me.getTasks().remove(task);
         }
       }
     }
@@ -317,6 +338,8 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
         
         CcdpTaskRunner ccdpTask = new CcdpTaskRunner(task, this);
         this.tasks.put(task, ccdpTask);
+        this.me.addTask(task);
+        
         task.setState(CcdpTaskState.STAGING);
         this.statusUpdate(task, null);
         
@@ -448,10 +471,7 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
     }
     
     if( !loaded )
-    {
-      System.err.println("The Config File: " + cfg_file);
       CcdpUtils.loadProperties(cfg_file);
-    }
     
     CcdpUtils.configLogger();
     new CcdpAgent();

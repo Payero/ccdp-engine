@@ -58,6 +58,10 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    * Retrieves all the system's resources as a JSON object
    */
   private SystemResourceMonitor monitor = new SystemResourceMonitor();
+  /**
+   * Stores the session id for this agent
+   */
+  private String sessionId = null;
   
   /**
    * Instantiates a new instance of the agent responsible for running all the
@@ -109,7 +113,6 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     {
       ObjectNode node = this.mapper.createObjectNode();
       String iid = null; 
-      String sid = null;
       
       // Getting the attribute information
       for( Attribute attr : this.agentInfo.getAttributesList() )
@@ -120,12 +123,12 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
           iid = attr.getText().getValue();
           break;
         case CcdpUtils.KEY_SESSION_ID:
-          sid = attr.getText().getValue();
+          this.sessionId = attr.getText().getValue();
           break;
         }
       }
       node.put("instance-id", iid);
-      node.put("session-id", sid);
+      node.put("session-id", this.sessionId);
       node.put("agent-id", this.agentInfo.getId().getValue() );
       node.put("hostname", this.agentInfo.getHostname() );
       node.put("executor-id", this.execInfo.getExecutorId().getValue() );
@@ -181,8 +184,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   @Override
   public void frameworkMessage(ExecutorDriver driver, byte[] msg)
   {
-    this.logger.info("Got a message from the Framework, not too reliable...");
-    this.logger.info("The Message: " + new String(msg) );
+    this.sessionId = new String(msg);
   }
 
   /**

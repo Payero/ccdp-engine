@@ -14,12 +14,12 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
+import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -82,10 +82,7 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
    */
   private ConcurrentLinkedQueue<CcdpThreadRequest> 
                 requests = new ConcurrentLinkedQueue<>();
-  /**
-   * Stores the object responsible for creating all interfaces
-   */
-  private CcdpObjectFactoryAbs factory = null;
+  
   /**
    * Stores the object responsible for sending and receiving tasking information
    */
@@ -130,36 +127,24 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     this.def_channel = 
         CcdpUtils.getProperty(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL);
     // creating the factory that generates the objects used by the scheduler
-    String clazz = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_FACTORY_IMPL);
-    if( clazz != null )
-    {
-      this.factory = CcdpObjectFactoryAbs.newInstance(clazz);
-      ObjectNode task_msg_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
-      ObjectNode task_ctr_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
-      ObjectNode res_ctr_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
-      ObjectNode storage_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
-      
-      this.taskingInf = this.factory.getCcdpTaskingInterface(task_msg_node);
-      this.tasker = this.factory.getCcdpTaskingController(task_ctr_node);
-      this.controller = this.factory.getCcdpResourceController(res_ctr_node);
-      this.storage = this.factory.getCcdpStorageControllerIntf(storage_node);
-      
-      this.taskingInf.setTaskConsumer(this);
-      this.taskingInf.register(this.engineId);
-      
-    }
-    else
-    {
-      String txt = "Could not find factory.  Please check configuration." +
-                   "The key " + CcdpUtils.CFG_KEY_FACTORY_IMPL + " is missing";
-      this.logger.error(txt);
-      System.exit(-1);
-    }
+    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
+    ObjectNode task_msg_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
+    ObjectNode task_ctr_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
+    ObjectNode res_ctr_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+    ObjectNode storage_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
     
+    this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
+    this.tasker = factory.getCcdpTaskingController(task_ctr_node);
+    this.controller = factory.getCcdpResourceController(res_ctr_node);
+    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
+    
+    this.taskingInf.setTaskConsumer(this);
+    this.taskingInf.register(this.engineId);
+      
     try
     {
       this.instanceId = CcdpUtils.retrieveEC2Info("instance-id");
@@ -517,7 +502,7 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
       {
         this.logger.info("Will not terminate master " + iid);
         vm.setSingleTask(null);
-        
+        vm.setAssignedSession(FREE_SESSION);
       }
     }
   }
@@ -813,12 +798,12 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
       return null;
     }
     
-    // have all the tasks been submitted already?
-    if( req.isTasksSubmitted() )
-    {
-      this.logger.info("All the tasks have been submitted for " + id);
-      return null;
-    }
+//    // have all the tasks been submitted already?
+//    if( req.isTasksSubmitted() )
+//    {
+//      this.logger.info("All the tasks have been submitted for " + id);
+//      return null;
+//    }
     
     // Is this thread done?
     if( req.threadRequestCompleted() )
@@ -950,6 +935,8 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
         
         int done = 0;
         List<String> terminate = new ArrayList<>();
+        List<String> remove = new ArrayList<>();
+        
         // Do it only if we have more available VMs than needed
         if( over > 0 )
         {
@@ -968,6 +955,16 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
               terminate.add(id);
               done++;
             }// done searching for running VMs
+            
+            // Remove the ones 'SHUTTING_DOWN'
+            if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
+            {
+              long now = System.currentTimeMillis();
+              if( now - res.getLastAssignmentTime() >= 18000 )
+              {
+                remove.add(id);
+              }
+            }// is it shutting down?
           }// done with the VMs
         }
         int sz = terminate.size();
@@ -977,6 +974,12 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
           this.controller.terminateInstances(terminate);
         }
         
+        // remove old pending 'SHUTTING_DOWN' nodes from map
+        for( String iid : remove )
+        {
+          this.logger.debug("Removing " + iid + " from resources map");
+          this.resources.remove(iid);
+        }
         
       }// end of the sync block
     }
@@ -1188,5 +1191,31 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
   public void onMessage( JsonNode message )
   {
     this.logger.debug("Got a new Message " + message.toString());
+  }
+  
+  /**
+   * Searches all the resources looking for the one whose agent-id matches
+   * the given one.  If found, it returns its session-id otherwise it returns 
+   * null
+   * 
+   * @param agentId the agent-id of the CcdpVMResource whose session-id is 
+   *        needed
+   * @return the session-id of the resource if found or null otherwise
+   */
+  public String getSessionIdFromAgentId( String agentId )
+  {
+    if( agentId == null )
+      return null;
+    
+    synchronized( this.resources )
+    {
+      for( String iid : this.resources.keySet() )
+      {
+        CcdpVMResource res = this.resources.get(iid);
+        if( res != null && agentId.equals( res.getAgentId() ) )
+          return res.getAssignedSession();
+      }
+    }
+    return null;
   }
 }

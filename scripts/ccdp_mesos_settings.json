@@ -1,2 +1,2 @@
-{"mesos-type":"slave", "server-id": 1, "clean-work-dir":"true", "authenticate": "true", "masters":[{"id":1,"ip-address":"52.205.26.225","port":"2888:3888"}]}
+{"mesos-type":"slave", "server-id": 1, "clean-work-dir":"true", "masters":[{"id":1,"ip-address":"52.205.26.225","port":"2888:3888"}]}
 

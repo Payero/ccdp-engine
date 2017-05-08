@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -323,20 +324,17 @@ public class AmqCcdpConnectionImpl
   /**
    * Sends a hearbeat message to the channel specified provided as argument.
    * The heartbeat contains information about the current resource utilization 
-   * as well as other information concerning the health of the node.
-   * 
-   * The time to leave of each heartbeat is set in the CcdpUtils class as the 
-   * HEARTBEAT_TIME_SECS property
+   * as well as other information concerning the health of the node
    * 
    * @param channel the destination to send the hearbeats
-   * @param node A JSON structure with information about the node's health
+   * @param resource an object with the node's health
    */
   @Override
-  public void sendHeartbeat( String channel, JsonNode node )
+  public void sendHeartbeat( String channel, CcdpVMResource resource )
   {
     ObjectNode hb = this.mapper.createObjectNode();
     hb.put("event-type", CcdpUtils.EventType.HEARTBEAT.toString());
-    hb.set("event", node);
+    hb.set("event", resource.toJSON());
     
     this.sendMessage(channel, hb, this.hbTTLMills );
   }
@@ -347,14 +345,14 @@ public class AmqCcdpConnectionImpl
    * this node
    * 
    * @param channel the destination to send the task updates
-   * @param node A JSON structure with information about a specific task
+   * @param task an object with information about a specific task
    */
   @Override
-  public void sendTaskUpdate( String channel, JsonNode node )
+  public void sendTaskUpdate( String channel, CcdpTaskRequest task )
   {
     ObjectNode status = this.mapper.createObjectNode();
     status.put("event-type", CcdpUtils.EventType.TASK_STATUS.toString());
-    status.set("event", node);
+    status.set("event", task.toJSON());
     
     this.sendMessage(channel, status);
   }

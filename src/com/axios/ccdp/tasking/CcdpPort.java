@@ -1,9 +1,8 @@
 package com.axios.ccdp.tasking;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.apache.log4j.Logger;
 
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
@@ -24,12 +23,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpPort
+public class CcdpPort implements Serializable
 {
   /**
-   * Generates debug print statements based on the verbosity level.
+   * Random allocated serialization version id
    */
-  private Logger logger = Logger.getLogger(CcdpPort.class.getName());
+  private static final long serialVersionUID = 2993190762121909657L;
   /**
    * Stores the unique identifier for this port
    */
@@ -133,7 +132,7 @@ public class CcdpPort
     }
     catch( JsonProcessingException e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
     
     return str;

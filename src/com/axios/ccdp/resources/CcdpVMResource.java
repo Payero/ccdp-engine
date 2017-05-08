@@ -1,15 +1,23 @@
 package com.axios.ccdp.resources;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.io.StringWriter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.fusesource.hawtbuf.ByteArrayInputStream;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -63,12 +71,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpVMResource
+public class CcdpVMResource implements Serializable
 {
   /**
-   * Generates debug print statements based on the verbosity level.
+   * Randomly generated version id used during serialization
    */
-  private Logger logger = Logger.getLogger(CcdpVMResource.class.getName());
+  private static final long serialVersionUID = -705689459501099746L;
   /**
    * All the different states a resource can have
    */
@@ -133,7 +141,7 @@ public class CcdpVMResource
   /**
    * Stores the last time this resource was tasked
    */
-  private long last_assignment = 0;
+  private long last_assignment = System.currentTimeMillis();
   /**
    * Whether or not this resource was allocated to run a single task
    */
@@ -143,6 +151,10 @@ public class CcdpVMResource
    */
   private Map<String, String> tags = new HashMap<>();
   
+  public CcdpVMResource()
+  {
+    
+  }
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
    * 
@@ -169,7 +181,6 @@ public class CcdpVMResource
    */
   public void updateStatus( ObjectNode stats )
   {
-    this.logger.debug("Updating Status: " + stats.toString());
     String status = stats.get("status").asText();
     
     switch( status )
@@ -184,12 +195,10 @@ public class CcdpVMResource
             String txt = reach.asText();
             if( txt.equals("passed") )
             {
-              this.logger.debug("Instance fully functional, done here");
               this.setStatus(ResourceStatus.RUNNING);
             }
             else if( txt.equals("initializing") )
             {
-              this.logger.debug("Reachability is not passed is " + txt);
               this.setStatus(ResourceStatus.INITIALIZING);
             }
           }
@@ -213,6 +222,7 @@ public class CcdpVMResource
   /**
    * @return the instanceId
    */
+  @JsonGetter("instance-id")
   public String getInstanceId()
   {
     return instanceId;
@@ -226,6 +236,7 @@ public class CcdpVMResource
    * @throws InvalidArgumentException an InvalidArgumentException exception is
    *         thrown if the instance id is null
    */
+  @JsonSetter("instance-id")
   public void setInstanceId(String instanceId)
   {
     if( instanceId == null )
@@ -237,6 +248,7 @@ public class CcdpVMResource
   /**
    * @return the assignedCPU
    */
+  @JsonGetter("assigned-cpu")
   public double getAssignedCPU()
   {
     return assignedCPU;
@@ -245,6 +257,7 @@ public class CcdpVMResource
   /**
    * @param assignedCPU the assignedCPU to set
    */
+  @JsonSetter("assigned-cpu")
   public void setAssignedCPU(double assignedCPU)
   {
     if( assignedCPU < 0)
@@ -256,6 +269,7 @@ public class CcdpVMResource
   /**
    * @return the assignedMEM
    */
+  @JsonGetter("assigned-mem")
   public double getAssignedMEM()
   {
     return assignedMEM;
@@ -264,6 +278,7 @@ public class CcdpVMResource
   /**
    * @param assignedMEM the assignedMEM to set
    */
+  @JsonSetter("assigned-mem")
   public void setAssignedMEM(double assignedMEM)
   {
     if( assignedMEM < 0)
@@ -274,6 +289,7 @@ public class CcdpVMResource
   /**
    * @return the cPU
    */
+  @JsonGetter("cpu")
   public double getCPU()
   {
     return CPU;
@@ -282,6 +298,7 @@ public class CcdpVMResource
   /**
    * @param cPU the cPU to set
    */
+  @JsonSetter("cpu")
   public void setCPU(double cPU)
   {
     if( cPU < 0)
@@ -293,6 +310,7 @@ public class CcdpVMResource
   /**
    * @return the assignedDisk
    */
+  @JsonGetter("assigned-disk")
   public double getAssignedDisk()
   {
     return assignedDisk;
@@ -301,6 +319,7 @@ public class CcdpVMResource
   /**
    * @param assignedDisk the assignedDisk to set
    */
+  @JsonSetter("assigned-disk")
   public void setAssignedDisk(double assignedDisk)
   {
     this.assignedDisk = assignedDisk;
@@ -309,6 +328,7 @@ public class CcdpVMResource
   /**
    * @return the disk
    */
+  @JsonGetter("disk")
   public double getDisk()
   {
     return disk;
@@ -317,6 +337,7 @@ public class CcdpVMResource
   /**
    * @param disk the disk to set
    */
+  @JsonSetter("disk")
   public void setDisk(double disk)
   {
     if( disk < 0)
@@ -328,6 +349,7 @@ public class CcdpVMResource
   /**
    * @return the mEM
    */
+  @JsonGetter("mem")
   public double getMEM()
   {
     return MEM;
@@ -336,6 +358,7 @@ public class CcdpVMResource
   /**
    * @param mEM the mEM to set
    */
+  @JsonSetter("mem")
   public void setMEM(double mEM)
   {
     if( mEM <= 0)
@@ -367,6 +390,7 @@ public class CcdpVMResource
   /**
    * @return the assignedSession
    */
+  @JsonGetter("session-id")
   public String getAssignedSession()
   {
     return assignedSession;
@@ -375,6 +399,7 @@ public class CcdpVMResource
   /**
    * @param assignedSession the assignedSession to set
    */
+  @JsonSetter("session-id")
   public void setAssignedSession(String assignedSession)
   {
     this.assignedSession = assignedSession;
@@ -399,6 +424,7 @@ public class CcdpVMResource
   /**
    * @return the agentId
    */
+  @JsonGetter("agent-id")
   public String getAgentId()
   {
     return agentId;
@@ -407,6 +433,7 @@ public class CcdpVMResource
   /**
    * @param agentId the agentId to set
    */
+  @JsonSetter("agent-id")
   public void setAgentId(String agentId)
   {
     this.agentId = agentId;
@@ -435,6 +462,7 @@ public class CcdpVMResource
   /**
    * @return the singleTask
    */
+  @JsonGetter("single-task")
   public String getSingleTask()
   {
     return singleTask;
@@ -443,6 +471,7 @@ public class CcdpVMResource
   /**
    * @param singleTask the singleTask to set
    */
+  @JsonSetter("single-task")
   public void setSingleTask(String singleTask)
   {
     if( singleTask != null )
@@ -459,6 +488,7 @@ public class CcdpVMResource
    * 
    * @return whether or not this resource was allocated to a single task.
    */
+  @JsonGetter("is-single-tasked")
   public boolean isSingleTasked()
   {
     return this.isSingleTasked;
@@ -480,6 +510,7 @@ public class CcdpVMResource
    * 
    * @return all the tasks assigned to this resource
    */
+  @JsonGetter("tasks")
   public List<CcdpTaskRequest> getTasks()
   {
     return this.tasks;
@@ -616,7 +647,7 @@ public class CcdpVMResource
     }
     catch( Exception e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
     
     return sw.toString();
@@ -674,6 +705,7 @@ public class CcdpVMResource
     this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
     ObjectNode node = this.mapper.createObjectNode();
     node.put("instance-id", this.instanceId);
+    node.put("hostname",  this.hostname);
     node.put("agent-id", this.agentId);
     node.put("session-id", this.assignedSession);
     
@@ -682,8 +714,11 @@ public class CcdpVMResource
     node.put("mem", this.MEM);
     node.put("assigned-mem", this.assignedMEM);
     node.put("disk", this.disk);
-    node.put("disk-mem", this.assignedDisk);
+    node.put("assigned-disk", this.assignedDisk);
     node.put("status", this.status.toString());
+    node.put("is-single-tasked", this.isSingleTasked);
+    node.put("single-task", this.singleTask);
+    node.put("last-assignment", this.last_assignment);
     
     ArrayNode tasks = mapper.createArrayNode();
     
@@ -780,4 +815,41 @@ public class CcdpVMResource
     
     return least;
   }
+  
+  /** 
+   * Generates a String representing this object serialized.
+   * 
+   * @return a String representation of this object serialzed
+   * @throws IOException an IOException is thrown if there is a problem durin
+   *         the serialization of the object
+   */
+  public String toSerializedString( ) throws IOException 
+  {
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    ObjectOutputStream oos = new ObjectOutputStream( baos );
+    oos.writeObject( this );
+    oos.close();
+    return Base64.getEncoder().encodeToString(baos.toByteArray()); 
+  }  
+  
+  /** Reads a serialized string object and generates a CcdpVMResource object
+   * 
+   * @param s the string representing the serialized version of the object
+   * @return a CcdpVMResource object that was serialized previously
+   * 
+   * @throws IOException is thrown if the object cannot be de-serialized
+   * @throws ClassNotFoundException is thrown if the stream cannot be read into
+   *         an object
+   */
+  public static CcdpVMResource fromSerializedString( String s ) 
+                                  throws IOException, ClassNotFoundException 
+  {
+     byte [] data = Base64.getDecoder().decode( s );
+     ObjectInputStream ois = new ObjectInputStream( 
+                                     new ByteArrayInputStream(  data ) );
+     Object o  = ois.readObject();
+     ois.close();
+     return (CcdpVMResource)o;
+  }
+   
 }

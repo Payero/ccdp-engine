@@ -27,9 +27,9 @@ import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.Protos.Attribute;
 
 import com.amazonaws.services.elastictranscoder.model.Warning;
-import com.axios.ccdp.connections.intfs.CcdpObjectFactoryAbs;
 import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.mesos.fmwk.CcdpJob.JobState;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
@@ -66,7 +66,7 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
   /**
    * Stores the object responsible for creating all interfaces
    */
-  private CcdpObjectFactoryAbs factory = null;
+  private CcdpObjectFactory factory = null;
   /**
    * Stores the object responsible for sending and receiving tasking information
    */
@@ -101,8 +101,8 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
       ObjectNode task_msg_node = 
           CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
       
-      this.factory = CcdpObjectFactoryAbs.newInstance(clazz);
-      this.taskingInf = this.factory.getCcdpTaskingInterface(task_msg_node);
+      CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
+      this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
     }
     else
     {

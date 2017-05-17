@@ -19,11 +19,12 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.amq.AmqReceiver;
 import com.axios.ccdp.connections.amq.AmqSender;
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.utils.CcdpUtils;
 
 
-public class CcdpTaskReceiver implements CcdpEventConsumerIntf
+public class CcdpTaskReceiver implements CcdpMessageConsumerIntf
 {
 
   /**
@@ -81,14 +82,13 @@ public class CcdpTaskReceiver implements CcdpEventConsumerIntf
     this.receiver.connect(broker, channel);
   }  
   
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage msg )
   {
-    String msg = event.toString();
-    this.logger.debug("Got a new Event: " + msg);
+    this.logger.debug("Got a new Event: " + msg.toString());
     
     try
     {
-      this.writer.write(msg);
+      this.writer.write(msg.toString() );
       this.writer.flush();
     }
     catch( IOException e )

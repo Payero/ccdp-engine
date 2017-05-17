@@ -1,6 +1,7 @@
 package com.axios.ccdp.mesos.fmwk;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 import org.apache.mesos.Executor;
@@ -16,12 +17,13 @@ import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.Protos.Status;
 
+import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpCommandExecutor implements Executor, TaskEventIntf
 {
@@ -51,17 +53,13 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    */
   private ExecutorInfo execInfo = null;
   /**
-   * Generates all the different JSON objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  /**
    * Retrieves all the system's resources as a JSON object
    */
   private SystemResourceMonitor monitor = new SystemResourceMonitor();
   /**
-   * Stores the session id for this agent
+   * Stores information about the VM hosting the executor
    */
-  private String sessionId = null;
+  private CcdpVMResource me = null;
   
   /**
    * Instantiates a new instance of the agent responsible for running all the
@@ -70,6 +68,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public CcdpCommandExecutor()
   {
     this.logger.info("Running the Executor");
+    this.me = new CcdpVMResource(UUID.randomUUID().toString() );
+    this.me.setStatus(ResourceStatus.RUNNING);
   }
 
   /**
@@ -109,11 +109,29 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void onEvent()
   {
     this.logger.debug("Sending Heartbeat");
+    // if we have a driver then send heartbeat messages
+    if( this.driver != null )
+    {
+      // just need to update what is free to use
+      this.me.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
+      this.me.setCPULoad(this.monitor.getSystemCpuLoad());
+      this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+    
+      this.driver.sendFrameworkMessage(this.me.toString().getBytes());
+    }
+  }
+  
+  /**
+   * Sets all the initial parameters of the resource running the executor
+   * 
+   */
+  private void setResourceParameters()
+  {
+    this.logger.debug("Setting the resource parameters");
     if( this.agentInfo != null )
     {
-      ObjectNode node = this.mapper.createObjectNode();
       String iid = null; 
-      
+      String sid = null;
       // Getting the attribute information
       for( Attribute attr : this.agentInfo.getAttributesList() )
       {
@@ -123,20 +141,21 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
           iid = attr.getText().getValue();
           break;
         case CcdpUtils.KEY_SESSION_ID:
-          this.sessionId = attr.getText().getValue();
+          sid = attr.getText().getValue();
           break;
         }
       }
-      node.put("instance-id", iid);
-      node.put("session-id", this.sessionId);
-      node.put("agent-id", this.agentInfo.getId().getValue() );
-      node.put("hostname", this.agentInfo.getHostname() );
-      node.put("executor-id", this.execInfo.getExecutorId().getValue() );
-      node.set("resources", this.monitor.toJSON());
+      this.me.setInstanceId(iid);
+      this.me.setAssignedSession(sid);
+      this.me.setAgentId(this.agentInfo.getId().getValue() );
+      this.me.setHostname(this.agentInfo.getHostname());
+      this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
+      this.me.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
+      this.me.setCPU(this.monitor.getTotalNumberCpuCores());
+      this.me.setCPULoad(this.monitor.getSystemCpuLoad());
+      this.me.setDisk(this.monitor.getTotalDiskSpace());
+      this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
       
-      // if we have a driver then send heartbeat messages
-      if( this.driver != null )
-        this.driver.sendFrameworkMessage(node.toString().getBytes());
     }
   }
   
@@ -184,7 +203,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   @Override
   public void frameworkMessage(ExecutorDriver driver, byte[] msg)
   {
-    this.sessionId = new String(msg);
+    this.me.setAssignedSession( new String(msg) ); 
   }
 
   /**
@@ -197,7 +216,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   @Override
   public void killTask(ExecutorDriver driver, TaskID taskId)
   {
-    this.logger.info("Killing Task: " + taskId.toString());
+    String tid = taskId.getValue();
+    this.logger.info("Killing Task: " + tid);
     
     synchronized( this )
     {
@@ -206,6 +226,15 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       if( task != null )
       {
         task.killTask();
+        for( CcdpTaskRequest t : this.me.getTasks() )
+        {
+          if( t.getTaskId().equals(tid) )
+          {
+            this.logger.info("Task " + tid + " was killed, removing it");
+            this.me.getTasks().remove(t);
+            break;
+          }
+        }
       }
     }
     
@@ -242,7 +271,9 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
         this.statusUpdate(taskId, TaskState.TASK_STARTING, null);
         
         ccdpTask.start();
+        CcdpTaskRequest taskReq = new CcdpTaskRequest(taskId.getValue());
         
+        this.me.addTask(taskReq);
         this.statusUpdate(taskId, TaskState.TASK_RUNNING, null);
       }
       catch( Exception e )
@@ -273,8 +304,11 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
                  slave.toString();
     this.logger.info(msg);
     this.agentInfo = slave;
+    this.setResourceParameters();
     this.execInfo = exec;
     this.timer = new ThreadedTimerTask(this, 2000);
+    
+    
   }
 
   /**
@@ -290,6 +324,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void reregistered(ExecutorDriver driver, SlaveInfo slave)
   {
     this.logger.info("Executor Re-registered: " + slave.toString() );
+    this.agentInfo = slave;
+    this.setResourceParameters();
   }
 
   /**

@@ -2,9 +2,11 @@ package com.axios.ccdp.newgen;
 
 import java.util.Map;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -22,7 +24,7 @@ public interface CcdpConnectionIntf
    * 
    * @param consumer the object interested on receiving external events
    */
-  public void setConsumer( CcdpEventConsumerIntf consumer );
+  public void setConsumer( CcdpMessageConsumerIntf consumer );
   
   /**
    * Registers a unique identifier with a specific channels.  
@@ -55,6 +57,54 @@ public interface CcdpConnectionIntf
   public void configure( ObjectNode config );
   
   /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object.
+   * 
+   * @param channel the destination where to send the message
+   * @param msg the actual message to send
+   */
+  public void sendCcdpMessage( String channel, CcdpMessage msg );
+  
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It sets all the 
+   * properties passed as argument in the message's header
+   * 
+   * @param channel the destination where to send the message
+   * @param props a map containing all the properties to be attached to the
+   *        message that is being sent
+   * @param msg the actual message to send
+   */
+  public void sendCcdpMessage( String channel, Map<String, String> props, 
+      CcdpMessage msg );
+
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It specifies how
+   * long this particular message should remain in the server.
+   * 
+   * @param channel the destination where to send the message
+   * @param msg the actual message to send
+   * @param ttl the time to live of the message being setn
+   */
+  public void sendCcdpMessage( String channel, CcdpMessage msg, long ttl );
+  
+  /**
+   * Sends a message to the channel given as an argument.  The JSON object will 
+   * conformed the body of the message as a String object. It sets all the 
+   * properties passed as argument in the message's header.  It specifies how
+   * long this particular message should remain in the server.
+   * 
+   * @param channel the destination where to send the message
+   * @param props a map containing all the properties to be attached to the
+   *        message that is being sent
+   * @param msg the actual message to send
+   * @param ttl the time to live of the message being setn
+   */
+  public void sendCcdpMessage( String channel, Map<String, String> props, 
+      CcdpMessage msg, long ttl );
+
+  /**
    * Sends a hearbeat message to the channel specified provided as argument.
    * The heartbeat contains information about the current resource utilization 
    * as well as other information concerning the health of the node
@@ -73,56 +123,6 @@ public interface CcdpConnectionIntf
    * @param task an object with information about a specific task
    */
   public void sendTaskUpdate( String channel, CcdpTaskRequest task );
-
-  /**
-   * Sends a message to the channel given as an argument.  The JSON object will 
-   * conformed the body of the message as a String object.
-   * 
-   * @param channel the destination where to send the message
-   * @param body A JSON structure with the actual message to send
-   */
-  public void sendMessage( String channel, JsonNode body );
-  
-  /**
-   * Sends a message to the channel given as an argument.  The JSON object will 
-   * conformed the body of the message as a String object. It sets all the 
-   * properties passed as argument in the message's header
-   * 
-   * @param channel the destination where to send the message
-   * @param props a map containing all the properties to be attached to the
-   *        message that is being sent
-   * @param body A JSON structure with the actual message to send
-   */
-  public void sendMessage( String channel, Map<String, String> props, 
-      JsonNode body );
-
-  /**
-   * Sends a message to the channel given as an argument.  The JSON object will 
-   * conformed the body of the message as a String object. It specifies how
-   * long this particular message should remain in the server.
-   * 
-   * @param channel the destination where to send the message
-   * @param body A JSON structure with the actual message to send
-   * @param ttl the time to live of the message being setn
-   */
-  public void sendMessage( String channel, JsonNode body, long ttl );
-  
-  /**
-   * Sends a message to the channel given as an argument.  The JSON object will 
-   * conformed the body of the message as a String object. It sets all the 
-   * properties passed as argument in the message's header.  It specifies how
-   * long this particular message should remain in the server.
-   * 
-   * @param channel the destination where to send the message
-   * @param props a map containing all the properties to be attached to the
-   *        message that is being sent
-   * @param body A JSON structure with the actual message to send
-   * @param ttl the time to live of the message being setn
-   */
-  public void sendMessage( String channel, Map<String, String> props, 
-      JsonNode body, long ttl );
-  
-
   
   /**
    * Unregisters the UUID from receiving incoming events from the given channel

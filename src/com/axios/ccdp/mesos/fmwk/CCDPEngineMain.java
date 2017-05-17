@@ -46,6 +46,10 @@ public class CCDPEngineMain
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
+  /**
+   * The framework that does the work
+   */
+  private Scheduler scheduler = null;
   
   /**
    * Instantiates a new object which will deployed a custom executor.  The 
@@ -142,7 +146,7 @@ public class CCDPEngineMain
     }
     
     // what kind of scheduler do we want to run
-    Scheduler scheduler = null;
+    
     if( run_simple )
     {
       this.logger.info("Running SimpleFramework");
@@ -164,12 +168,12 @@ public class CCDPEngineMain
         }
         
       }
-      scheduler = new SimpleRemoteScheduler( ccdpExec, jobs );
+      this.scheduler = new SimpleRemoteScheduler( ccdpExec, jobs );
     }
     else
     {
       this.logger.info("Running Remote Framework");
-      scheduler = new CcdpMesosScheduler( ccdpExec, requests );
+      this.scheduler = new CcdpMesosScheduler( ccdpExec, requests );
     }
     
     
@@ -202,14 +206,14 @@ public class CCDPEngineMain
 
       frameworkBuilder.setPrincipal(principal);
       FrameworkInfo fmwk = frameworkBuilder.build();
-      driver = new MesosSchedulerDriver(scheduler, fmwk, master, credential);
+      driver = new MesosSchedulerDriver(this.scheduler, fmwk, master, credential);
     } 
     else 
     {
       this.logger.debug("Skipping Credentials");
       frameworkBuilder.setPrincipal("ccdp-framework");
       FrameworkInfo fmwk = frameworkBuilder.build();
-      driver = new MesosSchedulerDriver(scheduler, fmwk, master);
+      driver = new MesosSchedulerDriver(this.scheduler, fmwk, master);
     }
 
     int status = driver.run() == Status.DRIVER_STOPPED ? 0 : 1;

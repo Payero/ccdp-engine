@@ -10,16 +10,19 @@ import org.junit.Test;
 
 import com.axios.ccdp.connections.amq.AmqReceiver;
 import com.axios.ccdp.connections.amq.AmqSender;
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.ThreadController;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
-public class AmqConnectionsUnitTest extends TestCase implements CcdpEventConsumerIntf
+public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsumerIntf
 {
 
   /**
@@ -33,7 +36,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpEventConsume
   private String broker = null;
   
   private ThreadController block = new ThreadController();
-  private JsonNode latest = null;
+  private CcdpMessage latest = null;
   private ObjectMapper mapper = new ObjectMapper();
   
   public AmqConnectionsUnitTest()
@@ -77,19 +80,10 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpEventConsume
     this.latest = null;
   }
   
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage msg )
   {
-    String msg = event.toString();
-    this.logger.debug("Got a new Event: " + msg);
-    try
-    {
-      this.latest = this.mapper.readTree(msg);
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Message: " + e.getMessage(), e);
-    }
-    
+    this.logger.debug("Got a new Event: " + msg.toString() );
+    this.latest = msg;
     this.block.set();
   }
   
@@ -109,9 +103,17 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpEventConsume
     while( !this.block.isSet() )
       this.block.doWait();
     assertNotNull(this.latest);
-    this.logger.debug("Latest " + this.latest.get("body"));
-    
-    assertEquals(msg, this.latest.get("body").asText() );
+    if( this.latest instanceof UndefinedMessage )
+    {
+      UndefinedMessage undMsg = (UndefinedMessage)this.latest;
+      String load = undMsg.getPayload().toString();
+      this.logger.debug("Latest " + load );
+      assertEquals(msg, load );
+    }
+    else
+    {
+      fail("The CcdpMessage was not UndefinedMessage");
+    }
   }
   
   @Test
@@ -144,9 +146,21 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpEventConsume
     this.logger.debug("Got a new Message " + this.latest.toString());
     
     assertNotNull(this.latest);
-    this.logger.debug("Got a latest " + latest.toString() );
-    assertEquals(node.get("config"), this.latest.get("config"));
-    assertEquals(node.get("body"), this.latest.get("body"));
+    
+    if( this.latest instanceof UndefinedMessage )
+    {
+      UndefinedMessage undMsg = (UndefinedMessage)this.latest;
+      String load = undMsg.getPayload().toString();
+      Map<String, String> map = undMsg.getConfiguration();
+      
+      this.logger.debug("Got a latest " + load );
+      assertEquals(props, map);
+      assertEquals(msg, load);
+    }
+    else
+    {
+      fail("The CcdpMessage was not UndefinedMessage");
+    }
   }
   
 }

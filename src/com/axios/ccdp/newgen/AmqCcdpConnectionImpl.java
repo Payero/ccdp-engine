@@ -2,21 +2,18 @@ package com.axios.ccdp.newgen;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -27,7 +24,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *
  */
 public class AmqCcdpConnectionImpl 
-                          implements CcdpConnectionIntf, CcdpEventConsumerIntf
+                         implements CcdpConnectionIntf, CcdpMessageConsumerIntf
 {
   /**
    * Generates debug print statements based on the verbosity level.
@@ -52,7 +49,7 @@ public class AmqCcdpConnectionImpl
   /**
    * The object interested on receiving the actual task
    */
-  private CcdpEventConsumerIntf consumer = null;
+  private CcdpMessageConsumerIntf consumer = null;
   /**
    * Stores the configuration for the tasking interface
    */
@@ -61,10 +58,6 @@ public class AmqCcdpConnectionImpl
    * Stores the time to live for the heartbeats
    */
   private long hbTTLMills;
-  /**
-   * Generates all the JSON structure objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
@@ -93,7 +86,7 @@ public class AmqCcdpConnectionImpl
    * @param consumer the object interested on receiving events.
    */
   @Override
-  public void setConsumer( CcdpEventConsumerIntf consumer )
+  public void setConsumer( CcdpMessageConsumerIntf consumer )
   {
     this.consumer = consumer;
   }
@@ -196,12 +189,12 @@ public class AmqCcdpConnectionImpl
    * conformed the body of the message as a String object.
    * 
    * @param channel the destination where to send the message
-   * @param body A JSON structure with the actual message to send
+   * @param msg the actual message to send
    */
   @Override
-  public void sendMessage( String channel, JsonNode body)
+  public void sendCcdpMessage( String channel, CcdpMessage msg)
   {
-    this.sendMessage(channel, new HashMap<String, String>(), body );
+    this.sendCcdpMessage(channel, new HashMap<String, String>(), msg );
   }
   
   /**
@@ -210,12 +203,12 @@ public class AmqCcdpConnectionImpl
    * long this particular message should remain in the server.
    * 
    * @param channel the destination where to send the message
-   * @param body A JSON structure with the actual message to send
-   * @param ttl the time to live of the message being setn
+   * @param msg the actual message to send
+   * @param ttl the time to live of the message being set
    */
-  public void sendMessage( String channel, JsonNode body, long ttl )
+  public void sendCcdpMessage( String channel, CcdpMessage msg, long ttl )
   {
-    this.sendMessage(channel, new HashMap<String, String>(), body, ttl );
+    this.sendCcdpMessage(channel, new HashMap<String, String>(), msg, ttl );
   }
   
   /**
@@ -225,13 +218,13 @@ public class AmqCcdpConnectionImpl
    * 
    * @param channel the destination where to send the message
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
   @Override
-  public void sendMessage(String channel, Map<String, String> props, 
-      JsonNode body)
+  public void sendCcdpMessage(String channel, Map<String, String> props, 
+      CcdpMessage msg)
   {
-    this.sendMessage(channel, props, body, 0);
+    this.sendCcdpMessage(channel, props, msg, 0);
   }
 
   /**
@@ -240,18 +233,18 @@ public class AmqCcdpConnectionImpl
    * body is the actual payload or event to send.
    * 
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
   @Override
-  public void sendMessage(String channel, Map<String, String> props, 
-      JsonNode body, long ttl)
+  public void sendCcdpMessage(String channel, Map<String, String> props, 
+      CcdpMessage msg, long ttl)
   {
     synchronized( this.senders )
     {
       if( this.senders.containsKey(channel) )
       {
         AmqSender sender = this.senders.get(channel);
-        sender.sendMessage(channel, props,  body.toString(), ttl);
+        sender.sendMessage(channel, props,  msg.toString(), ttl);
       }
       else
       {
@@ -306,18 +299,20 @@ public class AmqCcdpConnectionImpl
    * 
    * @param event the JSON configuration of the tasking request
    */
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage message )
   {
-    if( event instanceof JsonNode )
-    {
-      JsonNode node = (JsonNode)event;
-      this.logger.trace("Got an Event " + node.toString());
-      this.consumer.onEvent(node);
-    }
-    else
-    {
-      this.logger.error("Only JsonNode objects are allowed");
-    }
+    this.consumer.onCcdpMessage(message);
+    
+//    if( event instanceof JsonNode )
+//    {
+//      JsonNode node = (JsonNode)event;
+//      this.logger.trace("Got an Event " + node.toString());
+//      this.consumer.onEvent(node);
+//    }
+//    else
+//    {
+//      this.logger.error("Only JsonNode objects are allowed");
+//    }
   }
 
   
@@ -332,11 +327,9 @@ public class AmqCcdpConnectionImpl
   @Override
   public void sendHeartbeat( String channel, CcdpVMResource resource )
   {
-    ObjectNode hb = this.mapper.createObjectNode();
-    hb.put("event-type", CcdpUtils.EventType.HEARTBEAT.toString());
-    hb.set("event", resource.toJSON());
-    
-    this.sendMessage(channel, hb, this.hbTTLMills );
+    ResourceUpdateMessage msg = new ResourceUpdateMessage();
+    msg.setCcdpVMResource(resource);
+    this.sendCcdpMessage(channel, msg, this.hbTTLMills );
   }
   
   /**
@@ -350,10 +343,8 @@ public class AmqCcdpConnectionImpl
   @Override
   public void sendTaskUpdate( String channel, CcdpTaskRequest task )
   {
-    ObjectNode status = this.mapper.createObjectNode();
-    status.put("event-type", CcdpUtils.EventType.TASK_STATUS.toString());
-    status.set("event", task.toJSON());
-    
-    this.sendMessage(channel, status);
+    TaskUpdateMessage msg = new TaskUpdateMessage();
+    msg.setTask(task);
+    this.sendCcdpMessage(channel, msg);
   }
 }

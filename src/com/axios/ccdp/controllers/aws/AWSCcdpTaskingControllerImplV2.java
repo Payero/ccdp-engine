@@ -150,9 +150,9 @@ public class AWSCcdpTaskingControllerImplV2
     {
       CcdpVMResource vm = resources.get(i);
       assignedCPU[i] = vm.getAssignedCPU();
-      assignedMEM[i] = vm.getAssignedMEM();
+      assignedMEM[i] = vm.getAssignedMemory();
       availableCPU[i] = vm.getCPU();
-      availableMEM[i] = vm.getMEM();
+      availableMEM[i] = vm.getTotalMemory();
       load += vm.getNumberTasks();
     }
 
@@ -281,9 +281,9 @@ public class AWSCcdpTaskingControllerImplV2
       {
         this.logger.debug("Adding resources to average lists");
         assignedCPU[i] = vm.getAssignedCPU();
-        assignedMEM[i] = vm.getAssignedMEM();
+        assignedMEM[i] = vm.getAssignedMemory();
         availableCPU[i] = vm.getCPU();
-        availableMEM[i] = vm.getMEM();
+        availableMEM[i] = vm.getTotalMemory();
       }
     }
     
@@ -431,7 +431,7 @@ public class AWSCcdpTaskingControllerImplV2
        }
        
        double offerCpus = resource.getCPU();
-       double offerMem = resource.getMEM();
+       double offerMem = resource.getTotalMemory();
        
        String str = 
        String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);

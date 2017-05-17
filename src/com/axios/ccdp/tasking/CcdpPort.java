@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -122,15 +123,38 @@ public class CcdpPort implements Serializable
    */
   public String toString()
   {
+    String str = null;
     
-    ObjectNode node = this.toJSON();
-    String str = node.toString();
     try
     {
-      str = 
-          this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+      
+      str = mapper.writeValueAsString(this);
     }
-    catch( JsonProcessingException e )
+    catch( Exception e )
+    {
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
+    }
+    
+    return str;
+  }
+
+  /**
+   * Prints the contents of the object using a more human readable form.
+   * 
+   * @return a String representation of the object using a more human friendly
+   *         formatting
+   */
+  public String toPrettyPrint()
+  {
+    String str = null;
+    
+    try
+    {
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      str = mapper.writeValueAsString(this);
+    }
+    catch( Exception e )
     {
       throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
@@ -152,20 +176,7 @@ public class CcdpPort implements Serializable
    */
   public ObjectNode toJSON()
   {
-    ObjectNode port = this.mapper.createObjectNode();
-    ArrayNode in = this.mapper.createArrayNode();
-    ArrayNode out = this.mapper.createArrayNode();
+    return this.mapper.convertValue( this, ObjectNode.class );
     
-    port.put("port-id",       this.portId);
-    
-    for( String input : this.fromPort )
-      in.add(input);
-    port.set("input-ports", in);
-    
-    for( String to : this.toPort )
-      out.add(to);
-    port.set("output-ports", out);
-    
-    return port;
   }
 }

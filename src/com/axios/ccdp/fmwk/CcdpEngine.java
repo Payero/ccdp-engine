@@ -7,8 +7,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -20,6 +22,7 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -31,6 +34,7 @@ import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -107,14 +111,18 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
    * The unique identifier for this engine
    */
   private String engineId = UUID.randomUUID().toString();
-  /**
-   * Stores the instance id of the EC2 running this framework
-   */
-  private String instanceId = null;
+//  /**
+//   * Stores the instance id of the EC2 running this framework
+//   */
+//  private String instanceId = null;
   /**
    * Continuously monitors the state of the system
    */
   private ThreadedTimerTask timer = null;
+  /**
+   * Stores a list of host ids that should not be terminated
+   */
+  private List<String> skipTermination = new ArrayList<>(); 
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -145,15 +153,27 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     this.taskingInf.setTaskConsumer(this);
     this.taskingInf.register(this.engineId);
       
-    try
+    // Skipping some nodes from termination
+    String ids = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_SKIP_TERMINATION);
+    
+    if( ids != null )
     {
-      this.instanceId = CcdpUtils.retrieveEC2Info("instance-id");
-      this.logger.info("Framework running on instance: " + this.instanceId );
-    }
-    catch( Exception e )
-    {
-      this.logger.warn("Could not get Instance ID, assigning one");
-    }
+      for( String id : ids.split(",") )
+      {
+        this.logger.info("Skipping " + id + " from termination");
+        this.skipTermination.add(id);
+      }
+    }// end of the do not terminate section
+    
+//    try
+//    {
+//      this.instanceId = CcdpUtils.retrieveEC2Info("instance-id");
+//      this.logger.info("Framework running on instance: " + this.instanceId );
+//    }
+//    catch( Exception e )
+//    {
+//      this.logger.warn("Could not get Instance ID, assigning one");
+//    }
 
     // Let's check what is out there....
     int cycle = 5;;
@@ -370,42 +390,42 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
   }
   
   
-  /**
-   * Allows an external entity to notify the framework that one of the resources
-   * is having issues and needs to be removed.
-   * 
-   * @param identifier the agent id or identifier to determine which resource 
-   *        is having issues
-   * 
-   */
-  public void resourceLost( String identifier )
-  {
-    this.logger.warn("Resource Lost: " + identifier);
-    
-    synchronized( this.resources )
-    {
-      String to_remove = null;
-      for( String key : this.resources.keySet() )
-      {
-        CcdpVMResource vm = this.resources.get(key);
-        String id = vm.getAgentId();
-        this.logger.debug("Comparing " + identifier + " against " + id);
-        if( identifier.equals( id ) )
-        {
-          this.logger.info("Found lost resource " + key + ", removing it");
-          to_remove = key;
-          break;
-        }
-      }
-      
-      // need to remove it outside of the iterator
-      if( to_remove != null )
-        this.resources.remove(to_remove);
-      
-    }// end of synchronized block
-    
-  }
-  
+//  /**
+//   * Allows an external entity to notify the framework that one of the resources
+//   * is having issues and needs to be removed.
+//   * 
+//   * @param identifier the agent id or identifier to determine which resource 
+//   *        is having issues
+//   * 
+//   */
+//  public void resourceLost( String identifier )
+//  {
+//    this.logger.warn("Resource Lost: " + identifier);
+//    
+//    synchronized( this.resources )
+//    {
+//      String to_remove = null;
+//      for( String key : this.resources.keySet() )
+//      {
+//        CcdpVMResource vm = this.resources.get(key);
+//        String id = vm.getAgentId();
+//        this.logger.debug("Comparing " + identifier + " against " + id);
+//        if( identifier.equals( id ) )
+//        {
+//          this.logger.info("Found lost resource " + key + ", removing it");
+//          to_remove = key;
+//          break;
+//        }
+//      }
+//      
+//      // need to remove it outside of the iterator
+//      if( to_remove != null )
+//        this.resources.remove(to_remove);
+//      
+//    }// end of synchronized block
+//    
+//  }
+//  
   
   
   /**
@@ -424,15 +444,10 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     
     if( channel != null && channel.length() > 0 )
     {
-      String tid = task.getTaskId();
-      
       this.logger.debug("Status change, sending message to " + channel);
-      ObjectNode node = this.mapper.createObjectNode();
-      node.put(CcdpUtils.KEY_SESSION_ID, task.getSessionId());
-      node.put(CcdpUtils.KEY_TASK_ID, tid);
-      node.put(CcdpUtils.KEY_TASK_STATUS, task.getState().toString());
-      
-      this.taskingInf.sendEvent(channel, null, node.toString());
+      TaskUpdateMessage taskMsg = new TaskUpdateMessage();
+      taskMsg.setTask(task);
+      this.taskingInf.sendCcdpMessage(channel, null, taskMsg);
     }
     else
     {
@@ -475,7 +490,10 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
   
   /**
    * Determines whether or not there are resources that need to be terminated
-   * for a specific session id
+   * for a specific session id.  This method does not actually terminates any
+   * of the resources it simply sets them as available.  The VMs are terminated
+   * in the onEvent() method after determining whether or not the system needs
+   * free resources or not.
    * 
    * @param sid the session id that has some activity and whose resources need
    *        need to be checked
@@ -486,24 +504,26 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     
     // Do we need to deallocate resources?
     List<CcdpVMResource> vms = this.tasker.deallocateResource(sid_vms);
-    List<String> terminate = new ArrayList<>();
     for( CcdpVMResource vm : vms )
     {
-      String iid = vm.getInstanceId();
-      this.logger.debug("Comparing Master " + this.instanceId + " and " + iid);
-      if( iid != null && !iid.equals(this.instanceId) )
-      {
-        this.logger.info("Freeing VM " + iid);
-        terminate.add(iid);
-        // this way we can compare/use it as available if needed
-        vm.setAssignedSession(FREE_SESSION);
-      }
-      else
-      {
-        this.logger.info("Will not terminate master " + iid);
-        vm.setSingleTask(null);
-        vm.setAssignedSession(FREE_SESSION);
-      }
+      vm.setSingleTask(null);
+      vm.setAssignedSession(FREE_SESSION);
+      
+//      String iid = vm.getInstanceId();
+//      this.logger.debug("Comparing Master " + this.instanceId + " and " + iid);
+//      if( iid != null && !iid.equals(this.instanceId) )
+//      {
+//        this.logger.info("Freeing VM " + iid);
+//        terminate.add(iid);
+//        // this way we can compare/use it as available if needed
+//        vm.setAssignedSession(FREE_SESSION);
+//      }
+//      else
+//      {
+//        this.logger.info("Will not terminate master " + iid);
+//        vm.setSingleTask(null);
+//        vm.setAssignedSession(FREE_SESSION);
+//      }
     }
   }
   
@@ -538,7 +558,7 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     }
     
     // do we need to assign a new resource to this session?
-    this.logger.info("Got a new Request: " + request.toString() );
+    this.logger.info("Got a new Request: " + request.toPrettyPrint() );
     
     String sid = request.getSessionId();
     if( sid != null && sid.length() > 0 )
@@ -627,6 +647,8 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
         buf.append("Session ID:      " + res.getAssignedSession() + "\n");
         buf.append("Single Task:     " + res.getSingleTask() + "\n");
         buf.append("Hostname:        " + res.getHostname() + "\n");
+        buf.append("CPU Load:        " + res.getCPULoad() + "\n");
+        buf.append("Free Mem:        " + ( res.getFreeMemory() / 1024 ) + "\n");
         buf.append("Status:          " + res.getStatus() + "\n");
         buf.append("Number of Tasks: " + res.getNumberTasks() + "\n");
         Date date = new Date(res.getLastAssignmentTime());
@@ -935,7 +957,7 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
         
         int done = 0;
         List<String> terminate = new ArrayList<>();
-        List<String> remove = new ArrayList<>();
+//        List<String> remove = new ArrayList<>();
         
         // Do it only if we have more available VMs than needed
         if( over > 0 )
@@ -947,24 +969,32 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
             
             // making sure we do not shutdown the framework node
             String id = res.getInstanceId();
-            if( !id.equals( this.instanceId ) && 
-                ResourceStatus.RUNNING.equals( res.getStatus() ) )
+            if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
             {
-              this.logger.info("Flagging VM " + id + " for termination");
-              res.setStatus(ResourceStatus.SHUTTING_DOWN);
-              terminate.add(id);
-              done++;
+              // it is not in the 'do not terminate' list
+              if( !this.skipTermination.contains(id) )
+              {
+                this.logger.info("Flagging VM " + id + " for termination");
+                res.setStatus(ResourceStatus.SHUTTING_DOWN);
+                terminate.add(id);
+                done++;                
+              }
+              else
+              {
+                this.logger.info("Skipping termination " + id);
+              }
+              
             }// done searching for running VMs
             
-            // Remove the ones 'SHUTTING_DOWN'
-            if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
-            {
-              long now = System.currentTimeMillis();
-              if( now - res.getLastAssignmentTime() >= 18000 )
-              {
-                remove.add(id);
-              }
-            }// is it shutting down?
+//            // Remove the ones 'SHUTTING_DOWN'
+//            if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
+//            {
+//              long now = System.currentTimeMillis();
+//              if( now - res.getLastAssignmentTime() >= 18000 )
+//              {
+//                remove.add(id);
+//              }
+//            }// is it shutting down?
           }// done with the VMs
         }
         int sz = terminate.size();
@@ -974,12 +1004,12 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
           this.controller.terminateInstances(terminate);
         }
         
-        // remove old pending 'SHUTTING_DOWN' nodes from map
-        for( String iid : remove )
-        {
-          this.logger.debug("Removing " + iid + " from resources map");
-          this.resources.remove(iid);
-        }
+//        // remove old pending 'SHUTTING_DOWN' nodes from map
+//        for( String iid : remove )
+//        {
+//          this.logger.debug("Removing " + iid + " from resources map");
+//          this.resources.remove(iid);
+//        }
         
       }// end of the sync block
     }
@@ -1155,11 +1185,11 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     }
     
     to.setAssignedCPU(from.getAssignedCPU());
-    to.setAssignedMEM(from.getAssignedMEM());
+    to.setAssignedMEM(from.getAssignedMemory());
     to.setAgentId(from.getAgentId());
     to.setAssignedDisk(from.getAssignedDisk());
     to.setCPU(from.getCPU());
-    to.setMEM(from.getMEM());
+    to.setTotalMemory(from.getTotalMemory());
     ResourceStatus stat = to.getStatus();
     // only update if it was LAUNCHED
     if( ResourceStatus.LAUNCHED.equals(stat ) || 
@@ -1217,5 +1247,71 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
       }
     }
     return null;
+  }
+  
+  /**
+   * Removes the resource from it's list of available resources.  This method
+   * provides a way to external entities to notify the engine that this 
+   * particular resource should no longer be considered part of the system.
+   * 
+   * If the item is found then it returns the item being removed from the list.
+   * If the item is not found the method returns null.
+   *  
+   * @param id the unique id of the resource to remove.
+   * @return the item that was removed from the resource list or null otherwise
+   */
+  public CcdpVMResource removeResource( String id )
+  {
+    this.logger.info("Resource removal request for " + id );
+    synchronized( this.resources )
+    {
+      Set<String> keys = this.resources.keySet();
+      if( keys.contains(id) )
+      {
+        this.logger.info("Removing " + id + " from resource list");
+        return this.resources.remove(id);
+      }
+      
+      String vmId = null;
+      // was not an instance Id, let's try agent id
+      for( String iid : this.resources.keySet() )
+      {
+        CcdpVMResource resource = this.resources.get(iid);
+        String aid = resource.getAgentId();
+        if( aid != null && aid.equals( id ) )
+        {
+          this.logger.info("Removing resource " + id);
+          vmId = resource.getInstanceId();
+          break;
+        }
+      }// end of the for loop so now we can remove the item
+      
+      if( vmId != null )
+        return this.resources.remove(vmId);
+      else
+        return null;
+    }// end of the synchronized block
+    
+  }// end of the removeResource method
+  
+  /**
+   * Updates a resource's utilization parameters such as memory, CPU, and disk
+   * 
+   * @param resource The VM to update
+   */
+  public void updateVMResourceUtilization( CcdpVMResource resource )
+  {
+    synchronized( this.resources )
+    {
+      String iid = resource.getInstanceId();
+      if( this.resources.containsKey( iid ) )
+      {
+        this.logger.debug("Received a heartbeat from " + iid );
+        CcdpVMResource res = this.resources.get(iid);
+        res.setFreeDiskSpace(resource.getFreeDiskspace());
+        res.setFreeMemory(resource.getFreeMemory());
+        res.setCPULoad(resource.getCPULoad());
+      }
+    }
   }
 }

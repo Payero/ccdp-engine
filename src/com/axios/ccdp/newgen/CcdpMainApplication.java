@@ -5,7 +5,6 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,11 +19,18 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.controllers.aws.AWSCcdpTaskingControllerImplV2;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.KillTaskMessage;
+import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.RunTaskMessage;
+import com.axios.ccdp.message.TaskUpdateMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -32,13 +38,11 @@ import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.axios.ccdp.utils.CcdpUtils.EventType;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
+public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
   /**
    * Stores the name of the session with available resources
@@ -99,10 +103,13 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
    */
   private String hostId = null;
   /**
+   * Stores a list of host ids that should not be terminated
+   */
+  private List<String> skipTermination = new ArrayList<>();
+  /**
    * Continuously monitors the state of the system
    */
   private ThreadedTimerTask timer = null;
-  
   
   /**
    * Instantiates a new object and if the 'jobs' argument is not null then
@@ -147,7 +154,18 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
     this.logger.info("Registering as " + this.hostId);
     this.connection.registerConsumer(this.hostId, toMain);
       
-
+    // Skipping some nodes from termination
+    String ids = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_SKIP_TERMINATION);
+    
+    if( ids != null )
+    {
+      for( String id : ids.split(",") )
+      {
+        this.logger.info("Skipping " + id + " from termination");
+        this.skipTermination.add(id);
+      }
+    }// end of the do not terminate section
+    
     
     try
     {
@@ -248,72 +266,33 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
    *  
    *  @param event the JSON object as described above
    */
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage message )
   {
     
-    if( event instanceof JsonNode )
+    CcdpMessageType msgType = CcdpMessageType.get( message.getMessageType() );
+    this.logger.debug("Got a new Event: " + message.toString());
+    switch( msgType )
     {
-      JsonNode node = (JsonNode)event;
-      
-      if( node.has("body") )
-        node = node.get("body");
-      
-      this.logger.debug("Got a new Event: " + node.toString());
-      Iterator<String> names = node.fieldNames(); 
-      while( names.hasNext() )
-      {
-        String name = names.next();
-        
-        this.logger.debug("Name " + name );
-      }
-      
-      if( !node.has("event-type") )
-      {
-        this.logger.error("Cannot procees an event without 'event-type' set");
-        return;
-      }
-      
-      if( !node.has("event") )
-      {
-        this.logger.error("Cannot procees an event without 'event' set");
-        return;
-      }
-      
-      EventType type = EventType.valueOf( node.get("event-type").asText() );
-      this.logger.debug("Processing an event of type " + type);
-      
-      JsonNode jsonEvent = node.get("event");
-      
-      switch( type )
-      {
-      case TASK_REQUEST:
-        try
-        {
-          for( CcdpThreadRequest r : CcdpUtils.toCcdpThreadRequest(jsonEvent) )
-          {
-            this.addRequest( r );
-          }
-        }
-        catch( Exception e )
-        {
-          this.logger.error("Message: " + e.getMessage(), e);
-        }
-        
+      case RESOURCE_UPDATE:
+        ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
+        this.updateResource( resMsg.getCcdpVMResource() );
         break;
       case KILL_TASK:
-        this.killTask(jsonEvent);
+        KillTaskMessage killMsg = (KillTaskMessage)message;
+        this.killTask(killMsg.getTask());
         break;
-      case HEARTBEAT:
-        this.updateResource(jsonEvent);
+      case TASK_UPDATE:
+        TaskUpdateMessage taskMsg = (TaskUpdateMessage)message;
+        this.updateStatus(taskMsg.getTask());
         break;
-      case TASK_STATUS:
-        this.updateStatus(jsonEvent);
+      case THREAD_REQUEST:
+        ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
+        this.addRequest( reqMsg.getRequest() );
         break;
-        default:
-          String msg = "CcdpAgent does not process events of type " + type +
-                       "  It only accepts TASK_REQUEST and KILL_TASK ";
-          this.logger.warn(msg);
-      }
+      case UNDEFINED:
+      default:
+        String msg = "CcdpAgent does not process events of type " + msgType;
+        this.logger.warn(msg);
     }
   }
   
@@ -324,19 +303,8 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
    * 
    * @param node the task to kill
    */
-  private void killTask( JsonNode node )
+  private void killTask( CcdpTaskRequest task )
   {
-    CcdpTaskRequest task = null;
-    try
-    {
-      task = mapper.treeToValue(node, CcdpTaskRequest.class);
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Could not kill task: " + e.getMessage(), e);
-      return;
-    }
-    
     String tid = task.getTaskId();      
     this.logger.info("Killing Task: " + tid );
     synchronized( this.requests )
@@ -352,7 +320,9 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
           {
             String iid = t.getHostId();
             this.logger.info("Found Task to kill " + tid + " at " + iid);
-            this.sendMessage(iid, CcdpUtils.EventType.KILL_TASK, t.toJSON() );
+            KillTaskMessage msg = new KillTaskMessage();
+            msg.setTask(t);
+            this.connection.sendCcdpMessage(iid, msg);
             t.killed();
             found = true;
             break;
@@ -362,19 +332,8 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
     }// end of the sync block
   }
   
-  private void updateResource(JsonNode node )
+  private void updateResource(CcdpVMResource vm )
   {
-    CcdpVMResource vm = null;
-    try
-    {
-      vm = mapper.treeToValue(node, CcdpVMResource.class);
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Could not create Resource: " + e.getMessage(), e);
-      return;
-    }
-    
     String sid = vm.getAssignedSession();
     if( sid == null )
     {
@@ -408,7 +367,7 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
         {
           this.logger.info("Found Resource");
           res.setAssignedCPU(vm.getAssignedCPU());
-          res.setAssignedMEM(vm.getAssignedMEM());
+          res.setAssignedMEM(vm.getAssignedMemory());
           res.setAssignedDisk(vm.getAssignedDisk());
           
           return;
@@ -421,19 +380,8 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
     this.logger.warn("Could not find VM " + vm.getInstanceId() );
   }
   
-  private void updateStatus(JsonNode node )
+  private void updateStatus( CcdpTaskRequest task )
   {
-    CcdpTaskRequest task = null;
-    try
-    {
-      task = mapper.treeToValue(node, CcdpTaskRequest.class);
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Could not kill task: " + e.getMessage(), e);
-      return;
-    }
-    
     String tid = task.getTaskId();      
     this.logger.info("Killing Task: " + tid );
     synchronized( this.requests )
@@ -451,6 +399,14 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
             this.logger.info("Found Task to Update " + tid + " at " + iid);
             t.setState(task.getState());
             found = true;
+            String reply = t.getReplyTo();
+            if( reply != null )
+            {
+              this.logger.info("Sending Status Update to " + reply);
+              TaskUpdateMessage msg = new TaskUpdateMessage();
+              msg.setTask(t);
+              this.connection.sendCcdpMessage(reply, msg);
+            }
             break;
           }
         }// end of the tasks loop
@@ -536,28 +492,30 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
   {
     String tid = task.getTaskId();
     String iid = resource.getInstanceId();
-
+    RunTaskMessage msg = new RunTaskMessage();
+    msg.setTask(task);
+    this.connection.sendCcdpMessage(iid, msg);
     this.logger.info("Launching Task " + tid + " on " + iid);
-    this.sendMessage(iid, CcdpUtils.EventType.TASK_REQUEST, task.toJSON() );
     task.setSubmitted(true);
     resource.getTasks().add(task);
   }
   
-  /**
-   * Sends a message to the specified queue.  The event type determines the
-   * type of message and the event is the actual event or message to send
-   * 
-   * @param queue the destination where to send the message
-   * @param type the type of message
-   * @param event the actual message to send
-   */
-  private void sendMessage(String queue, EventType type, ObjectNode event )
-  {
-    ObjectNode body = this.mapper.createObjectNode();
-    body.put("event-type", type.toString());
-    body.set("event", event);
-    this.connection.sendMessage(queue, body);
-  }
+//  /**
+//   * Sends a message to the specified queue.  The event type determines the
+//   * type of message and the event is the actual event or message to send
+//   * 
+//   * @param queue the destination where to send the message
+//   * @param type the type of message
+//   * @param event the actual message to send
+//   */
+//  private void sendMessage(String queue, EventType type, ObjectNode event )
+//  {
+//    ObjectNode body = this.mapper.createObjectNode();
+//    body.put("event-type", type.toString());
+//    body.set("event", event);
+//    this.connection.send
+//    this.connection.sendMessage(queue, body);
+//  }
   
   /**
    * It does the actual task allocation by going through all the requests and
@@ -711,18 +669,22 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
             
             // making sure we do not shutdown the framework node
             String id = res.getInstanceId();
-            if( !id.equals( this.hostId ) && 
-                ResourceStatus.RUNNING.equals( res.getStatus() ) )
+            if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
             {
               this.logger.info("Flagging VM " + id + " for termination");
+              res.setStatus(ResourceStatus.SHUTTING_DOWN);
               
-              if( id.startsWith("i-") )
+              // it is not in the 'do not terminate' list
+              if( !this.skipTermination.contains(id) )
               {
                 terminate.add(id);
-                res.setStatus(ResourceStatus.SHUTTING_DOWN);
-                this.resources.get(FREE_SESSION).remove(res);
+                done++;                
               }
-              done++;
+              else
+              {
+                this.logger.info("Skipping termination " + id);
+              }
+              
             }// done searching for running VMs
             
             // Remove the ones 'SHUTTING_DOWN'
@@ -834,7 +796,10 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
   
   /**
    * Determines whether or not there are resources that need to be terminated
-   * for a specific session id
+   * for a specific session id.  This method does not actually terminates any
+   * of the resources it simply sets them as available.  The VMs are terminated
+   * in the onEvent() method after determining whether or not the system needs
+   * free resources or not.
    * 
    * @param sid the session id that has some activity and whose resources need
    *        need to be checked
@@ -845,24 +810,10 @@ public class CcdpMainApplication implements CcdpEventConsumerIntf, TaskEventIntf
     
     // Do we need to deallocate resources?
     List<CcdpVMResource> vms = this.tasker.deallocateResource(sid_vms);
-    List<String> terminate = new ArrayList<>();
     for( CcdpVMResource vm : vms )
     {
-      String iid = vm.getInstanceId();
-      this.logger.debug("Comparing Master " + this.hostId + " and " + iid);
-      if( iid != null && !iid.equals(this.hostId) )
-      {
-        this.logger.info("Freeing VM " + iid);
-        terminate.add(iid);
-        // this way we can compare/use it as available if needed
-        vm.setAssignedSession(FREE_SESSION);
-      }
-      else
-      {
-        this.logger.info("Will not terminate master " + iid);
-        vm.setSingleTask(null);
-        vm.setAssignedSession(FREE_SESSION);
-      }
+      vm.setSingleTask(null);
+      vm.setAssignedSession(FREE_SESSION);
     }
   }
   

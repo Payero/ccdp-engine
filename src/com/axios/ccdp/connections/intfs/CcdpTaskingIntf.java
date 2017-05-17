@@ -2,6 +2,7 @@ package com.axios.ccdp.connections.intfs;
 
 import java.util.Map;
 
+import com.axios.ccdp.message.CcdpMessage;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -72,9 +73,9 @@ public interface CcdpTaskingIntf
    * body is the actual payload or event to send.
    * 
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
-  public void sendEvent(Map<String, String> props, Object body);
+  public void sendCcdpMessage(Map<String, String> props, CcdpMessage msg);
   
   /**
    * Sends an event to the destination specified in the given channel.  The
@@ -83,9 +84,10 @@ public interface CcdpTaskingIntf
    * 
    * @param channel the destination channel to send the event
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
-  public void sendEvent(String channel, Map<String, String> props, Object body);
+  public void sendCcdpMessage(String channel, Map<String, String> props, 
+                              CcdpMessage msg);
 
   /**
    * Unregisters the UUID from receiving incoming events from the given channel

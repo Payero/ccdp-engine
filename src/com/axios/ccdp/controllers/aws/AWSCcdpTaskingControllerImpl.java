@@ -4,6 +4,7 @@
 package com.axios.ccdp.controllers.aws;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -12,10 +13,10 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -40,7 +41,6 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
    * Stores the configuration passed to this object
    */
   private ObjectNode config = null;
-
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
@@ -148,9 +148,9 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     {
       CcdpVMResource vm = resources.get(i);
       assignedCPU[i] = vm.getAssignedCPU();
-      assignedMEM[i] = vm.getAssignedMEM();
+      assignedMEM[i] = vm.getAssignedMemory();
       availableCPU[i] = vm.getCPU();
-      availableMEM[i] = vm.getMEM();
+      availableMEM[i] = vm.getTotalMemory();
       load += vm.getNumberTasks();
     }
 
@@ -270,6 +270,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
+      
       if( vm.isSingleTasked() && ( vm.getTasks().size() == 0 ) )
       {
         this.logger.info("VM Single Tasked and task is complete, terminating");
@@ -279,9 +280,9 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
       {
         this.logger.debug("Adding resources to average lists");
         assignedCPU[i] = vm.getAssignedCPU();
-        assignedMEM[i] = vm.getAssignedMEM();
+        assignedMEM[i] = vm.getAssignedMemory();
         availableCPU[i] = vm.getCPU();
-        availableMEM[i] = vm.getMEM();
+        availableMEM[i] = vm.getTotalMemory();
       }
     }
     
@@ -299,6 +300,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
       this.logger.info("Low Utilization for this Session, checking assignement time");
       for( CcdpVMResource vm : resources )
       {
+        
         long last = vm.getLastAssignmentTime();
         int diff = (int)( ( (now - last) / 1000) / 60 );
         // is the time of the last assignment greater than allowed and it was
@@ -321,6 +323,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     
     return terminate;
   }
+  
   
   /**
    * Assigns all the tasks in the given list to the target VM based on 
@@ -476,7 +479,7 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
      }
      
      double offerCpus = resource.getCPU();
-     double offerMem = resource.getMEM();
+     double offerMem = resource.getTotalMemory();
      
      String str = 
      String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);

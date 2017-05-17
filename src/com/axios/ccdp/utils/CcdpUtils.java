@@ -71,6 +71,8 @@ public class CcdpUtils
   public static final String CFG_KEY_SKIP_AGENT = "skip.local.agent";
   /** The key name of the property used to set the checking cycle in seconds **/
   public static final String CFG_KEY_CHECK_CYCLE = "resources.checking.cycle";
+  /** Comma delimited list of id that should not be terminated **/
+  public static final String CFG_KEY_SKIP_TERMINATION = "do.not.terminate";
   
   /** Properties used by the tasking object receiving external tasks */
   public static final String CFG_KEY_TASK_MSG = "taskingIntf";
@@ -121,9 +123,6 @@ public class CcdpUtils
   public static final String CFG_KEY_LOG_DIR = "ccdp.log.dir";
   /** Stores the name of the key with the log directory location **/
   public static final String KEY_CCDP_LOG_DIR = "ccdp-log-dir";
-  
-  public static enum EventType { HEARTBEAT, TASK_STATUS, 
-                                 TASK_REQUEST, KILL_TASK, SET_SESSION };
   
   /****************************************************************************/
   /****************************************************************************/

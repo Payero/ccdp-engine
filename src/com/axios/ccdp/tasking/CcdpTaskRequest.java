@@ -17,7 +17,9 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -492,6 +494,17 @@ public class CcdpTaskRequest implements Serializable
   {
     return this.launchedTime;
   }
+
+  /**
+   * Sets the time when this task was launched in milliseconds.
+   * 
+   * @param launchedTime the time when this task was launched in milliseconds.
+   */
+  @JsonSetter("launched-time")
+  public void setLaunchedTimeMillis(long time)
+  {
+    this.launchedTime = time;
+  }
   
   /**
    * @param submitted the submitted to set
@@ -599,14 +612,38 @@ public class CcdpTaskRequest implements Serializable
    */
   public String toString()
   {
-    ObjectNode node = this.toJSON();
-    String str = node.toString();
+    String str = null;
+    
     try
     {
-      str = 
-          this.mapper.writerWithDefaultPrettyPrinter().writeValueAsString(node);
+      
+      str = mapper.writeValueAsString(this);
     }
-    catch( JsonProcessingException e )
+    catch( Exception e )
+    {
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
+    }
+    
+    return str;
+  }
+
+  /**
+   * Prints the contents of the object using a more human readable form.
+   * 
+   * @return a String representation of the object using a more human friendly
+   *         formatting
+   */
+  public String toPrettyPrint()
+  {
+    String str = null;
+    
+    try
+    {
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      str = mapper.writeValueAsString(this);
+    }
+    catch( Exception e )
     {
       throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
@@ -648,36 +685,7 @@ public class CcdpTaskRequest implements Serializable
    */
   public ObjectNode toJSON()
   {
-    ObjectNode task = this.mapper.createObjectNode();
-    ArrayNode in = this.mapper.createArrayNode();
-    ArrayNode out = this.mapper.createArrayNode();
-    
-    task.put("task-id",       this.taskId);
-    task.put("name",          this.name);
-    task.put("description",   this.description);
-    task.put("state",         this.state.toString());
-    task.put("class-name",    this.className);
-    task.put("node-type",     this.nodeType);
-    task.put("reply-to",      this.replyTo);
-    task.put("agent-id",      this.hostId);
-    task.put("session-id",    this.sessionId);
-    task.put("retries",       this.retries);
-    task.put("submitted",     this.submitted);
-    task.put("launched-time", this.launchedTime);
-    task.put("cpu",           this.cpu);
-    task.put("mem",           this.mem);
-    task.put("command",       this.command.toString());
-    task.put("configuration", this.configuration.toString());
-    
-    for( CcdpPort port : this.inputPorts )
-      in.add( port.toJSON() );
-    task.set("input-ports", in);
-    
-    for( CcdpPort port : this.outputPorts )
-      out.add( port.toJSON() );
-    task.set("output-ports", out);
-    
-    return task;
+    return this.mapper.convertValue( this, ObjectNode.class );
   }
   
   /** 

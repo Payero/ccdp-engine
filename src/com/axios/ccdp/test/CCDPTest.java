@@ -1,6 +1,12 @@
 package com.axios.ccdp.test;
 
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.newgen.AmqCcdpConnectionImpl;
@@ -8,6 +14,10 @@ import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
 public class CCDPTest 
@@ -38,8 +48,31 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
+    CcdpVMResource res = new CcdpVMResource();
+    res.setNodeType("EC2");
+    ObjectMapper mapper = new ObjectMapper();
     
+    //mapper.enable(SerializationFeature.INDENT_OUTPUT);
+    //String val = mapper.writeValueAsString(res);
+    ObjectNode node = mapper.convertValue(res,  ObjectNode.class);
     
+    this.logger.debug("The Value: " + res.toString());
+    this.logger.debug("The Value: " + res.toPrettyPrint());
+    
+//    
+//    Map<String, String> map = CcdpUtils.getKeysByFilter("resourceIntf");
+//    this.printMap(map);
+//    
+//    this.printMap( CcdpUtils.getKeysByFilter("resourceIntf.ec2") );
+  }
+  
+  
+  private void printMap( Map<String, String> map )
+  {
+    for( String key : map.keySet() )
+    {
+      this.logger.debug("Property[" + key + "] = " + map.get(key) );
+    }    
   }
   
   

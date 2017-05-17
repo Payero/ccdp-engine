@@ -8,9 +8,11 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -25,7 +27,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *
  */
 public class AMQCcdpTaskingImpl 
-                          implements CcdpTaskingIntf, CcdpEventConsumerIntf
+                          implements CcdpTaskingIntf, CcdpMessageConsumerIntf
 {
 
   /**
@@ -61,6 +63,7 @@ public class AMQCcdpTaskingImpl
    * Generates all the JSON objects
    */
   private ObjectMapper mapper = new ObjectMapper();
+  
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
    * setEventConsumer is invoked.
@@ -177,17 +180,17 @@ public class AMQCcdpTaskingImpl
    * body is the actual payload or event to send.
    * 
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
   @Override
-  public void sendEvent(Map<String, String> props, Object body)
+  public void sendCcdpMessage(Map<String, String> props, CcdpMessage msg)
   {
     if( this.config.has(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL) )
     {
       String channel = 
           this.config.get(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL).asText();
       this.logger.debug("Sending to channel " + channel);
-      this.sendEvent(channel, props, body);
+      this.sendCcdpMessage(channel, props, msg);
     }
     else
     {
@@ -205,15 +208,16 @@ public class AMQCcdpTaskingImpl
    * 
    * @param channel the destination channel to send the event
    * @param props a series of optional header information
-   * @param body the actual body or event to send
+   * @param msg the actual message to send
    */
   @Override
-  public void sendEvent(String channel, Map<String, String> props, Object body)
+  public void sendCcdpMessage(String channel, Map<String, String> props, 
+                              CcdpMessage msg)
   {
     this.logger.info("Sending Event to " + channel);
     String brkr = this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
     this.sender.connect(brkr, channel);
-    this.sender.sendMessage(props, body.toString());
+    this.sender.sendMessage(props, msg.toString());
   }
 
   /**
@@ -286,48 +290,20 @@ public class AMQCcdpTaskingImpl
    * translates the incoming event and transform it into a CcdpThreadRequest.
    * The request is then passed to the CcdpTaskingConsumerIntf object
    * 
-   * @param event the JSON configuration of the tasking request
+   * @param message the JSON configuration of the tasking request
    */
-  @SuppressWarnings("unchecked")
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage message )
   {
-    ObjectNode node = (ObjectNode)event;
-    this.logger.trace("Got a Task Request " + node.toString());
-    
-    try
+    if( message instanceof ThreadRequestMessage )
     {
-      String msg = node.get("body").asText();
-      Map<String, String> cfg = null;
-      
-      if( node.has("config") )
-        cfg = this.mapper.convertValue(node.get("config"), Map.class);
-      
-      List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(msg);
-      if( reqs != null )
-      {
-        this.logger.debug("Got " + reqs.size() + " Thread requests");
-        for( CcdpThreadRequest req : reqs )
-        {
-          if( cfg != null )
-          {
-            for( CcdpTaskRequest task : req.getTasks() )
-            {
-              if( task.getConfiguration().isEmpty() )
-              {
-                this.logger.debug("Setting the Configuration to " + cfg.toString());
-                task.setConfiguration(cfg);
-              }
-            }
-          }
-          this.consumer.onTask(req);
-        }
-      }
+      CcdpThreadRequest req  = ( (ThreadRequestMessage)message ).getRequest();
+      this.consumer.onTask(req);
     }
-    catch( Exception e )
+    else
     {
-      String err = "\n\nERROR: Could not parse the incoming event due to "
-          + "the following:\n" + e.getMessage() + "\nIgnoring Event!!\n";
-      this.logger.error(err);
+      String err = "\n\nERROR: Expecting a ThreadRequestMessage but got "
+          + CcdpMessage.class.getName() + " instead Ignoring Event!!\n";
+      this.logger.error(err);      
     }
   }
 }

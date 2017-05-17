@@ -2,6 +2,9 @@ package com.axios.ccdp.connections.amq;
 
 
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import javax.jms.JMSException;
 import javax.jms.Message;
@@ -11,7 +14,17 @@ import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.message.AssignSessionMessage;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.RunTaskMessage;
+import com.axios.ccdp.message.TaskUpdateMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -33,7 +46,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   /**
    * Stores the object requesting the asynchronous events
    */
-  private CcdpEventConsumerIntf consumer = null;
+  private CcdpMessageConsumerIntf consumer = null;
 
   /**
    * Generates all the JSON objects
@@ -44,7 +57,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
    * Instantiates a new object and sets the consumer
    * @param consumer the object requesting the asynchronous events
    */
-  public AmqReceiver(CcdpEventConsumerIntf consumer)
+  public AmqReceiver(CcdpMessageConsumerIntf consumer)
   {
     this.consumer = consumer;
   }
@@ -56,31 +69,103 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   {
     try
     {
+      // Did I get a TextMessage?
       if (message instanceof TextMessage) 
       {
-        ObjectNode node = this.mapper.createObjectNode();
-        ObjectNode cfg = this.mapper.createObjectNode();
-        @SuppressWarnings("unchecked")
-        Enumeration<String> keys = message.getPropertyNames();
-        while( keys.hasMoreElements() )
+        TextMessage txtMsg = (TextMessage)message;
+        // if it has an integer field called msg-type, then it might be a
+        // CcdpMessage
+        if( txtMsg.propertyExists(CcdpMessage.MSG_TYPE_FLD) )
         {
-          String key = keys.nextElement(); 
-          cfg.put(key, message.getStringProperty(key));
+          int msgTypeNum = txtMsg.getIntProperty(CcdpMessage.MSG_TYPE_FLD);
+          CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
+          CcdpMessage ccdpMsg = null;
+          switch( msgType )
+          {
+            case UNDEFINED:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, UndefinedMessage.class);
+              break;
+            case RUN_TASK:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, RunTaskMessage.class);
+              break;
+            case ASSIGN_SESSION:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, AssignSessionMessage.class);
+              break;
+            case RESOURCE_UPDATE:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, ResourceUpdateMessage.class);
+              break;
+            case TASK_UPDATE:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, TaskUpdateMessage.class);
+              break;
+            case THREAD_REQUEST:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, ThreadRequestMessage.class);
+              break;
+            default:
+              this.logger.error("Message Type not found");
+          }
+          // passing the message to the consumer
+          this.consumer.onCcdpMessage(ccdpMsg);
         }
-        
-        TextMessage text = (TextMessage) message;
-        String msg = text.getText();
-        node.set("config", cfg);
-        node.put("body", msg);
-        this.logger.trace("Message is : " + msg);
-        this.consumer.onEvent(node);
+        else  // is not a CCDP Message, maybe a request?
+        {
+          this.logger.trace("The message was not a CcdpMessage, request?");
+          Map<String, String> cfg = new HashMap<>();
+          
+          // let's get all the configuration
+          @SuppressWarnings("unchecked")
+          Enumeration<String> keys = message.getPropertyNames();
+          while( keys.hasMoreElements() )
+          {
+            String key = keys.nextElement(); 
+            cfg.put(key, message.getStringProperty(key));
+          }
+          
+          String msg = txtMsg.getText();
+          this.logger.trace("Message is : " + msg);
+          // let's try to make a request out of this
+          List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(msg);
+          if( reqs != null )
+          {
+            this.logger.debug("Got " + reqs.size() + " Thread requests");
+            for( CcdpThreadRequest req : reqs )
+            {
+              if( cfg != null )
+              {
+                for( CcdpTaskRequest task : req.getTasks() )
+                {
+                  if( task.getConfiguration().isEmpty() )
+                  {
+                    this.logger.debug("Setting the Configuration to " + cfg.toString());
+                    task.setConfiguration(cfg);
+                  }
+                }
+              }
+              // now we can create a CcdpMessage and pass it along
+              ThreadRequestMessage reqMsg = new ThreadRequestMessage();
+              reqMsg.setRequest(req);
+              this.consumer.onCcdpMessage(reqMsg);
+            }
+          }
+          else
+          {
+            this.logger.debug("Can't find what this is using undefined");
+            UndefinedMessage undMsg = new UndefinedMessage();
+            undMsg.setPayload(txtMsg.getText());
+          }
+        }
       }
       else
       {
         this.logger.warn("Expecting TextMessages only");
       }
     }
-    catch( JMSException e )
+    catch( Exception e )
     {
       this.logger.error("Message: " + e.getMessage(), e);
     }
@@ -135,7 +220,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   }
 }
 
-class Driver implements CcdpEventConsumerIntf
+class Driver implements CcdpMessageConsumerIntf
 {
   Logger logger = Logger.getLogger(Driver.class.getName());
   private AmqReceiver rcvr = null;
@@ -146,9 +231,9 @@ class Driver implements CcdpEventConsumerIntf
 
   }
   
-  public void onEvent(Object request)
+  public void onCcdpMessage(CcdpMessage message)
   {
-    this.logger.debug("Got a new Request: " + request.toString());
+    this.logger.debug("Got a new Message: " + message.toString());
   }
   
   public void stop()

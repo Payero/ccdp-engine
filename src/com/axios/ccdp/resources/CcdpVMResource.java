@@ -17,6 +17,7 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -91,6 +92,10 @@ public class CcdpVMResource implements Serializable
    */
   private String instanceId = null;
   /**
+   * Stores what type of resource is running in this VM
+   */
+  private String nodeType = null;
+  /**
    * A unique identifier to distinguish the agent executing the tasks
    */
   private String agentId = null;
@@ -113,15 +118,21 @@ public class CcdpVMResource implements Serializable
   /**
    * The total amount of CPU available for this resource to use
    */
-  private double CPU = 0;
+  private double totalCPU = 0;
+  private double cpuLoad = 0;
+  
   /**
    * The total amount of MEM available for this resource to use
    */
-  private double MEM = 0;
+  private double totalMEM = 0;
+  private double freeMEM = 0;
+  
   /**
-   * The total amount of Disk space availabe for this resource to use
+   * The total amount of Disk space available for this resource to use
    */
-  private double disk = 0;
+  private double totalDisk = 0;
+  private double freeDisk = 0;
+  
   /**
    * Stores the current state of the resource
    */
@@ -270,7 +281,7 @@ public class CcdpVMResource implements Serializable
    * @return the assignedMEM
    */
   @JsonGetter("assigned-mem")
-  public double getAssignedMEM()
+  public double getAssignedMemory()
   {
     return assignedMEM;
   }
@@ -289,24 +300,45 @@ public class CcdpVMResource implements Serializable
   /**
    * @return the cPU
    */
-  @JsonGetter("cpu")
+  @JsonGetter("total-cpu")
   public double getCPU()
   {
-    return CPU;
+    return totalCPU;
   }
 
   /**
    * @param cPU the cPU to set
    */
-  @JsonSetter("cpu")
+  @JsonSetter("total-cpu")
   public void setCPU(double cPU)
   {
     if( cPU < 0)
       throw new IllegalArgumentException("The CPU needs to be > 0");
     
-    CPU = cPU;
+    totalCPU = cPU;
   }
 
+  /**
+   * @return the cPU
+   */
+  @JsonGetter("system-cpu-load")
+  public double getCPULoad()
+  {
+    return this.cpuLoad;
+  }
+
+  /**
+   * @param cPU the cPU to set
+   */
+  @JsonSetter("system-cpu-load")
+  public void setCPULoad(double cPU)
+  {
+    if( cPU < 0)
+      throw new IllegalArgumentException("The CPU needs to be > 0");
+    
+    this.cpuLoad = cPU;
+  }
+  
   /**
    * @return the assignedDisk
    */
@@ -328,44 +360,85 @@ public class CcdpVMResource implements Serializable
   /**
    * @return the disk
    */
-  @JsonGetter("disk")
+  @JsonGetter("total-disk-space")
   public double getDisk()
   {
-    return disk;
+    return totalDisk;
   }
 
   /**
    * @param disk the disk to set
    */
-  @JsonSetter("disk")
+  @JsonSetter("total-disk-space")
   public void setDisk(double disk)
   {
     if( disk < 0)
       throw new IllegalArgumentException("The Disk needs to be > 0");
     
-    this.disk = disk;
+    this.totalDisk = disk;
   }
 
   /**
+   * @return the disk
+   */
+  @JsonGetter("total-free-space")
+  public double getFreeDiskspace()
+  {
+    return freeDisk;
+  }
+
+  /**
+   * @param disk the disk to set
+   */
+  @JsonSetter("free-disk-space")
+  public void setFreeDiskSpace(double disk)
+  {
+    if( disk < 0)
+      throw new IllegalArgumentException("The Disk needs to be > 0");
+    
+    this.freeDisk = disk;
+  }
+  
+  /**
    * @return the mEM
    */
-  @JsonGetter("mem")
-  public double getMEM()
+  @JsonGetter("total-mem")
+  public double getTotalMemory()
   {
-    return MEM;
+    return totalMEM;
   }
 
   /**
    * @param mEM the mEM to set
    */
-  @JsonSetter("mem")
-  public void setMEM(double mEM)
+  @JsonSetter("total-mem")
+  public void setTotalMemory(double mEM)
   {
     if( mEM <= 0)
       throw new IllegalArgumentException("The MEM needs to be > 0");
-    MEM = mEM;
+    totalMEM = mEM;
   }
 
+  /**
+   * @return the mEM
+   */
+  @JsonGetter("free-mem")
+  public double getFreeMemory()
+  {
+    return freeMEM;
+  }
+
+  /**
+   * @param mEM the mEM to set
+   */
+  @JsonSetter("free-mem")
+  public void setFreeMemory(double mEM)
+  {
+    if( mEM <= 0)
+      throw new IllegalArgumentException("The MEM needs to be > 0");
+    freeMEM = mEM;
+  }
+  
   /**
    * Sets all the tags assigned to the resource 
    * 
@@ -440,6 +513,24 @@ public class CcdpVMResource implements Serializable
   }
 
   /**
+   * @return the type of node
+   */
+  @JsonGetter("node-type")
+  public String getNodeType()
+  {
+    return nodeType;
+  }
+  
+  /**
+   * @param nodeType the type of node
+   */
+  @JsonSetter("node-type")
+  public void setNodeType(String nodeType)
+  {
+    this.nodeType = nodeType;
+  }
+  
+  /**
    * Gets the resource's hostname
    * 
    * @return the resource's hostname
@@ -492,6 +583,18 @@ public class CcdpVMResource implements Serializable
   public boolean isSingleTasked()
   {
     return this.isSingleTasked;
+  }
+  
+  /**
+   * Sets whether or not this resource was allocated to a single task.
+   * 
+   * @param singleTasked whether or not this resource was allocated to a single 
+   *        task.
+   */
+  @JsonSetter("is-single-tasked")
+  public void isSingleTasked(boolean singleTasked)
+  {
+    this.isSingleTasked = singleTasked;
   }
   
   /**
@@ -559,10 +662,25 @@ public class CcdpVMResource implements Serializable
    * @return the last time a task was added to this resource or the time 
    *         this thread was created
    */
+  @JsonGetter("last-assignment")
   public long getLastAssignmentTime()
   {
     return this.last_assignment;
   }
+  
+  /**
+   * Sets the last time a task was added to this resource.  If no task has 
+   * been assigned then the time represents when this object was created.
+   * 
+   * @param assignemtnTime the last time a task was added to this resource or  
+   *        the time this thread was created
+   */
+  @JsonSetter("last-assignment")
+  public void setLastAssignmentTime(long assignmentTime)
+  {
+    this.last_assignment = assignmentTime;
+  }
+  
   
   /**
    * Compares this object with the one provided as argument. The result is as
@@ -638,19 +756,42 @@ public class CcdpVMResource implements Serializable
    */
   public String toString()
   {
+    String str = null;
     
-    ObjectNode node = this.toJSON();
-    StringWriter sw = new StringWriter();
     try
     {
-      mapper.writeValue(sw, node);
+      str = mapper.writeValueAsString(this);
     }
     catch( Exception e )
     {
       throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
     
-    return sw.toString();
+    return str;
+  }
+
+  /**
+   * Prints the contents of the object using a more human readable form.
+   * 
+   * @return a String representation of the object using a more human friendly
+   *         formatting
+   */
+  public String toPrettyPrint()
+  {
+    String str = null;
+    
+    try
+    {
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      str = mapper.writeValueAsString(this);
+    }
+    catch( Exception e )
+    {
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
+    }
+    
+    return str;
   }
   
   /**
@@ -702,32 +843,7 @@ public class CcdpVMResource implements Serializable
    */
   public ObjectNode toJSON()
   {
-    this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    ObjectNode node = this.mapper.createObjectNode();
-    node.put("instance-id", this.instanceId);
-    node.put("hostname",  this.hostname);
-    node.put("agent-id", this.agentId);
-    node.put("session-id", this.assignedSession);
-    
-    node.put("cpu", this.CPU);
-    node.put("assigned-cpu", this.assignedCPU);
-    node.put("mem", this.MEM);
-    node.put("assigned-mem", this.assignedMEM);
-    node.put("disk", this.disk);
-    node.put("assigned-disk", this.assignedDisk);
-    node.put("status", this.status.toString());
-    node.put("is-single-tasked", this.isSingleTasked);
-    node.put("single-task", this.singleTask);
-    node.put("last-assignment", this.last_assignment);
-    
-    ArrayNode tasks = mapper.createArrayNode();
-    
-    for( CcdpTaskRequest task : this.tasks )
-      tasks.add(task.toJSON());
-    
-    node.set("tasks", tasks);
-    
-    return node;
+    return this.mapper.convertValue( this, ObjectNode.class );
   }
   
   
@@ -801,11 +917,11 @@ public class CcdpVMResource implements Serializable
         least = res;
       else if( least.getAssignedCPU() == res.getAssignedCPU() )
       {
-        double currMem = least.getMEM() - least.getAssignedMEM();
-        double mem = res.getMEM() - res.getAssignedMEM();
+        double currMem = least.getTotalMemory() - least.getAssignedMemory();
+        double mem = res.getTotalMemory() - res.getAssignedMemory();
         if( currMem < mem )
           least = res;
-        else if( least.getAssignedMEM() == res.getAssignedMEM() )
+        else if( least.getAssignedMemory() == res.getAssignedMemory() )
         {
           if( res.getNumberTasks() < least.getNumberTasks() )
           least = res;

@@ -3,7 +3,6 @@ package com.axios.ccdp.newgen;
 import java.io.File;
 import java.net.URL;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
 
@@ -16,24 +15,26 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpEventConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.message.AssignSessionMessage;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.message.KillTaskMessage;
+import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.EventType;
 import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
-public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
+public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
 {
   /**
    * Parses and prints all the options or arguments used by this application
@@ -60,10 +61,6 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    */
   private ThreadedTimerTask timer = null;
   /**
-   * Generates all the different JSON objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  /**
    * Retrieves all the system's resources as a JSON object
    */
   private SystemResourceMonitor monitor = new SystemResourceMonitor();
@@ -72,10 +69,6 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    * and sending heartbeats and tasks updates
    */
   private CcdpConnectionIntf connection;
-  /**
-   * Stores the time when the last task was assigned to it
-   */
-  private long lastAssignment = System.currentTimeMillis();
   /**
    * Stores the name of the queue used by the main application to receive 
    * heartbeats and tasks updates
@@ -124,7 +117,7 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
     this.updateResourceInfo();
     
     this.me.setCPU(this.monitor.getTotalNumberCpuCores());
-    this.me.setMEM(this.monitor.getTotalPhysicalMemorySize());
+    this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.me.setDisk(this.monitor.getTotalDiskSpace());
 
     
@@ -186,58 +179,35 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    *  
    *  @param event the JSON object as described above
    */
-  public void onEvent( Object event )
+  public void onCcdpMessage( CcdpMessage message )
   {
-    
-    if( event instanceof JsonNode )
+    CcdpMessageType msgType = CcdpMessageType.get( message.getMessageType() );
+    this.logger.debug("Got a new Event: " + message.toString());
+    switch( msgType )
     {
-      JsonNode node = (JsonNode)event;
-      
-      if( node.has("body") )
-        node = node.get("body");
-      
-      this.logger.debug("Got a new Event: " + node.toString());
-      Iterator<String> names = node.fieldNames(); 
-      while( names.hasNext() )
-      {
-        String name = names.next();
-        
-        this.logger.debug("Name " + name );
-      }
-      
-      if( !node.has("event-type") )
-      {
-        this.logger.error("Cannot procees an event without 'event-type' set");
-        return;
-      }
-      
-      if( !node.has("event") )
-      {
-        this.logger.error("Cannot procees an event without 'event' set");
-        return;
-      }
-      
-      EventType type = EventType.valueOf( node.get("event-type").asText() );
-      this.logger.debug("Processing an event of type " + type);
-      
-      switch( type )
-      {
-      case TASK_REQUEST:
-        this.launchTask(node.get("event"));
+      case ASSIGN_SESSION:
+        AssignSessionMessage sessionMsg = (AssignSessionMessage)message;
+        this.setSessionId(sessionMsg.getSessionId());
         break;
-      case SET_SESSION:
-        this.setSessionId( node.get("event").asText() );
+      case RESOURCE_UPDATE:
+      case RUN_TASK:
+        RunTaskMessage taskMsg = (RunTaskMessage)message;
+        this.launchTask(taskMsg.getTask());
         break;
       case KILL_TASK:
-        this.killTask(node.get("event"));
+        KillTaskMessage killMsg = (KillTaskMessage)message;
+        this.killTask(killMsg.getTask());
         break;
-        default:
-          String msg = "CcdpAgent does not process events of type " + type +
-                       "  It only accepts TASK_REQUEST and KILL_TASK ";
-          this.logger.warn(msg);
-      }
+      case TASK_UPDATE:
+      case THREAD_REQUEST:
+        
+      case UNDEFINED:
+      default:
+        String msg = "CcdpAgent does not process events of type " + msgType;
+        this.logger.warn(msg);
     }
   }
+  
   
   /**
    * Sends an update to the ExecutorDriver with the status change provided
@@ -291,13 +261,10 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    * @param node the object containing enough information to identify the
    *        task to kill
    */
-  public void killTask(JsonNode node)
+  public void killTask(CcdpTaskRequest task)
   {
     try
     {
-      CcdpTaskRequest task = 
-          mapper.treeToValue(node, CcdpTaskRequest.class);
-      
       this.logger.info("Killing Task: " + task.getTaskId() );
       
       synchronized( this )
@@ -326,16 +293,13 @@ public class CcdpAgent implements CcdpEventConsumerIntf, TaskEventIntf
    * @param node describes the task to launch
    * 
    */
-  public void launchTask(JsonNode node)
+  public void launchTask( CcdpTaskRequest task)
   {
     // mutex to protect all global variables
     synchronized( this )
     {
       try
       {
-        CcdpTaskRequest task = 
-            this.mapper.treeToValue(node, CcdpTaskRequest.class);
-        
         CcdpTaskRunner ccdpTask = new CcdpTaskRunner(task, this);
         this.tasks.put(task, ccdpTask);
         this.me.addTask(task);

@@ -221,6 +221,7 @@ public class CcdpMesosScheduler implements Scheduler
           this.driver.sendFrameworkMessage(this.executor.getExecutorId(), offer.getSlaveId(), sid.getBytes());
         }
       }
+      
       // creating a CcdpVMResource object to compare
       CcdpVMResource vm = new CcdpVMResource(id);
       this.logger.debug("Resource " + id + " was not found creating it");
@@ -248,7 +249,7 @@ public class CcdpMesosScheduler implements Scheduler
             vm.setCPU( r.getScalar().getValue() );
             break;
           case "mem":
-            vm.setMEM( r.getScalar().getValue() );
+            vm.setTotalMemory( r.getScalar().getValue() );
             break;
           case "disk":
             vm.setDisk( r.getScalar().getValue() );
@@ -499,7 +500,8 @@ public class CcdpMesosScheduler implements Scheduler
    {
      this.logger.error("executorLost: " + " Driver: " + driver.toString() + 
                  " ExecId " + execId + " SlaveId: " + slvId + " Int? " + status) ;
-     this.engine.resourceLost( slvId.getValue() );
+     
+     this.engine.removeResource( slvId.getValue() );
    }
 
    /**
@@ -519,10 +521,17 @@ public class CcdpMesosScheduler implements Scheduler
    {
      this.logger.debug("frameworkMessage: " + new String(data) + " Driver: " + 
              driver.toString() + " ExecId " + execId + " SlaveId: " + slvId);
-     ObjectNode node = this.mapper.createObjectNode();
-     node.put("type", "message");
-     node.put("data", new String(data));
-     this.engine.onMessage(node);
+     try
+     {
+       CcdpVMResource res = 
+             this.mapper.readValue( new String(data), CcdpVMResource.class);
+     
+       this.engine.updateVMResourceUtilization(res);
+     }
+     catch( Exception e )
+     {
+       this.logger.error("Message: " + e.getMessage(), e);
+     }
    }
 
    /**
@@ -561,5 +570,6 @@ public class CcdpMesosScheduler implements Scheduler
    {
      this.logger.info("slaveLost " + driver.toString() + 
                       " SlaveId: " + slvId.toString() );
+     this.engine.removeResource( slvId.getValue() );
    }
 }

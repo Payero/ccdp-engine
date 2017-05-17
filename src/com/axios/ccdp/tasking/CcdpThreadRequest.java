@@ -11,6 +11,7 @@ import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -427,17 +428,42 @@ public class CcdpThreadRequest implements Serializable
    */
   public String toString()
   {
-    ObjectNode thread = this.toJSON();
+    String str = null;
     
-    String str = thread.toString();
     try
     {
-      str = mapper.writerWithDefaultPrettyPrinter().writeValueAsString(thread);
+      
+      str = mapper.writeValueAsString(this);
     }
-    catch( JsonProcessingException e )
+    catch( Exception e )
     {
       throw new RuntimeException("Could not write Json " + e.getMessage() );
     }
+    
+    return str;
+  }
+
+  /**
+   * Prints the contents of the object using a more human readable form.
+   * 
+   * @return a String representation of the object using a more human friendly
+   *         formatting
+   */
+  public String toPrettyPrint()
+  {
+    String str = null;
+    
+    try
+    {
+      ObjectMapper mapper = new ObjectMapper();
+      mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      str = mapper.writeValueAsString(this);
+    }
+    catch( Exception e )
+    {
+      throw new RuntimeException("Could not write Json " + e.getMessage() );
+    }
+    
     return str;
   }
   
@@ -484,24 +510,7 @@ public class CcdpThreadRequest implements Serializable
    */
   public ObjectNode toJSON()
   {
-    ObjectNode thread = this.mapper.createObjectNode();
-    ArrayNode tasks = this.mapper.createArrayNode();
-    
-    thread.put("thread-id",           this.threadId);
-    thread.put("session-id",          this.sessionId);
-    thread.put("name",                this.name);
-    thread.put("description",         this.description);
-    thread.put("reply-to",            this.replyTo);
-    thread.put("tasks-running-mode",  this.runningMode.toString());
-    thread.put("tasks-submitted",     this.tasksSubmitted);
-    thread.put("use-single-node",     this.runSingleNode);
-    
-    for( CcdpTaskRequest task : this.tasks )
-      tasks.add(task.toJSON());
-    
-    thread.set("tasks",               tasks);
-    
-    return thread;
+    return this.mapper.convertValue( this, ObjectNode.class );
   }
   
   

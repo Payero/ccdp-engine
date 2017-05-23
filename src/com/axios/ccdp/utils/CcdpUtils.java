@@ -89,7 +89,8 @@ public class CcdpUtils
   /** Properties used by the storage controller object */
   public static final String CFG_KEY_STORAGE = "storageIntf";
   
-
+  /** Class handling connection to external entities */
+  public static final String CFG_KEY_CONNECTION_CLASSNAME = "connection.intf.classname";
   /** Class handling connection to external entities */
   public static final String CFG_KEY_TASKING_CLASSNAME = "tasking.intf.classname";
   /** Class handling task allocation and determining when to start/stop VMs */

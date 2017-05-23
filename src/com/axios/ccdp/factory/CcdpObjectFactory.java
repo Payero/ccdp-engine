@@ -80,7 +80,9 @@ public class CcdpObjectFactory
         return obj;
       else
       {
-        String msg = "The classname is not assignable to the given class";
+        
+        String msg = "The classname " + clazz.getName() + 
+                     " is not assignable to the given class";
         throw new RuntimeException( msg );
       }
     }
@@ -110,7 +112,7 @@ public class CcdpObjectFactory
    */
   public CcdpConnectionIntf getCcdpConnectionInterface(ObjectNode config)
   {
-    String key = CcdpUtils.CFG_KEY_TASKING_CLASSNAME;
+    String key = CcdpUtils.CFG_KEY_CONNECTION_CLASSNAME;
     Object obj = this.getNewInstance(key, CcdpConnectionIntf.class);
     CcdpConnectionIntf impl = (CcdpConnectionIntf)obj;
     impl.configure(config);

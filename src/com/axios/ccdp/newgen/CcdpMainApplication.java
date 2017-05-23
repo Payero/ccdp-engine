@@ -46,11 +46,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
-//  /**
-//   * Stores the name of the session with available resources
-//   */
-//  private static final String FREE_SESSION = "available";
-  
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -241,9 +236,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   
   
   /**
-   * Method invokes continuously to monitor the state of the system by the
-   * ThreadedTimerTask object.  It determines whether or not we need to launch
-   * free resources and/or terminate unused ones  
+   * Method invoked continuously by the ThreadedTimerTask object to monitor the 
+   * state of the system .  It determines whether or not we need to launch free
+   * resources and/or terminate unused ones  
    */
   public void onEvent()
   {
@@ -342,7 +337,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Updates the assigned and free resources allocated to this VM.  This 
    * information is sent by the agents as heartbeats
    * 
-   * @param vm the object containing the upadted information
+   * @param vm the object containing the updated information
    */
   private void updateResource( CcdpVMResource vm )
   {
@@ -371,7 +366,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }
       return;
     }
-    else  // found a sid
+    else  // found a session-id
     {
       for( CcdpVMResource res : this.getResourcesBySessionId(sid) )
       {

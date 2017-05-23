@@ -67,7 +67,7 @@ public class CcdpObjectFactory
     String classname = CcdpUtils.getProperty(key );
     if( classname == null )
     {
-      String msg = "The name of the tasking interface is required.  Please " +
+      String msg = "The name of the interface is required.  Please " +
                    "make sure the configuration " + key + " is set properly";
       throw new RuntimeException( msg );
     }

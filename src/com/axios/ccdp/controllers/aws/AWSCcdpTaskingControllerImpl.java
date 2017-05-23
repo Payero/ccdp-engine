@@ -13,6 +13,7 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -126,6 +127,9 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
    * 
    * @param resources the list of resources to test for need of additional 
    *        resources
+   * 
+   * @return true if more resources need to be allocated or false otherwise
+   * 
    */
   public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
@@ -147,6 +151,10 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
+      // do not consider single tasked VMs
+      if( vm.isSingleTasked() )
+        continue;
+      
       assignedCPU[i] = vm.getAssignedCPU();
       assignedMEM[i] = vm.getAssignedMemory();
       availableCPU[i] = vm.getCPU();
@@ -157,7 +165,8 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     if( cpu == 0 && mem == 0 && tasks > 0 )
     {
       this.logger.info("Using Max number of Tasks " + tasks);
-      if(sz > 0 )
+      
+      if( sz > 0 )
       {
         int avgLoad = (int)(load / sz) ;
         if( avgLoad >= tasks )
@@ -419,6 +428,12 @@ public class AWSCcdpTaskingControllerImpl implements CcdpTaskingControllerIntf
     if( task.isSubmitted() )
     {
       this.logger.debug("Job already submitted, skipping it");
+      return false;
+    }
+    
+    if( target.isSingleTasked() )
+    {
+      this.logger.debug("Target is assigned to a dedicated task " + target.getSingleTask() );
       return false;
     }
     

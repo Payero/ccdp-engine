@@ -1,0 +1,6 @@
+{
+  "jobs": 
+    [
+      {"session-id":"test-1",  "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testCpuUsage" , "-p", "60"]}
+    ]
+}

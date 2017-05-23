@@ -530,7 +530,9 @@ public class CcdpMesosScheduler implements Scheduler
      }
      catch( Exception e )
      {
-       this.logger.error("Message: " + e.getMessage(), e);
+       this.logger.error("Error rocessing a frameworkMessage");
+       this.logger.error("Message: " + new String(data) );
+       this.logger.error("Error: " + e.getMessage(), e);
      }
    }
 

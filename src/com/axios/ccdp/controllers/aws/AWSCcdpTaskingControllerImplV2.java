@@ -14,7 +14,9 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -129,10 +131,11 @@ public class AWSCcdpTaskingControllerImplV2
    * @param resources the list of resources to test for need of additional 
    *        resources
    */
-  public boolean needResourceAllocation(List<CcdpVMResource> resources)
+  public CcdpImageInfo needResourceAllocation(List<CcdpVMResource> resources)
   {
+    CcdpImageInfo imgCfg = null;
     if( resources == null )
-      return true;
+      return imgCfg;
     
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
@@ -146,16 +149,30 @@ public class AWSCcdpTaskingControllerImplV2
     double[] availableMEM = new double[sz];
     int load = 0;
     
+    // let's try to guess the node type
+    Map<CcdpNodeType, CcdpImageInfo> types = new HashMap<>();
+    
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
+      CcdpNodeType type = vm.getNodeType();
+      types.put(type, CcdpUtils.getImageInfo(type));
+      
       assignedCPU[i] = vm.getAssignedCPU();
       assignedMEM[i] = vm.getAssignedMemory();
       availableCPU[i] = vm.getCPU();
       availableMEM[i] = vm.getTotalMemory();
       load += vm.getNumberTasks();
     }
-
+    
+    for( CcdpNodeType type : types.keySet() )
+      imgCfg = new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+    
+    if( types.size() == 1 )
+      this.logger.info("Need more " + imgCfg.getNodeTypeAsString() + " nodes");
+    else
+      this.logger.warn("Has more than one type of node, returning first one");
+    
     if( cpu == 0 && mem == 0 && tasks > 0 )
     {
       this.logger.info("Using Max number of Tasks " + tasks);
@@ -167,20 +184,20 @@ public class AWSCcdpTaskingControllerImplV2
           String txt = "Need Resources: the Average Load " + avgLoad + 
               " is greater than allowed " + tasks;
           this.logger.info(txt);
-          return true;
+          return imgCfg;
         }
         else
         {
           String txt = "Does not need Resources: the Average Load " + avgLoad + 
               " is greater than allowed " + tasks;
           this.logger.info(txt);
-          return false;
+          return null;
         }
       }
       else
       {
         this.logger.info("Need Resources: There are no resources running");
-        return true;
+        return imgCfg;
       }
     }
     
@@ -209,13 +226,13 @@ public class AWSCcdpTaskingControllerImplV2
       if( diff <= alloc.get("time").asInt() )
       {
         this.logger.info("Last allocation was recent, need resources");
-        return true;  
+        return imgCfg;  
       }
     }
     else
       this.logger.info("Low utilization rate, don't need additional resources");
     
-    return false;
+    return null;
   }
   
   /**

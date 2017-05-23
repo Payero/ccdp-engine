@@ -16,7 +16,9 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -94,7 +96,7 @@ public class CcdpVMResource implements Serializable
   /**
    * Stores what type of resource is running in this VM
    */
-  private String nodeType = null;
+  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
   /**
    * A unique identifier to distinguish the agent executing the tasks
    */
@@ -381,7 +383,7 @@ public class CcdpVMResource implements Serializable
   /**
    * @return the disk
    */
-  @JsonGetter("total-free-space")
+  @JsonGetter("free-disk-space")
   public double getFreeDiskspace()
   {
     return freeDisk;
@@ -513,22 +515,39 @@ public class CcdpVMResource implements Serializable
   }
 
   /**
-   * @return the type of node
+   * @return the nodeType
    */
   @JsonGetter("node-type")
-  public String getNodeType()
+  public String getNodeTypeAsString()
   {
-    return nodeType;
+    return this.nodeType.name();
+  }
+
+  /**
+   * @return the nodeType
+   */
+  public CcdpNodeType getNodeType()
+  {
+    return this.nodeType;
   }
   
   /**
-   * @param nodeType the type of node
+   * @param nodeType the nodeType to set
    */
   @JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
+    this.nodeType = CcdpNodeType.valueOf(nodeType);
+  }
+  
+  /**
+   * @param nodeType the nodeType to set
+   */
+  public void setNodeType(CcdpNodeType nodeType)
+  {
     this.nodeType = nodeType;
   }
+  
   
   /**
    * Gets the resource's hostname
@@ -565,11 +584,9 @@ public class CcdpVMResource implements Serializable
   @JsonSetter("single-task")
   public void setSingleTask(String singleTask)
   {
+    this.singleTask = singleTask;
     if( singleTask != null )
-    {
       this.isSingleTasked = true;
-      this.singleTask = singleTask;
-    }
     else
       this.isSingleTasked = false;
   }
@@ -584,6 +601,18 @@ public class CcdpVMResource implements Serializable
   {
     return this.isSingleTasked;
   }
+  
+  
+  /**
+   * Returns true if there are no tasks running on this VM or false otherwise
+   * 
+   * @return true if there are no tasks running on this VM or false otherwise
+   */
+  public boolean isFree()
+  {
+    return this.tasks.isEmpty();
+  }
+
   
   /**
    * Sets whether or not this resource was allocated to a single task.
@@ -624,6 +653,7 @@ public class CcdpVMResource implements Serializable
    * 
    * @return the total number of tasks assigned to this resource
    */
+  @JsonIgnore
   public int getNumberTasks()
   {
     return this.tasks.size();
@@ -672,7 +702,7 @@ public class CcdpVMResource implements Serializable
    * Sets the last time a task was added to this resource.  If no task has 
    * been assigned then the time represents when this object was created.
    * 
-   * @param assignemtnTime the last time a task was added to this resource or  
+   * @param assignmentTime the last time a task was added to this resource or  
    *        the time this thread was created
    */
   @JsonSetter("last-assignment")

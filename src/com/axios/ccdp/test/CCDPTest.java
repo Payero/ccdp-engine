@@ -1,22 +1,22 @@
 package com.axios.ccdp.test;
 
 
-import java.io.File;
-import java.util.ArrayList;
+import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.newgen.AmqCcdpConnectionImpl;
-import com.axios.ccdp.newgen.CcdpConnectionIntf;
+import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -47,33 +47,19 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    CcdpNodeType def = CcdpNodeType.DEFAULT;
     
-    CcdpVMResource res = new CcdpVMResource();
-    res.setNodeType("EC2");
-    ObjectMapper mapper = new ObjectMapper();
+    CcdpImageInfo img = CcdpUtils.getImageInfo(def);
+    CcdpImageInfo copy = new CcdpImageInfo(img);
+    copy.setMinReq(1);
+    copy.setMaxReq(2);
+    copy.getTags().put("copy", "true");
+    this.logger.debug("The Original: " + img.toPrettyPrint());
+    this.logger.debug("The Copy: " + copy.toPrettyPrint());
     
-    //mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    //String val = mapper.writeValueAsString(res);
-    ObjectNode node = mapper.convertValue(res,  ObjectNode.class);
-    
-    this.logger.debug("The Value: " + res.toString());
-    this.logger.debug("The Value: " + res.toPrettyPrint());
-    
-//    
-//    Map<String, String> map = CcdpUtils.getKeysByFilter("resourceIntf");
-//    this.printMap(map);
-//    
-//    this.printMap( CcdpUtils.getKeysByFilter("resourceIntf.ec2") );
   }
   
   
-  private void printMap( Map<String, String> map )
-  {
-    for( String key : map.keySet() )
-    {
-      this.logger.debug("Property[" + key + "] = " + map.get(key) );
-    }    
-  }
   
   
   public static void main( String[] args ) throws Exception
@@ -86,7 +72,6 @@ public class CCDPTest
   }
 
 }
-
 
 
 

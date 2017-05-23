@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"test-1",  "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=30,max=60"]}
+      {"session-id":"test-1", "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=10,max=30"]}
     ]
 }

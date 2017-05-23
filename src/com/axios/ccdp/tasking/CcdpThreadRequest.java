@@ -7,12 +7,11 @@ import java.util.List;
 import java.util.UUID;
 
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -93,6 +92,10 @@ public class CcdpThreadRequest implements Serializable
    * A way to communicate back to the sender events about tasking status change
    */
   private String replyTo = "";
+  /** 
+   * Indicates the node type where this task needs to run such as EMR, EC2, etc 
+   **/
+  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
   /**
    * A list of tasks to run in order to execute this processing job
    */
@@ -105,6 +108,7 @@ public class CcdpThreadRequest implements Serializable
    * Indicates whether or not all the tasks have been submitted for this thread
    */
   private boolean tasksSubmitted = false;
+  
   /**
    * Determines whether or not all the tasks need to run on a single processing 
    * node
@@ -177,7 +181,7 @@ public class CcdpThreadRequest implements Serializable
     
     return done;
   }
-  
+
   
   /**
    * @return the description
@@ -273,13 +277,39 @@ public class CcdpThreadRequest implements Serializable
   }
 
   /**
-   * @param replyTo the replyTo to set
+   * @return the nodeType
    */
-  @JsonSetter("reply-to")
-  public void setReplyTo(String replyTo)
+  @JsonGetter("node-type")
+  public String getNodeTypeAsString()
   {
-    this.replyTo = replyTo;
+    return this.nodeType.name();
   }
+
+  /**
+   * @return the nodeType
+   */
+  public CcdpNodeType getNodeType()
+  {
+    return this.nodeType;
+  }
+  
+  /**
+   * @param nodeType the nodeType to set
+   */
+  @JsonSetter("node-type")
+  public void setNodeType(String nodeType)
+  {
+    this.nodeType = CcdpNodeType.valueOf(nodeType);
+  }
+  
+  /**
+   * @param nodeType the nodeType to set
+   */
+  public void setNodeType(CcdpNodeType nodeType)
+  {
+    this.nodeType = nodeType;
+  }
+
   
   /**
    * @return the tasks running mode

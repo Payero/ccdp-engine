@@ -14,6 +14,7 @@ import java.util.UUID;
 
 import org.fusesource.hawtbuf.ByteArrayInputStream;
 
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -107,7 +108,7 @@ public class CcdpTaskRequest implements Serializable
   /** 
    * Indicates the node type where this task needs to run such as EMR, EC2, etc 
    **/
-  private String nodeType;
+  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
   /** 
    * The destination or entity to notify this task has change state 
    **/
@@ -393,16 +394,32 @@ public class CcdpTaskRequest implements Serializable
    * @return the nodeType
    */
   @JsonGetter("node-type")
-  public String getNodeType()
+  public String getNodeTypeAsString()
+  {
+    return this.nodeType.name();
+  }
+
+  /**
+   * @return the nodeType
+   */
+  public CcdpNodeType getNodeType()
   {
     return this.nodeType;
   }
-
+  
   /**
    * @param nodeType the nodeType to set
    */
   @JsonSetter("node-type")
   public void setNodeType(String nodeType)
+  {
+    this.nodeType = CcdpNodeType.valueOf(nodeType);
+  }
+  
+  /**
+   * @param nodeType the nodeType to set
+   */
+  public void setNodeType(CcdpNodeType nodeType)
   {
     this.nodeType = nodeType;
   }
@@ -498,7 +515,7 @@ public class CcdpTaskRequest implements Serializable
   /**
    * Sets the time when this task was launched in milliseconds.
    * 
-   * @param launchedTime the time when this task was launched in milliseconds.
+   * @param time the time when this task was launched in milliseconds.
    */
   @JsonSetter("launched-time")
   public void setLaunchedTimeMillis(long time)

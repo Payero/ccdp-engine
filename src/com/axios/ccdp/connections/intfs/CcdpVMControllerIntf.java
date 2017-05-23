@@ -1,9 +1,9 @@
 package com.axios.ccdp.connections.intfs;
 
 import java.util.List;
-import java.util.Map;
 
 import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -26,66 +26,12 @@ public interface CcdpVMControllerIntf
    * max arguments.  If the tags is not null then they are set and the new 
    * Virtual Machine will contain them.
    * 
-   * @param imageId the image to use to create new Virtual Machines
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * @param tags optional map containing key-value pairs to set
+   * @param imgCfg the image configuration containing all the parameters 
+   *        required to start an instance
    * 
    * @return a list of unique Virtual Machine identifiers
    */
-  public List<String> startInstances(String imageId, int min, int max, 
-                                   Map<String, String> tags);
-  
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * @param imageId the image to use to create new Virtual Machines
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * @param session_id the unique session id assigned to this VM
-   * @param tags optional map containing key-value pairs to set
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  public List<String> startInstances(String imageId, int min, int max, 
-                                   String session_id, Map<String, String> tags);
-  
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * The resources are launched the image id, user data, and tags specified in
-   * the configuration file
-   * 
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  public List<String> startInstances(int min, int max);
-
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * The resources are launched the image id, user data, and tags specified in
-   * the configuration file
-   * 
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * @param session_id the unique session id assigned to this VM
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  public List<String> startInstances(int min, int max, String session_id);
-  
+  public List<String> startInstances( CcdpImageInfo imgCfg ) ;
   
   /**
    * Stops each one of the Virtual Machines whose unique identifier matches the

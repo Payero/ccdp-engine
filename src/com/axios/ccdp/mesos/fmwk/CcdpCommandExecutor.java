@@ -155,7 +155,6 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       this.me.setCPULoad(this.monitor.getSystemCpuLoad());
       this.me.setDisk(this.monitor.getTotalDiskSpace());
       this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
-      
     }
   }
   

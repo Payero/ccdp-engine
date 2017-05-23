@@ -167,17 +167,9 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   }
   
   /**
-   * Gets a JsonNode event of the form:
-   *  {
-   *    config: dictionary with configuration to add,
-   *    body:
-   *      {
-   *        event-type: the event type (TASK_REQUEST, HEARTBEAT, TASKS_STATUS },
-   *        event: the actual event such as the JSON representation of at task
-   *      }
-   *  }
+   * Gets a message from an external entity
    *  
-   *  @param event the JSON object as described above
+   * @param message the incoming message that needs to be consumed
    */
   public void onCcdpMessage( CcdpMessage message )
   {
@@ -258,7 +250,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   /**
    * Kills the task referenced by the taskId argument if is running.
    * 
-   * @param node the object containing enough information to identify the
+   * @param task the object containing enough information to identify the
    *        task to kill
    */
   public void killTask(CcdpTaskRequest task)
@@ -290,7 +282,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
    * however, no other callbacks will be invoked on this executor until this 
    * callback has returned.
    * 
-   * @param node describes the task to launch
+   * @param task describes the task to launch
    * 
    */
   public void launchTask( CcdpTaskRequest task)

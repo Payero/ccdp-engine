@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -53,7 +54,7 @@ public interface CcdpTaskingControllerIntf
    * 
    * @return true if more resources need to be allocated or false otherwise
    */
-  public  boolean needResourceAllocation(List<CcdpVMResource> resources);
+  public  boolean needResourceAllocation(List<CcdpVMResource> resources );
   
   /**
    * Determines whether or not VM resources need to be terminated due to 

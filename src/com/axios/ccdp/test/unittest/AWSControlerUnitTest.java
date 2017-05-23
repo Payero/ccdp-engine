@@ -11,7 +11,9 @@ import org.junit.Test;
 
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -99,25 +101,26 @@ public class AWSControlerUnitTest
     this.aws.configure(this.jsonCfg);
     
     boolean inclusive = false;
-    
+    CcdpImageInfo 
+    imgCfg = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    imgCfg.setMinReq(1);
+    imgCfg.setMaxReq(1);
+
     List<String> launched = new ArrayList<>();
     if( inclusive )
     {
-      String img_id = 
-          this.jsonCfg.get(AWSCcdpVMControllerImpl.FLD_IMAGE_ID).asText();
-      
       String user_data = "#!/bin/bash\n\n "
           + "/data/ccdp_env.py -a download -i\n";
-      
+      imgCfg.setStartupCommand(user_data);
       Map<String, String> tags = new HashMap<String, String>();
       tags.put("Name", "Test-1");
       tags.put("SessionId", "Test-Session");
-          
-      launched = this.aws.startInstances(img_id, 1, 1, tags);
+      imgCfg.setTags(tags);
+      launched = this.aws.startInstances(imgCfg);
     }
     else
     {
-      launched = this.aws.startInstances(1, 1);
+      launched = this.aws.startInstances(imgCfg);
     }
     
     assert(launched.size() == 1);

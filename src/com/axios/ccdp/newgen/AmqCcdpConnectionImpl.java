@@ -297,22 +297,11 @@ public class AmqCcdpConnectionImpl
    * translates the incoming event and transform it into a CcdpThreadRequest.
    * The request is then passed to the CcdpTaskingConsumerIntf object
    * 
-   * @param event the JSON configuration of the tasking request
+   * @param message the message that needs to be passed to the consumer
    */
   public void onCcdpMessage( CcdpMessage message )
   {
     this.consumer.onCcdpMessage(message);
-    
-//    if( event instanceof JsonNode )
-//    {
-//      JsonNode node = (JsonNode)event;
-//      this.logger.trace("Got an Event " + node.toString());
-//      this.consumer.onEvent(node);
-//    }
-//    else
-//    {
-//      this.logger.error("Only JsonNode objects are allowed");
-//    }
   }
 
   

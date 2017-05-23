@@ -35,19 +35,21 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
-  /**
-   * Stores the name of the session with available resources
-   */
-  private static final String FREE_SESSION = "available";
+//  /**
+//   * Stores the name of the session with available resources
+//   */
+//  private static final String FREE_SESSION = "available";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -107,6 +109,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private List<String> skipTermination = new ArrayList<>();
   /**
+   * Stores a list of the differnt node types
+   */
+  private List<String> nodeTypes = new ArrayList<>();
+  /**
    * Continuously monitors the state of the system
    */
   private ThreadedTimerTask timer = null;
@@ -123,9 +129,15 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.mapper.
         configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     
+    // creating a list for each of the node types
     synchronized( this.resources )
     {
-      this.resources.put(FREE_SESSION, new ArrayList<CcdpVMResource>());
+      for( CcdpNodeType type : CcdpNodeType.values() )
+      {
+        String name = type.toString();
+        this.nodeTypes.add(name);
+        this.resources.put(name, new ArrayList<CcdpVMResource>());
+      }
     }
     
     // creating the factory that generates the objects used by the scheduler
@@ -241,7 +253,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       
       for( String sid : this.resources.keySet() )
       {
-        if( !FREE_SESSION.equals(sid) )
+        // don't need to check allocation or deallocation for free agents
+        // as this is taken cared in the checkFreeVMRequirements() method
+        if( !this.nodeTypes.contains(sid) )
         {
           this.checkAllocation( sid );
           this.checkDeallocation( sid );
@@ -254,17 +268,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   
   
   /**
-   * Gets a JsonNode event of the form:
-   *  {
-   *    config: dictionary with configuration to add,
-   *    body:
-   *      {
-   *        event-type: the event type (TASK_REQUEST, HEARTBEAT, TASKS_STATUS },
-   *        event: the actual event such as the JSON representation of at task
-   *      }
-   *  }
+   * Gets a message from an external entity
    *  
-   *  @param event the JSON object as described above
+   * @param message the incoming message that needs to be consumed
    */
   public void onCcdpMessage( CcdpMessage message )
   {
@@ -283,7 +289,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         break;
       case TASK_UPDATE:
         TaskUpdateMessage taskMsg = (TaskUpdateMessage)message;
-        this.updateStatus(taskMsg.getTask());
+        this.updateTaskStatus(taskMsg.getTask());
         break;
       case THREAD_REQUEST:
         ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
@@ -301,7 +307,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * task is found then it sends a request to the appropriate agent to terminate
    * it.
    * 
-   * @param node the task to kill
+   * @param task the task to kill
    */
   private void killTask( CcdpTaskRequest task )
   {
@@ -332,18 +338,26 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }// end of the sync block
   }
   
-  private void updateResource(CcdpVMResource vm )
+  /**
+   * Updates the assigned and free resources allocated to this VM.  This 
+   * information is sent by the agents as heartbeats
+   * 
+   * @param vm the object containing the upadted information
+   */
+  private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
     if( sid == null )
     {
-      this.logger.info("Session ID is null, assign VM to available");
-      vm.setAssignedSession(FREE_SESSION);
-      List<CcdpVMResource> list = this.getResourcesBySessionId(FREE_SESSION);
+      String type = vm.getNodeTypeAsString();
+      this.logger.info("Session ID is null, assign VM to available as " + type);
+      vm.setAssignedSession(type);
+      List<CcdpVMResource> list = this.getResourcesBySessionId(type);
       boolean found = false;
       for( CcdpVMResource res : list )
       {
-        this.logger.info("Comparing " + res.getInstanceId() + " and " + vm.getInstanceId() );
+        this.logger.info("Comparing " + res.getInstanceId() + 
+                         " and " + vm.getInstanceId() );
         if( res.getInstanceId().equals(vm.getInstanceId()))
         {
           found = true;
@@ -353,16 +367,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       if( !found )
       {
         this.logger.info("Was not found adding it");
-        this.resources.get(FREE_SESSION).add(vm);
+        this.resources.get(type).add(vm);
       }
       return;
     }
-    else
+    else  // found a sid
     {
-    
       for( CcdpVMResource res : this.getResourcesBySessionId(sid) )
       {
-        this.logger.info("Comparing " + res.getInstanceId() + " and " + vm.getInstanceId() );
+        this.logger.info("Comparing " + res.getInstanceId() + 
+                         " and " + vm.getInstanceId() );
         if( res.getInstanceId().equals(vm.getInstanceId()) )
         {
           this.logger.info("Found Resource");
@@ -380,7 +394,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.logger.warn("Could not find VM " + vm.getInstanceId() );
   }
   
-  private void updateStatus( CcdpTaskRequest task )
+  /**
+   * Updates the status of a given task.  This method is invoked when an agent
+   * sends an update message.
+   * 
+   * @param task the object with the updated status of a running task
+   */
+  private void updateTaskStatus( CcdpTaskRequest task )
   {
     String tid = task.getTaskId();      
     this.logger.info("Killing Task: " + tid );
@@ -457,6 +477,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             List<CcdpVMResource> list = this.getResources(request);
             for( CcdpVMResource vm : list )
             {
+              // need to make sure we are running on the appropriate node
+              if( !vm.getNodeType().equals(task.getNodeType() ) )
+                continue;
+              
               // It has not been assigned yet and there is nothing running
               if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
               {
@@ -595,9 +619,20 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
-    if ( this.tasker.needResourceAllocation(list) )
-      list = this.allocateResource(sid);
+    // now need to filter by NodeType
+    List<CcdpVMResource> listByNode = new ArrayList<>();
+    for( CcdpVMResource vm : list )
+    {
+      if( vm.getNodeType().equals(req.getNodeType()) )
+        listByNode.add(vm);
+    }
     
+    CcdpImageInfo imgCfg = this.tasker.needResourceAllocation(listByNode); 
+    if ( imgCfg != null  )
+    {
+      imgCfg.setSessionId(sid);
+      list = this.allocateResource(imgCfg);
+    }
     this.logger.debug("Returning a list of resources size " + list.size());
     // Getting all the resources for this session
     return list;
@@ -625,93 +660,96 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         }
         this.logger.debug("----------------------------------------------------------");
         
-        int free_vms = 
-          CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_INITIAL_VMS);
-        List<CcdpVMResource> avails = 
-            this.getResourcesBySessionId(FREE_SESSION); 
-        int available = avails.size();
         
-        if( free_vms > 0 )
+        for( CcdpNodeType type : CcdpNodeType.values() )
         {
-          int need = free_vms - available;
-          if( need > 0 )
-          {
-            this.logger.info("Starting " + need + " free agents");
-            int min = need;
-            int max = need;
-            List<String> launched = this.controller.startInstances(min, max);
+          String typeStr = type.toString();
           
-            for( String id : launched )
-            {
-              CcdpVMResource resource = new CcdpVMResource(id);
-              resource.setStatus(ResourceStatus.LAUNCHED);
-              resource.setAssignedSession(FREE_SESSION);
-              this.logger.debug("Adding resource " + resource.toString());
-              this.resources.get(FREE_SESSION).add(resource);
-            }
-          }// need to deploy agents
-        }// I do need free agents
-        
-        // Now checking to make sure there are no more free agents than needed        
-        this.logger.debug("Making sure we deallocate free nodes as well");
-        int over = available - free_vms;
-        
-        int done = 0;
-        List<String> terminate = new ArrayList<>();
-        List<String> remove = new ArrayList<>();
-        // Do it only if we have more available VMs than needed
-        if( over > 0 )
-        {
-          for( CcdpVMResource res : avails )
+          CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
+          int free_vms = imgCfg.getMinReq();
+          List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
+          int available = avails.size();
+                
+          if( free_vms > 0 )
           {
-            if( done == over )
-              break;
-            
-            // making sure we do not shutdown the framework node
-            String id = res.getInstanceId();
-            if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
+            int need = free_vms - available;
+            if( need > 0 )
             {
-              this.logger.info("Flagging VM " + id + " for termination");
-              res.setStatus(ResourceStatus.SHUTTING_DOWN);
-              
-              // it is not in the 'do not terminate' list
-              if( !this.skipTermination.contains(id) )
-              {
-                terminate.add(id);
-                done++;                
-              }
-              else
-              {
-                this.logger.info("Skipping termination " + id);
-              }
-              
-            }// done searching for running VMs
+              this.logger.info("Starting " + need + " free agents");
+              List<String> launched = this.controller.startInstances(imgCfg);
             
-            // Remove the ones 'SHUTTING_DOWN'
-            if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
-            {
-              long now = System.currentTimeMillis();
-              if( now - res.getLastAssignmentTime() >= 18000 )
+              for( String id : launched )
               {
-                remove.add(id);
+                CcdpVMResource resource = new CcdpVMResource(id);
+                resource.setStatus(ResourceStatus.LAUNCHED);
+                resource.setAssignedSession(typeStr);
+                this.logger.debug("Adding resource " + resource.toString());
+                this.resources.get(typeStr).add(resource);
               }
-            }// is it shutting down?
-          }// done with the VMs
-        }
-        int sz = terminate.size();
-        if( sz > 0 )
-        {
-          this.logger.info("Terminating " + terminate.toString() );
-          this.controller.terminateInstances(terminate);
-        }
+            }// need to deploy agents
+          }// I do need free agents
         
-        // remove old pending 'SHUTTING_DOWN' nodes from map
-        for( String iid : remove )
-        {
-          this.logger.debug("Removing " + iid + " from resources map");
-          this.resources.remove(iid);
-        }
+          // Now checking to make sure there are no more free agents than needed        
+          this.logger.debug("Making sure we deallocate free nodes as well");
+          int over = available - free_vms;
+          
+          int done = 0;
+          List<String> terminate = new ArrayList<>();
+          List<String> remove = new ArrayList<>();
+          // Do it only if we have more available VMs than needed
+          if( over > 0 )
+          {
+            for( CcdpVMResource res : avails )
+            {
+              if( done == over )
+                break;
+              
+              // making sure we do not shutdown the framework node
+              String id = res.getInstanceId();
+              if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
+              {
+                this.logger.info("Flagging VM " + id + " for termination");
+                res.setStatus(ResourceStatus.SHUTTING_DOWN);
+                
+                // it is not in the 'do not terminate' list
+                if( !this.skipTermination.contains(id) )
+                {
+                  terminate.add(id);
+                  done++;                
+                }
+                else
+                {
+                  this.logger.info("Skipping termination " + id);
+                }
+                
+              }// done searching for running VMs
+              
+              // Remove the ones 'SHUTTING_DOWN'
+              if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
+              {
+                long now = System.currentTimeMillis();
+                if( now - res.getLastAssignmentTime() >= 18000 )
+                {
+                  remove.add(id);
+                }
+              }// is it shutting down?
+            }// done with the VMs
+          }
         
+          int sz = terminate.size();
+          if( sz > 0 )
+          {
+            this.logger.info("Terminating " + terminate.toString() );
+            this.controller.terminateInstances(terminate);
+          }
+          
+          // remove old pending 'SHUTTING_DOWN' nodes from map
+          for( String iid : remove )
+          {
+            this.logger.debug("Removing " + iid + " from resources map");
+            this.resources.remove(iid);
+          }
+        }// end of the NodeType for loop
       }// end of the sync block
     }
     catch( Exception e )
@@ -733,9 +771,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void checkAllocation( String sid )
   {
     List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
-    if( this.tasker.needResourceAllocation(sid_vms) )
+    CcdpImageInfo imgCfg = this.tasker.needResourceAllocation(sid_vms);
+    if( imgCfg != null )
     {
-      this.allocateResource(sid);
+      imgCfg.setSessionId(sid);
+      this.allocateResource(imgCfg);
     }
   }
   
@@ -743,13 +783,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Adds more resources to the given session-id.  It first attempts to get it
    * from the available pool, if it cannot find one then it launches one.
    * 
-   * @param sid the session that needs more resources allocated to it
+   * @param req the request that needs resources
    * @return the updated list of resources assigned to the session
    */
-  private List<CcdpVMResource> allocateResource( String sid )
+  private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg )
   {
+    String sid = imgCfg.getSessionId();
+    String typeStr = imgCfg.getNodeTypeAsString();
+    
     this.logger.info("Allocating resources to Session " + sid);
-    List<CcdpVMResource> free_vms = this.getResourcesBySessionId(FREE_SESSION);
+    List<CcdpVMResource> free_vms = this.getResourcesBySessionId(typeStr);
     if( free_vms.size() > 0 )
     {
       CcdpVMResource res = free_vms.get(0);
@@ -773,8 +816,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     else
     {
+      CcdpNodeType type = imgCfg.getNodeType();
+      // Getting a copy rather than the actual configured object so I can 
+      // modify it without affecting the initial configuration 
+      CcdpImageInfo imgInfo = 
+          new CcdpImageInfo(CcdpUtils.getImageInfo(type));
       this.logger.info("Did not find an available resource, creating one");
-      List<String> launched = this.controller.startInstances(1, 1);
+      imgInfo.setSessionId(sid);
+      imgInfo.setMinReq(1);
+      imgInfo.setMaxReq(1);
+      List<String> launched = this.controller.startInstances(imgInfo);
 
       for( String iid : launched )
       {
@@ -813,7 +864,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     for( CcdpVMResource vm : vms )
     {
       vm.setSingleTask(null);
-      vm.setAssignedSession(FREE_SESSION);
+      vm.setAssignedSession(vm.getNodeTypeAsString());
     }
   }
   

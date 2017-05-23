@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Matcher;
@@ -25,9 +26,14 @@ import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
+import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -65,8 +71,8 @@ public class CcdpUtils
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
   /**  The key name of the property used to connect to a broker  */
   public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
-  /** The key name of the property used determine min number of free agents **/
-  public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
+//  /** The key name of the property used determine min number of free agents **/
+//  public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
   /** The key name of the property used add or not an agent at initialization **/
   public static final String CFG_KEY_SKIP_AGENT = "skip.local.agent";
   /** The key name of the property used to set the checking cycle in seconds **/
@@ -93,7 +99,6 @@ public class CcdpUtils
   /** Class used to interact with the storage solution */
   public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
 
-  
   
   /** The JSON key used to store the user's session id **/
   public static final String KEY_SESSION_ID = "session-id";
@@ -125,6 +130,17 @@ public class CcdpUtils
   public static final String KEY_CCDP_LOG_DIR = "ccdp-log-dir";
   
   /****************************************************************************/
+  /**
+   * Defines all the different types of processing nodes supported for data 
+   * processing.  It is intended to be able to instantiate images based on the
+   * processing needs
+   * 
+   * @author Oscar E. Ganteaume
+   *
+   */
+  public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
+                                    CUSTOM, OTHER, DEFAULT, UNKNOWN };
+  
   /****************************************************************************/
   /**
    * Stores all the properties used by the system
@@ -135,6 +151,8 @@ public class CcdpUtils
   
   private static ObjectMapper mapper = new ObjectMapper();
   
+  private static Map<CcdpNodeType, CcdpImageInfo> 
+                                                      images = new HashMap<>();
   /**
    * Configures the running environment using the properties file whose name
    * matches the CcdpUtils.KEY_CFG_FILE property.  If not found then it attempts
@@ -258,8 +276,8 @@ public class CcdpUtils
     else
     {
       String fname = CcdpUtils.expandVars(cfgFile.trim());
-      PropertyConfigurator.configure(CcdpUtils.expandVars(cfgFile));
-      logger.debug("Configuring Logger using file: " + cfgFile);
+      PropertyConfigurator.configure(fname);
+      logger.debug("Configuring Logger using file: " + fname);
     }
   }
   
@@ -349,6 +367,19 @@ public class CcdpUtils
       String val = CcdpUtils.expandVars(props.getProperty(key));
       CcdpUtils.properties.setProperty(key, val);
     }
+    // now we can load the image configuration
+    CcdpUtils.loadImageConfiguration();
+  }
+  
+  /**
+   * Tests whether or not the configuration contains the given key
+   * 
+   * @param key the key containing the desired property
+   * @return true if the key exists or false otherwise
+   */
+  public static boolean containsKey(String key)
+  {
+    return CcdpUtils.properties.containsKey(key);
   }
   
   /**
@@ -419,17 +450,25 @@ public class CcdpUtils
     logger.debug("Parsing all the keys starting with " + filter);
     HashMap<String, String> map = new HashMap<String, String>();
     Enumeration<?> e = CcdpUtils.properties.propertyNames();
+    
+    if( filter == null )
+      return map;
+    
+    int start = filter.length() + 1;
+    
     while( e.hasMoreElements() )
     {
       String key = (String) e.nextElement();
       if( key.startsWith(filter) )
       {
         String val = CcdpUtils.properties.getProperty(key).trim();
-        
-        int start = filter.length() + 1;
-        String prop = key.substring(start);
-        logger.debug("Storing Property[" + prop + "] = " + val);
-        map.put(prop, val);
+        // making sure I am ignoring the first one
+        if( key.length() > filter.length() )
+        {
+          String prop = key.substring(start);
+          logger.debug("Storing Property[" + prop + "] = " + val);
+          map.put(prop, val);
+        }
       }
     }
     
@@ -755,5 +794,73 @@ public class CcdpUtils
     in.close();
     return data;
   }
+
+  /**
+   * Gets the image configuration for a specific type of node.  If the type is
+   * null then it throws an exception
+   * 
+   * @param type the type of node whose image information is required
+   * 
+   * @return an object representing the image configuration for the specified 
+   *         node type
+   * @throws InvalidArgumentException an InvalidArgumentException is thrown if
+   *         the type is null            
+   * */
+  public static CcdpImageInfo getImageInfo(CcdpNodeType type)
+  {
+    if( type == null )
+      throw new InvalidArgumentException("The Node Type cannot be null");
+    
+    return CcdpUtils.images.get(type);
+  }
+  
+  /**
+   * Loads all the image information from the configuration file.  All the 
+   * different node types are defined in the CcdpUtils.CcdpNodeType enum
+   */
+  private static void loadImageConfiguration()
+  {
+    
+    for( CcdpNodeType type : CcdpNodeType.values() )
+    {
+      String strType = type.toString().toLowerCase();
+      
+      CcdpImageInfo img = new CcdpImageInfo();
+      img.setNodeType(type);
+      
+      String filter = CFG_KEY_RESOURCE + "." + strType;
+
+      Map<String, String> map = CcdpUtils.getKeysByFilter(filter);
+      if( !map.isEmpty() )
+      {
+        if( map.containsKey("min.number.free.agents") )
+          img.setMinReq(Integer.parseInt(map.get("min.number.free.agents")));
+        if( map.containsKey("image.id") )
+          img.setImageId(map.get("image.id"));
+        if( map.containsKey("security.group") )
+          img.setSecGrp(map.get("security.group"));
+        if( map.containsKey("subnet.id") )
+          img.setSubnet(map.get("subnet.id"));
+        if( map.containsKey("key.file.name") )
+          img.setKeyFile(map.get("key.file.name"));
+        
+        try
+        {
+          if(map.containsKey("tags"))
+          {
+            map = mapper.readValue(map.get("tags"),
+                new TypeReference<HashMap<String, String>>() {});
+            img.setTags(map);
+          }
+        }
+        catch(Exception e )
+        {
+          System.err.println("Could not parse the image tags: " + e.getMessage());
+        }
+      }// the map is not empty
+      CcdpUtils.images.put(type, img);
+      logger.debug("ImagCfg: " + img.toPrettyPrint());
+    }// end of the NodeType loop
+  }// end of the method
   
 }

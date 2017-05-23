@@ -1,9 +1,7 @@
 package com.axios.ccdp.controllers.aws;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 
 import com.amazonaws.util.Base64;
 
@@ -27,9 +25,7 @@ import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Instance;
-import com.amazonaws.services.ec2.model.InstanceState;
 import com.amazonaws.services.ec2.model.InstanceStatus;
-import com.amazonaws.services.ec2.model.InstanceStatusDetails;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
@@ -41,10 +37,9 @@ import com.amazonaws.services.ec2.model.TerminateInstancesResult;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
@@ -59,24 +54,24 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   public static final String ACCESS_SECRET_PROPERTY = "aws.secretKey";
   
   /** The name of the files with access keys */
-  public static final String FLD_CREDS_FILE   = "credentials-file";
+  public static final String FLD_CREDS_FILE   = "credentials.file";
   /** The profile to use in the given file */
-  public static final String FLD_PROFILE_NAME = "profile-name";
-  
-  /** The Image ID to use */
-  public static final String FLD_IMAGE_ID = "image.id";
-  /** The security group resource ID to use */
-  public static final String FLD_SECURITY_GRP = "security.group";
-  /** The subnet resource id to use */
-  public static final String FLD_SUBNET_ID    = "subnet.id";
+  public static final String FLD_PROFILE_NAME = "profile.name";
   /** The type of instance to deploy (default t2.micro) */
   public static final String FLD_INST_TYPE    = "instance.type";
-  /** The name of the .pem key file (without the extension) */
-  public static final String FLD_KEY_FILE     = "key.file.name";
-  /** The User data to use */
-  public static final String FLD_USER_DATA = "user.data";
-  /** The tags use */
-  public static final String FLD_TAGS = "tags";
+  
+//  /** The Image ID to use */
+//  public static final String FLD_IMAGE_ID = "image.id";
+//  /** The security group resource ID to use */
+//  public static final String FLD_SECURITY_GRP = "security.group";
+//  /** The subnet resource id to use */
+//  public static final String FLD_SUBNET_ID    = "subnet.id";
+//  /** The name of the .pem key file (without the extension) */
+//  public static final String FLD_KEY_FILE     = "key.file.name";
+//  /** The User data to use */
+//  public static final String FLD_USER_DATA = "user.data";
+//  /** The tags use */
+//  public static final String FLD_TAGS = "tags";
   /**
    * Stores the command to execute at startup
    */
@@ -97,11 +92,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * Object responsible for authenticating with AWS
    */
   private AmazonEC2 ec2 = null;
-  
-  /**
-   * Creates all the ObjectNode and ArrayNode objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new object, but it does not do anything
@@ -156,25 +146,20 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     // the configuration is required
     if( config == null )
       throw new IllegalArgumentException("The config cannot be null");
-    // let's check all the required fields
-    String msg = null;
-    if(!config.has(FLD_SECURITY_GRP) )
-    {
-      msg = "The JSON configuration is missing a required field (" 
-            + FLD_SECURITY_GRP + ")";
-    }
-    else if( !config.has(FLD_SUBNET_ID) )
-    {
-      msg = "The JSON configuration is missing a required field (" 
-          + FLD_SUBNET_ID + ")";
-    }
     
-    
-    if( msg != null )
+    this.config = config;
+    // need to make sure the default configuration is set properly
+    CcdpImageInfo def = 
+        CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+    if( def.getImageId() == null || 
+        def.getSecGrp() == null || 
+        def.getSubnet() == null )
     {
+      String msg = "One of the required fields for the default VM configuraion "
+          + "is missing.  Please make sure the system is configured propertly.";
+      
       throw new IllegalArgumentException(msg);
     }
-    this.config = config;
     
     AWSCredentials credentials = 
         AWSCcdpVMControllerImpl.getAWSCredentials(config);
@@ -185,44 +170,104 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
   }
   
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  @Override
-  public List<String> startInstances(int min, int max )
-  {
-    String imgId = this.config.get(FLD_IMAGE_ID).asText();
-    HashMap<String, String> map = null;
-    
-    if(this.config.has(FLD_TAGS))
-    {
-      JsonNode tags = this.config.get(FLD_TAGS);
-      
-      try
-      {
-        if( tags != null )
-        {
-          map = this.mapper.readValue(tags.asText(),
-              new TypeReference<HashMap<String, String>>() {
-              });
-        }
-      }
-      catch( IOException e )
-      {
-        logger.error("Message: " + e.getMessage(), e);
-      }  
-    }
-    
-    return this.startInstances(imgId, min, max, null);
-  }
+//  /**
+//   * Starts one or more VM instances using the defined Image ID as given by the
+//   * imageId argument.  The number of instances are determined by the min and 
+//   * max arguments.  If the tags is not null then they are set and the new 
+//   * Virtual Machine will contain them.
+//   * 
+//   * @param min the minimum number of Virtual Machines to create
+//   * @param max the maximum number of Virtual Machines to create
+//   * 
+//   * @return a list of unique Virtual Machine identifiers
+//   */
+//  @Override
+//  public List<String> startInstances(int min, int max )
+//  {
+//    String imgId = this.config.get(FLD_IMAGE_ID).asText();
+//    HashMap<String, String> map = null;
+//    
+//    if(this.config.has(FLD_TAGS))
+//    {
+//      JsonNode tags = this.config.get(FLD_TAGS);
+//      
+//      try
+//      {
+//        if( tags != null )
+//        {
+//          map = this.mapper.readValue(tags.asText(),
+//              new TypeReference<HashMap<String, String>>() {
+//              });
+//        }
+//      }
+//      catch( IOException e )
+//      {
+//        logger.error("Message: " + e.getMessage(), e);
+//      }  
+//    }
+//    
+//    return this.startInstances(imgId, min, max, null);
+//  }
+//
+//  /**
+//   * Starts one or more VM instances using the defined Image ID as given by the
+//   * imageId argument.  The number of instances are determined by the min and 
+//   * max arguments.  If the tags is not null then they are set and the new 
+//   * Virtual Machine will contain them.
+//   * 
+//   * @param min the minimum number of Virtual Machines to create
+//   * @param max the maximum number of Virtual Machines to create
+//   * 
+//   * @return a list of unique Virtual Machine identifiers
+//   */
+//  @Override
+//  public List<String> startInstances(int min, int max, String session_id )
+//  {
+//    String imgId = this.config.get(FLD_IMAGE_ID).asText();
+//    HashMap<String, String> map = null;
+//    
+//    if(this.config.has(FLD_TAGS))
+//    {
+//      JsonNode tags = this.config.get(FLD_TAGS);
+//      
+//      try
+//      {
+//        if( tags != null )
+//        {
+//          map = this.mapper.readValue(tags.asText(),
+//              new TypeReference<HashMap<String, String>>() {
+//              });
+//        }
+//      }
+//      catch( IOException e )
+//      {
+//        logger.error("Message: " + e.getMessage(), e);
+//      }  
+//    }
+//    
+//    return this.startInstances(imgId, min, max, session_id, map);
+//  }
+//  
+//
+//  /**
+//   * Starts one or more VM instances using the defined Image ID as given by the
+//   * imageId argument.  The number of instances are determined by the min and 
+//   * max arguments.  If the tags is not null then they are set and the new 
+//   * Virtual Machine will contain them.
+//   * 
+//   * @param imgId the image to use to create new Virtual Machines
+//   * @param min the minimum number of Virtual Machines to create
+//   * @param max the maximum number of Virtual Machines to create
+//   * @param tags optional map containing key-value pairs to set
+//   * 
+//   * @return a list of unique Virtual Machine identifiers
+//   */
+//  @Override
+//  public List<String> startInstances(String imgId, int min, int max, 
+//                                  Map<String, String> tags)
+//  {
+//    return this.startInstances(imgId, min, max, null, tags);
+//  }
 
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
@@ -230,79 +275,25 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * max arguments.  If the tags is not null then they are set and the new 
    * Virtual Machine will contain them.
    * 
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
+   * @param imgCfg the image configuration containing all the parameters 
+   *        required to start an instance
+   * 
    * 
    * @return a list of unique Virtual Machine identifiers
    */
   @Override
-  public List<String> startInstances(int min, int max, String session_id )
+  public List<String> startInstances( CcdpImageInfo imgCfg )
   {
-    String imgId = this.config.get(FLD_IMAGE_ID).asText();
-    HashMap<String, String> map = null;
     
-    if(this.config.has(FLD_TAGS))
-    {
-      JsonNode tags = this.config.get(FLD_TAGS);
-      
-      try
-      {
-        if( tags != null )
-        {
-          map = this.mapper.readValue(tags.asText(),
-              new TypeReference<HashMap<String, String>>() {
-              });
-        }
-      }
-      catch( IOException e )
-      {
-        logger.error("Message: " + e.getMessage(), e);
-      }  
-    }
-    
-    return this.startInstances(imgId, min, max, session_id, map);
-  }
-  
-
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * @param imgId the image to use to create new Virtual Machines
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * @param tags optional map containing key-value pairs to set
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  @Override
-  public List<String> startInstances(String imgId, int min, int max, 
-                                  Map<String, String> tags)
-  {
-    return this.startInstances(imgId, min, max, null, tags);
-  }
-
-  /**
-   * Starts one or more VM instances using the defined Image ID as given by the
-   * imageId argument.  The number of instances are determined by the min and 
-   * max arguments.  If the tags is not null then they are set and the new 
-   * Virtual Machine will contain them.
-   * 
-   * @param imgId the image to use to create new Virtual Machines
-   * @param min the minimum number of Virtual Machines to create
-   * @param max the maximum number of Virtual Machines to create
-   * @param session_id the session id to assign to this resource
-   * @param tags optional map containing key-value pairs to set
-   * 
-   * @return a list of unique Virtual Machine identifiers
-   */
-  @Override
-  public List<String> startInstances(String imgId, int min, int max, 
-                                  String session_id, Map<String, String> tags)
-  {
     List<String> launched = null;
+    String imgId = imgCfg.getImageId();
+    int min = imgCfg.getMinReq();
+    int max = imgCfg.getMaxReq();
+    String session_id = imgCfg.getSessionId();
+    String type = imgCfg.getNodeTypeAsString();
+    logger.info("Starting VM of type " + type + " for session " + session_id ) ;
+    
+    Map<String, String> tags = imgCfg.getTags();
     
     RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
     String instType = "t2.micro";
@@ -321,9 +312,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
-         .withSecurityGroupIds(this.config.get(FLD_SECURITY_GRP).asText())
-         .withSubnetId(this.config.get(FLD_SUBNET_ID).asText())
-         .withKeyName(this.config.get(FLD_KEY_FILE).asText());
+         .withSecurityGroupIds(imgCfg.getSecGrp())
+         .withSubnetId(imgCfg.getSubnet())
+         .withKeyName(imgCfg.getKeyFile());
     
     RunInstancesResult result = this.ec2.runInstances(request);
     SdkHttpMetadata shm = result.getSdkHttpMetadata();
@@ -498,22 +489,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         
       }
       resources.put(instId, res);
-      
-//      
-//      List<InstanceStatusDetails>  dets = stat.getInstanceStatus().getDetails();
-//      Iterator<InstanceStatusDetails> details = dets.iterator();
-//      ObjectNode jDets = this.mapper.createObjectNode();
-//      
-//      while( details.hasNext() )
-//      {
-//        InstanceStatusDetails detail = details.next();
-//        String name = detail.getName();
-//        String val = detail.getStatus();
-//        jDets.put(name, val);
-//      }
-//      obj.set("details", jDets);
-//      logger.debug("Adding: " + obj);
-//      instancesJson.set(instId, obj);
     }
     
     
@@ -529,7 +504,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         Instance instance = instances.next();
         String id = instance.getInstanceId();
         String pubIp = instance.getPublicIpAddress();
-        String privIp = instance.getPrivateIpAddress();
         if( resources.containsKey(id) )
         {
           try

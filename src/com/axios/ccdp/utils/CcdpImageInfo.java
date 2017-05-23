@@ -75,7 +75,7 @@ public class CcdpImageInfo
    * arguments
    * 
    * @param min the minimum number of running instances at any given time
-   * @param min the maximum number of running instances at any given time
+   * @param max the maximum number of running instances at any given time
    * @param type the type of Node the instances of this class will be used for
    * @param imgId an unique id used to identify the image to use
    * @param sessionId the session id associated with this instance

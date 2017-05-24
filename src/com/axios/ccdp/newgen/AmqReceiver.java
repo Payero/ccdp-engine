@@ -102,6 +102,44 @@ public class AmqReceiver extends AmqConnector implements MessageListener
 //    }
 //  }
   
+  private void printMessage( TextMessage msg )
+  {
+    try
+    {
+      Enumeration keys = msg.getPropertyNames();
+      
+      while( keys.hasMoreElements() )
+      {
+        String key = (String)keys.nextElement();
+        Object obj = msg.getObjectProperty(key);
+        System.err.println("Message[" + key + "] = " + obj.toString() );
+        if( obj instanceof String )
+          System.err.println("Is a String");
+        else if( obj instanceof Integer )
+          System.err.println("Is an Integer");
+        else if( obj instanceof Long )
+          System.err.println("Is a Long");
+        else if( obj instanceof Boolean )
+          System.err.println("Is a Boolean");
+        else if( obj instanceof Double )
+          System.err.println("Is a Double");
+        else if( obj instanceof Byte )
+          System.err.println("Is a Byte");
+        else if( obj instanceof Float )
+          System.err.println("Is a Float");
+        else if( obj instanceof Short )
+          System.err.println("Is a Short");
+      }
+      
+      System.err.println("The Body = " + msg.getText());
+    }
+    catch (JMSException e)
+    {
+      e.printStackTrace();
+    }
+    
+  }
+  
   /**
    * Method invoked every time a new AMQ message is received
    */
@@ -113,12 +151,20 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       if (message instanceof TextMessage) 
       {
         TextMessage txtMsg = (TextMessage)message;
+        this.printMessage(txtMsg);
+        this.logger.debug("Incoming message " + txtMsg.getText());
+        
+        if( true )
+          return;
+        
         // if it has an integer field called msg-type, then it might be a
         // CcdpMessage
         if( txtMsg.propertyExists(CcdpMessage.MSG_TYPE_FLD) )
         {
           int msgTypeNum = txtMsg.getIntProperty(CcdpMessage.MSG_TYPE_FLD);
+          this.logger.debug("Got a message type " + msgTypeNum);
           CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
+          this.logger.debug("The Message Type is " + msgType);
           CcdpMessage ccdpMsg = null;
           switch( msgType )
           {

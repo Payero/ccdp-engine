@@ -107,7 +107,6 @@ public class AmqReceiver extends AmqConnector implements MessageListener
     try
     {
       Enumeration keys = msg.getPropertyNames();
-      
       while( keys.hasMoreElements() )
       {
         String key = (String)keys.nextElement();

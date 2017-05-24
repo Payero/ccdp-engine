@@ -244,7 +244,7 @@ public class AmqCcdpConnectionImpl
       if( this.senders.containsKey(channel) )
       {
         AmqSender sender = this.senders.get(channel);
-        sender.sendMessage(channel, props,  msg.toString(), ttl);
+        sender.sendMessage(channel, props,  msg, ttl);
       }
       else
       {

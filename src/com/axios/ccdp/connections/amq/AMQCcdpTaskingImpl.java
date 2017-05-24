@@ -2,9 +2,7 @@ package com.axios.ccdp.connections.amq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
 
 import org.apache.log4j.Logger;
 
@@ -13,10 +11,8 @@ import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -59,11 +55,6 @@ public class AMQCcdpTaskingImpl
    */
   private ObjectNode config = null;
 
-  /**
-   * Generates all the JSON objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  
   /**
    * Instantiates a new object.  The receiver is not instantiated until the
    * setEventConsumer is invoked.

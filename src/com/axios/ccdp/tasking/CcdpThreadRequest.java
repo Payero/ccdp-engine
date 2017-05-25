@@ -9,6 +9,8 @@ import java.util.UUID;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -57,6 +59,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class CcdpThreadRequest implements Serializable
 {
   /**
@@ -410,6 +413,7 @@ public class CcdpThreadRequest implements Serializable
    * @return  true if all the tasks have been removed from the list or false 
    *          otherwise
    */
+  @JsonIgnore
   public boolean isDone()
   {
     return this.tasks.isEmpty();

@@ -7,7 +7,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,13 +15,22 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.message.AssignSessionMessage;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.UndefinedMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -36,7 +44,6 @@ import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -55,7 +62,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
+//public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf, CcdpMessageConsumerIntf
+public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
 {
 //  /**
 //   * Stores the name of the session with available resources
@@ -88,11 +96,17 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
    */
   private ConcurrentLinkedQueue<CcdpThreadRequest> 
                 requests = new ConcurrentLinkedQueue<>();
-  
+
   /**
-   * Stores the object responsible for sending and receiving tasking information
+   * Object used to send and receive messages such as incoming tasks to 
+   * process, heartbeats, and tasks updates
    */
-  private CcdpTaskingIntf taskingInf = null;
+  private CcdpConnectionIntf connection;
+  
+//  /**
+//   * Stores the object responsible for sending and receiving tasking information
+//   */
+//  private CcdpTaskingIntf taskingInf = null;
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
@@ -147,14 +161,23 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     ObjectNode storage_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
     
-    this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
+//    this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
+    this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
     this.controller = factory.getCcdpResourceController(res_ctr_node);
     this.storage = factory.getCcdpStorageControllerIntf(storage_node);
     
-    this.taskingInf.setTaskConsumer(this);
-    this.taskingInf.register(this.engineId);
-      
+//    this.taskingInf.setTaskConsumer(this);
+//    this.taskingInf.register(this.engineId);
+    this.connection.configure(task_msg_node);
+    this.connection.setConsumer(this);
+    if( this.def_channel != null )
+      this.connection.registerProducer(this.def_channel);
+    
+    String toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    this.logger.info("Registering as " + this.engineId);
+    this.connection.registerConsumer(this.engineId, toMain);
+    
     // Skipping some nodes from termination
     String ids = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_SKIP_TERMINATION);
     
@@ -488,10 +511,12 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     
     if( channel != null && channel.length() > 0 )
     {
+      this.connection.registerProducer(channel);
       this.logger.debug("Status change, sending message to " + channel);
       TaskUpdateMessage taskMsg = new TaskUpdateMessage();
       taskMsg.setTask(task);
-      this.taskingInf.sendCcdpMessage(channel, null, taskMsg);
+//      this.taskingInf.sendCcdpMessage(channel, null, taskMsg);
+      this.connection.sendCcdpMessage(channel, taskMsg);
     }
     else
     {
@@ -1344,9 +1369,29 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
     }
   }
   
-  public void onMessage( JsonNode message )
+  public void onCcdpMessage(CcdpMessage message)
   {
-    this.logger.debug("Got a new Message " + message.toString());
+    CcdpMessageType msgType = CcdpMessageType.get(message.getMessageType());
+    this.logger.debug("Got a " + msgType + " Message");
+    switch( msgType )
+    {
+      case UNDEFINED:
+        UndefinedMessage undMsg = (UndefinedMessage)message;
+        this.logger.info("Undefined Msg: " + undMsg.getPayload().toString());
+        break;
+      case RESOURCE_UPDATE:
+        ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
+        CcdpVMResource vm = resMsg.getCcdpVMResource();
+        this.updateVMResourceUtilization(vm);
+        break;
+      case THREAD_REQUEST:
+        ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
+        CcdpThreadRequest req = reqMsg.getRequest();
+        this.onTask(req);
+        break;
+      default:
+        this.logger.error("Message Type not found");
+    }
   }
   
   /**
@@ -1425,7 +1470,7 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
    * 
    * @param resource The VM to update
    */
-  public void updateVMResourceUtilization( CcdpVMResource resource )
+  private void updateVMResourceUtilization( CcdpVMResource resource )
   {
     synchronized( this.resources )
     {

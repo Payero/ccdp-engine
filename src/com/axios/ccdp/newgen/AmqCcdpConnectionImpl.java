@@ -130,12 +130,12 @@ public class AmqCcdpConnectionImpl
         AmqSender sender = new AmqSender();
         sender.connect(brkr, channel);
         
-          this.senders.put(channel, sender);
+        this.senders.put(channel, sender);
         
       }
       else
       {
-        this.logger.info( channel + " already has a Sender" );
+        this.logger.debug( channel + " already has a Sender" );
       }
     }
   }

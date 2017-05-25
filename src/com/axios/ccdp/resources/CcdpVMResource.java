@@ -74,6 +74,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
+@JsonIgnoreProperties({"free"})
 public class CcdpVMResource implements Serializable
 {
   /**

@@ -8,8 +8,10 @@ import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class CcdpMessage implements Cloneable
 {
   public static final String MSG_TYPE_FLD = "msg-type";
@@ -28,7 +30,6 @@ public abstract class CcdpMessage implements Cloneable
   {
     try
     {
-      logger.debug("Generating Message");
       txtMsg.setIntProperty(MSG_TYPE_FLD, msg.getMessageType() );
       String json = mapper.writeValueAsString(msg);
       txtMsg.setText(json);
@@ -67,7 +68,7 @@ public abstract class CcdpMessage implements Cloneable
   
   public Map<String, String> getConfiguration()
   {
-    return this.getConfiguration();
+    return this.config;
   }
   
   public void setConfiguration( Map<String, String> config )

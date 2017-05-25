@@ -31,6 +31,7 @@ import org.apache.mesos.Protos.Filters;
 import org.apache.mesos.Protos.Attribute;
 
 import com.axios.ccdp.fmwk.CcdpEngine;
+import com.axios.ccdp.message.ResourceUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -525,8 +526,9 @@ public class CcdpMesosScheduler implements Scheduler
      {
        CcdpVMResource res = 
              this.mapper.readValue( new String(data), CcdpVMResource.class);
-     
-       this.engine.updateVMResourceUtilization(res);
+       ResourceUpdateMessage msg = new ResourceUpdateMessage();
+       msg.setCcdpVMResource(res);
+       this.engine.onCcdpMessage(msg);
      }
      catch( Exception e )
      {

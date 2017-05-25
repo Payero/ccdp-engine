@@ -150,20 +150,14 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       if (message instanceof TextMessage) 
       {
         TextMessage txtMsg = (TextMessage)message;
-        this.printMessage(txtMsg);
-        this.logger.debug("Incoming message " + txtMsg.getText());
-        
-        if( true )
-          return;
-        
+
         // if it has an integer field called msg-type, then it might be a
         // CcdpMessage
         if( txtMsg.propertyExists(CcdpMessage.MSG_TYPE_FLD) )
         {
           int msgTypeNum = txtMsg.getIntProperty(CcdpMessage.MSG_TYPE_FLD);
-          this.logger.debug("Got a message type " + msgTypeNum);
           CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
-          this.logger.debug("The Message Type is " + msgType);
+          this.logger.debug("Got a " + msgType + " Message");
           CcdpMessage ccdpMsg = null;
           switch( msgType )
           {
@@ -298,11 +292,19 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   
   public static void main(String[] args) 
   {
-    CcdpUtils.configLogger();
-    Driver driver = new Driver();
-    
-    CcdpUtils.pause(3);
-    driver.stop();
+    try
+    {
+      CcdpUtils.configureProperties();
+      CcdpUtils.configLogger();
+      Driver driver = new Driver();
+      CcdpUtils.pause(30);
+      driver.stop();
+    }
+    catch( Exception e)
+    {
+      System.err.println("Message: " + e.getMessage());
+      
+    }
   }
 }
 
@@ -314,12 +316,48 @@ class Driver implements CcdpMessageConsumerIntf
   public Driver()
   {
     this.rcvr = new AmqReceiver(this);
+    String broker = "failover://tcp://localhost:61616";
+    String channel = "TaskingQueue";
+    this.logger.debug("Broker " + broker);
+    this.logger.debug("Channel " + channel);
+    this.rcvr.connect(broker, channel);
 
   }
   
   public void onCcdpMessage(CcdpMessage message)
   {
-    this.logger.debug("Got a new Message: " + message.toString());
+    
+    CcdpMessageType msgType = CcdpMessageType.get(message.getMessageType());
+    this.logger.debug("Got a " + msgType + " Message");
+    switch( msgType )
+    {
+      case UNDEFINED:
+        UndefinedMessage undMsg = (UndefinedMessage)message;
+        this.logger.info("Undefined Msg: " + undMsg.getPayload().toString());
+        break;
+      case RUN_TASK:
+        RunTaskMessage taskMsg = (RunTaskMessage)message;
+        this.logger.info("RunTask Msg: " + taskMsg.getTask().toPrettyPrint());
+        break;
+      case ASSIGN_SESSION:
+        AssignSessionMessage sessMsg = (AssignSessionMessage)message;
+        this.logger.info("Session Msg: " + sessMsg.getSessionId());
+        break;
+      case RESOURCE_UPDATE:
+        ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
+        this.logger.info("Res Upd. Msg: " + resMsg.getCcdpVMResource().toPrettyPrint());
+        break;
+      case TASK_UPDATE:
+        TaskUpdateMessage updMsg = (TaskUpdateMessage)message;
+        this.logger.info("Task Upd Msg: " + updMsg.getTask().toPrettyPrint());
+        break;
+      case THREAD_REQUEST:
+        ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
+        this.logger.info("Request Msg: " + reqMsg.getRequest().toPrettyPrint());
+        break;
+      default:
+        this.logger.error("Message Type not found");
+    }
   }
   
   public void stop()

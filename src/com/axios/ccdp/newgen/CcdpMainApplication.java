@@ -418,6 +418,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             if( reply != null )
             {
               this.logger.info("Sending Status Update to " + reply);
+              this.connection.registerProducer(reply);
               TaskUpdateMessage msg = new TaskUpdateMessage();
               msg.setTask(t);
               this.connection.sendCcdpMessage(reply, msg);

@@ -51,7 +51,7 @@ public class SampleSendReceive extends AmqConnector
   /**
    * Example of how to receive a message using the CcdpMessage class
    * 
-   * @param msg
+   * @param msg the message to process
    */
   public void onMessage( Message msg )
   {

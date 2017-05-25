@@ -15,8 +15,8 @@ unset CCDP_BASE
 
 if [ -z "$CCDP_HOME" ] ; then
 	# Try to find RDD_HOME
-	if [ -d /data/CCDP ] ; then
-		CCDP_HOME=/data/CCDP
+	if [ -d /data/ccdp-engine ] ; then
+		CCDP_HOME=/data/ccdp-engine
 	else
 		## resolve links - $0 may be a link 
 		PRG="$0"

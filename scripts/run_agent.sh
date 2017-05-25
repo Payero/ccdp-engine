@@ -1,8 +1,8 @@
 #!/bin/sh
 
 SERVICE_NAME=CcdpAgent
-#PATH_TO_JAR=/data/CCDP/CcdpAgent.jar
-PATH_TO_JAR=/data/users/oeg/workspace/CCDP/dist/CCDP/ccdp-agent.jar
+#PATH_TO_JAR=/data/ccdp-engine/CcdpAgent.jar
+PATH_TO_JAR=/data/users/oeg/workspace/ccdp-engine/dist/ccdp-engine/ccdp-agent.jar
 
 PID_PATH_NAME=/tmp/${SERVICE_NAME}-pid
 

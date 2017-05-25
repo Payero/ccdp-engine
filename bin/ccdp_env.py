@@ -163,7 +163,7 @@ class CcdpEnvSetter:
       #base_name, format, root_dir=None, base_dir=None,
       root_dir = os.path.join(path, "dist")
       tarfile.shutil.make_archive(base_name=self.__CCDP_DIST, format='gztar', 
-                          root_dir=root_dir, base_dir='CCDP')
+                          root_dir=root_dir, base_dir='ccdp-engine')
       
       if os.path.isfile('%s' % fname):
         self.__logger.debug("File created successfully, uploading it")
@@ -212,7 +212,7 @@ class CcdpEnvSetter:
     tgt_name = os.path.join(tgt, dist_fname)  
     self.__logger.debug("Saving tgz file: %s as %s" % (dist_fname, tgt_name))
     bkt.download_file(dist_fname, tgt_name)
-    inst_path = os.path.join(tgt, "CCDP")
+    inst_path = os.path.join(tgt, "ccdp-engine")
     
     if os.path.exists(inst_path):
       self.__logger.info("Removing old installation: %s" % inst_path)

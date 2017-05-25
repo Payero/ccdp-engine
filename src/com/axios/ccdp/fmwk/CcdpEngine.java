@@ -1090,9 +1090,16 @@ public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf
                 if( !this.skipTermination.contains(id) )
                 {
                   this.logger.info("Flagging VM " + id + " for termination");
-                  res.setStatus(ResourceStatus.SHUTTING_DOWN);
-                  terminate.add(id);
-                  done++;                
+                  if( !id.startsWith("i-test-") )
+                  {
+                    res.setStatus(ResourceStatus.SHUTTING_DOWN);
+                    terminate.add(id);
+                    done++;
+                  }
+                  else
+                  {
+                    this.logger.info("VM " + id + " is a test node, skipping termination");
+                  }
                 }
                 else
                 {

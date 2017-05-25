@@ -7,25 +7,25 @@ usage()
 {
 	echo ''
 	echo 'Sends a taks to the framework.  If the configuration file is not'
-	echo 'it uses the ${CCDP_HOME}/config/ccdp-config.properties'
-	echo ''
-	echo 'usage: class com.axios.ccdp.mesos.test.CcdpTaskSender'
-    echo '   -c, --config-file <arg>   Path to the configuration file.'
-    echo '   -f,--file <arg>          Optional JSON file with the jobs to run'
-    echo '   -h,--help                Shows this message'
-    echo '   -j,--jobs <arg>          Optional JSON file with the jobs to run'
-    echo '                            passed as a string'
-    echo '   -d,--dest <arg>          The name of the Queue to send the job'
-    echo ''
-    exit 0
+  echo 'it uses the ${CCDP_HOME}/config/ccdp-config.properties'
+  echo ''
+  echo 'usage: class com.axios.ccdp.mesos.test.CcdpTaskSender'
+  echo '   -c, --config-file <arg>   Path to the configuration file.'
+  echo '   -f,--file <arg>          Optional JSON file with the jobs to run'
+  echo '   -h,--help                Shows this message'
+  echo '   -j,--jobs <arg>          Optional JSON file with the jobs to run'
+  echo '                            passed as a string'
+  echo '   -d,--dest <arg>          The name of the Queue to send the job'
+  echo ''
+  exit 0
 }
 
 
 
 if [ -z ${CCDP_HOME+x} ]; then 
   echo "CCDP_HOME is unset, trying default"; 
-  if [ -d "/data/CCDP" ]; then
-    export CCDP_HOME=/data/CCDP
+  if [ -d "/data/ccdp-engine" ]; then
+    export CCDP_HOME=/data/ccdp-engine
   else
     echo "Could not find CCDP_HOME, exiting"
     exit -1

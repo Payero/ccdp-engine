@@ -123,6 +123,8 @@ public class CcdpObjectFactory
   /**
    * Gets the object that is used to task the scheduler.  The same interface
    * is also used to send messages back to a specific destination
+   *
+   * @param config the configuration to use to propertly set this object
    * 
    * @return an actual implementation of the object that allows the scheduler
    *         to send and receive tasking events

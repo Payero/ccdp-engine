@@ -771,6 +771,8 @@ public class CcdpUtils
    *    reservation-id
    *    security-groups
    *    services/   
+   *
+   * @param key the name of the property to retrieve
    * 
    * @return a string representing the unique instance id of the EC2 instance
    * @throws Exception an Exception is thrown if there is a problem invoking 

@@ -26,9 +26,9 @@ class MesosConfig:
 
     self.__root = os.getenv('CCDP_HOME')
     if self.__root == None:
-      if os.path.isdir("/data/CCDP"):
-        self.__logger.info("Using '/data/CCDP' as CCDP_HOME")
-        self.__root = '/data/CCDP'
+      if os.path.isdir("/data/ccdp-engine"):
+        self.__logger.info("Using '/data/ccdp-engine' as CCDP_HOME")
+        self.__root = '/data/ccdp-engine'
       else:
         self.__logger.error("CCDP_HOME is not set and is not in default location")
 

@@ -125,11 +125,14 @@ public class AWSCcdpTaskingControllerImplV2
 
   /**
    * Determines whether or not additional resources are needed based on
-   * the utilization level of the given resources.  If the resources combined
-   * reaches the threshold then it returns true otherwise it returns false.
+   * the utilization level of the given resources.  If there is a need for more
+   * resources then it returns the image information to launch otherwrise it 
+   * returns null.
    * 
    * @param resources the list of resources to test for need of additional 
    *        resources
+   * @return The image configuration required to launch more resources or null
+   *         if no additonal resources are needed
    */
   public CcdpImageInfo needResourceAllocation(List<CcdpVMResource> resources)
   {
@@ -348,6 +351,8 @@ public class AWSCcdpTaskingControllerImplV2
    * @param tasks a list of tasks to consider running in the intended VM
    * @param resources all available resources that could be potentially
    *        used to run this tasks
+   * 
+   * @return a map specifying which tasks can be run on which resource
    */
   public Map<CcdpVMResource, List<CcdpTaskRequest>> assignTasks(List<CcdpTaskRequest> tasks, 
                                            List<CcdpVMResource> resources)

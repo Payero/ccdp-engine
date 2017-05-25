@@ -6,7 +6,7 @@
 	<property name="project.name" value="mesos-dra" />
 	<property name="executor.name" value="mesos-ccdp-exec" />
 	<property name="agent.name" value="ccdp-agent" />
-  	<property name="engine.name" value="mesos-engine" />
+ 	<property name="engine.name" value="mesos-engine" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -24,7 +24,7 @@
 	<property name="base.dist.dir" location="dist" />
 
 	<!-- The name of the distribution directory -->
-	<property name="dist.dir" location="${base.dist.dir}/CCDP" />
+	<property name="dist.dir" location="${base.dist.dir}/ccdp-engine" />
 
 	<!-- The name of the ccdp-engine distribution directory -->
 	<property name="eng.dist.dir" location="${base.dist.dir}/eng-dist" />
@@ -32,14 +32,14 @@
 	<!--Thirdparty jars/libaries -->
 	<property name="lib.dir" location="lib" />
 
-  	<!--Scripts used to run -->
-  	<property name="install.dir" location="bin" />
+ 	<!--Scripts used to run -->
+ 	<property name="install.dir" location="bin" />
 
-  	<!--Scripts used to run -->
-  	<property name="scripts.dir" location="scripts" />
+ 	<!--Scripts used to run -->
+ 	<property name="scripts.dir" location="scripts" />
 
-  	<!--The location of the javadoc directory -->
- 	 <property name="doc.dir" location="docs" />
+ 	<!--The location of the javadoc directory -->
+  <property name="doc.dir" location="docs" />
 	
 	<!--The location of the report directory -->
 	<property name="report.dir" location="reports" />

@@ -709,8 +709,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 // it is not in the 'do not terminate' list
                 if( !this.skipTermination.contains(id) )
                 {
-                  terminate.add(id);
-                  done++;                
+                  if( !id.startsWith("i-test-") )
+                  {
+                    res.setStatus(ResourceStatus.SHUTTING_DOWN);
+                    terminate.add(id);
+                    done++;
+                  }
+                  else
+                  {
+                    this.logger.info("VM " + id + " is a test node, skipping termination");
+                  }
                 }
                 else
                 {

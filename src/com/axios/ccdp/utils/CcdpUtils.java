@@ -81,7 +81,7 @@ public class CcdpUtils
   public static final String CFG_KEY_SKIP_TERMINATION = "do.not.terminate";
   
   /** Properties used by the tasking object receiving external tasks */
-  public static final String CFG_KEY_TASK_MSG = "taskingIntf";
+  public static final String CFG_KEY_CONN_INTF = "connectionIntf";
   /** Properties used by the tasking controller object */
   public static final String CFG_KEY_TASK_CTR = "taskContrIntf";
   /** Properties used by the resource controller object */
@@ -119,8 +119,6 @@ public class CcdpUtils
   /****************************************************************************/
   /****************************************************************************/
   
-  /** Properties used by the tasking object receiving external tasks */
-  public static final String CFG_KEY_CONN_INTF = "connectionIntf";
   /** Stores the number of seconds to send/receive heartbeats **/
   public static final String CFG_KEY_HB_FREQ = "heartbeat.freq.secs";
   /** Stores the name of the Queue where to send events to the main app **/

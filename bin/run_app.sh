@@ -54,7 +54,7 @@ if [ -z "$JAVA_APP" ] ; then
 fi
 
 
-echo "Running CCPD from: $CCDP_HOME"
+echo "Running CCDP from: $CCDP_HOME"
 
 
 # CCDP Configuration directory
@@ -76,10 +76,9 @@ if [ -z "$CCDP_PIDFILE" ] ; then
 	CCDP_PIDFILE="$CCDP_LOG_DIR/${BASE_NAME}.pid"
 fi
 
-USE_SINGLE_JAR=1
 
-if [ $USE_SINGLE_JAR ] ; then
-	_JARS="${CCDP_LIB_DIR}/ccdp-engine.jar"
+if [ $CCDP_JAR_NAME ] ; then
+	_JARS="${CCDP_LIB_DIR}/${CCDP_JAR_NAME}"
 else
 	unset _JARS
 	_JARS=$(find "$CCDP_LIB_DIR" -follow -name "*.jar" -xtype f 2>/dev/null | sort | tr '\n' ':')
@@ -110,7 +109,8 @@ ARGS=""
 SRCH_APP_NAME="${JAVA_APP}"
 APP_NAME=`echo ${JAVA_APP} | sed 's/.*\.//'`
 JAVA_OPTS="-Dccdp.log.dir=${CCDP_LOG_DIR} \
-		   -Xmx1500m"
+					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.properties \
+		       -Xmx1500m"
 
 export JAVA_OPTS
 

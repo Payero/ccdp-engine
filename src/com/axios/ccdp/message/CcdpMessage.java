@@ -8,7 +8,9 @@ import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -24,6 +26,7 @@ public abstract class CcdpMessage implements Cloneable
 
   protected static ObjectMapper mapper =  new ObjectMapper();
   protected Map<String, String> config = new HashMap<>();
+  protected String replyTo = null;
   
   public static void buildMessage(CcdpMessage msg, TextMessage txtMsg) 
       throws CcdpMessageException
@@ -66,6 +69,7 @@ public abstract class CcdpMessage implements Cloneable
     return ret;
   }
   
+  
   public Map<String, String> getConfiguration()
   {
     return this.config;
@@ -76,6 +80,17 @@ public abstract class CcdpMessage implements Cloneable
     this.config = config;
   }
   
+  @JsonSetter("reply-to")
+  public void setReplyTo( String to )
+  {
+    this.replyTo = to;
+  }
+  
+  @JsonGetter("reply-to")
+  public String getReplyTo()
+  {
+    return this.replyTo;
+  }
   
   @PropertyNameGet(MSG_TYPE_FLD)
   public abstract Integer getMessageType();
@@ -89,7 +104,9 @@ public abstract class CcdpMessage implements Cloneable
     KILL_TASK(2),
     TASK_UPDATE(3),
     RESOURCE_UPDATE(4),
-    ASSIGN_SESSION(5);
+    ASSIGN_SESSION(5),
+    START_SESSION(6),
+    END_SESSION(7);
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

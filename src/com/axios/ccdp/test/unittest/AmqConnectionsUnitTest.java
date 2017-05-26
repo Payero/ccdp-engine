@@ -99,14 +99,16 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     this.sender.connect(broker,  channel);
     
     String msg = "This is just a test message";
-    this.sender.sendMessage(null, msg, 500);
+    UndefinedMessage undMsg = new UndefinedMessage();
+    undMsg.setPayload(msg);
+    this.sender.sendMessage(null, undMsg, 500);
     while( !this.block.isSet() )
       this.block.doWait();
     assertNotNull(this.latest);
     if( this.latest instanceof UndefinedMessage )
     {
-      UndefinedMessage undMsg = (UndefinedMessage)this.latest;
-      String load = undMsg.getPayload().toString();
+      UndefinedMessage tstMsg = (UndefinedMessage)this.latest;
+      String load = tstMsg.getPayload().toString();
       this.logger.debug("Latest " + load );
       assertEquals(msg, load );
     }
@@ -136,8 +138,9 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     props.put("key-3", "value-3");
     JsonNode cfg = this.mapper.convertValue(props,  JsonNode.class);
     node.set("config", cfg);
-    
-    this.sender.sendMessage(props, msg, 500);
+    UndefinedMessage tstMsg = new UndefinedMessage();
+    tstMsg.setPayload(msg);
+    this.sender.sendMessage(props, tstMsg, 500);
     this.logger.debug("Message Sent");
     while( !this.block.isSet() )
       this.block.doWait();

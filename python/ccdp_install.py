@@ -13,15 +13,17 @@ import glob
 
 class CcdpInstaller:
   
-  __CCDP_DIST = 'ccdp-engine.tar'
+  __CCDP_DIST = 'ccdp-engine.tgz'
   __CCDP_INST = 'ccdp_install.py'
+  __MESOS_CFG = 'ccdp_mesos_settings.json'
   
   
-  __LEVELS = {"debug": logging.DEBUG, 
-            "info": logging.INFO, 
-            "warning": logging.WARN,
-            "error": logging.ERROR}
+  __LEVELS = {"debug":    logging.DEBUG, 
+              "info":     logging.INFO, 
+              "warning":  logging.WARN,
+              "error":    logging.ERROR}
   
+
   def __init__(self, cli_args):
     self.__logger = logging.getLogger('CcdpInstaller')
     handler = logging.StreamHandler()
@@ -53,7 +55,8 @@ class CcdpInstaller:
 
   def __perform_download(self, params):
     """
-    Gets the ccdp-engine.tar from the CCDP bucket.  These files are used to install CCDP
+    Gets the ccdp-engine.tgz from the CCDP bucket.  These files are used to i
+    nstall CCDP
     """
     self.__logger.debug("Performing Download using %s" % pformat(params))
     
@@ -74,20 +77,24 @@ class CcdpInstaller:
     fpath = os.path.join(tgt_dir, self.__CCDP_INST)
     self.__logger.debug("Saving file in %s" % fpath)
     bkt.download_file(self.__CCDP_INST, fpath)
-
+    
+    os.chmod(fpath, 0777)    
 
     # Do I need to install CCDP?
     if params.inst_ccdp:
       ccdp_root = self.__install_ccdp(params)
 
-    
+    # Do I need to set mesos?
+    if params.set_mesos:
+      self.__set_mesos( ccdp_root, params )
+
     
   def __perform_upload(self, params):
     """
     First it attempt to create the ccdp-dist bucket in case this is the 
-    first time the distributions are created.  Once is done it uploads the following
-    files into it:
-      - ccdp-dist.tar:  Contains all the files needed to run the ccdp-engine.
+    first time the distributions are created.  Once is done it uploads the 
+    following files into it:
+      - ccdp-dist.tgz:  Contains all the files needed to run the ccdp-engine.
       - ccdp_install.py: The script used to install the ccdp-engine
     
     """
@@ -113,7 +120,7 @@ class CcdpInstaller:
     if params.compile:
       self.__logger.info("Compiling the source code")
       
-      rc = os.system("ant -f %s ccdp.engine.dist" % build_file)
+      rc = os.system("ant -f %s" % build_file )
       if rc != 0: 
         self.__logger.error("Error on ant compile")
         sys.exit(1)
@@ -121,11 +128,14 @@ class CcdpInstaller:
         self.__logger.info("Source code compiled successfully")
 
 
+    # Do we need to install it?
     if params.inst_ccdp:
-      
+      self.__logger.info("Uploading the ccdp-engine from %s" % path )
+
       root_dir = os.path.join(path, "dist")
       dist_file = os.path.join(root_dir, self.__CCDP_DIST)
-      inst_file = os.path.join(root_dir, self.__CCDP_INST)
+      inst_file = os.path.join(path, "python", self.__CCDP_INST)
+      mesos_file = os.path.join(path, "config/mesos", self.__MESOS_CFG)
       
       if os.path.isfile('%s' % dist_file):
         self.__logger.debug("File created successfully, uploading it")
@@ -146,16 +156,24 @@ class CcdpInstaller:
         self.__logger.debug("File %s was uploaded successfully" % self.__CCDP_INST)
 
       else:
-        self.__logger.error("Failed to find script file %s" % self.__CCDP_INST)
+        self.__logger.error("Failed to find script file %s" % inst_file)
+
+      if params.set_mesos:
+        if os.path.isfile('%s' % mesos_file):
+          self.__logger.debug("Uploading mesos configuration: %s" % mesos_file)
+          # Storing data
+          self.__s3.Object(bkt_name, self.__MESOS_CFG).put(
+                            Body=open(mesos_file, 'rb'))
+          self.__logger.debug("File %s was uploaded successfully" % self.__MESOS_CFG)
+
+        else:
+          self.__logger.error("Could not find file %s" % mesos_file )
+      else:
+        self.__logger.info("Skipping Mesos Settings upload")  
 
     else:
       self.__logger.info("Skipping CCDP baseline upload")
       
-
-    if not params.keep_file:
-      self.__logger.debug("Removing files")
-      rc = os.system("ant -f %s clean.eng.dist" % build_file)
-
     
     bkt = self.__s3.Bucket(bkt_name)
     acl = bkt.Acl()
@@ -164,6 +182,12 @@ class CcdpInstaller:
     
     bkt.Acl().put(ACL='public-read')   
     
+    # want to delete dist file only if uploading (factory)
+    if not params.keep_file:
+      self.__logger.debug("Removing files")
+      rc = os.system("ant -f %s clean" % build_file)
+
+
     
       
   def __install_ccdp(self, params ):
@@ -250,6 +274,61 @@ class CcdpInstaller:
       
     return inst_path
         
+
+  def __set_mesos(self, ccdp_root, params):
+    """
+    Install the configuraion related to Mesos
+    """
+    self.__logger.info("Installing Mesos Settings")
+
+    bkt = bkt = self.__s3.Bucket( params.bkt_name )
+
+    if ccdp_root != None:
+      self.__logger.info("CCDP is installed in %s" % ccdp_root)
+    else:
+      self.__logger.error("Need the location where CCDP was installed")
+      sys.exit(-2)
+
+    self.__logger.debug("Downloading settings file ")
+    fpath = os.path.join(ccdp_root, "config/mesos", self.__MESOS_CFG)
+    self.__logger.debug("Saving file in %s" % fpath)
+    bkt.download_file(self.__MESOS_CFG, fpath)
+
+
+    if not os.path.isfile(fpath):
+      self.__logger.error("The JSON mesos settings file was not found ")
+      sys.exit(-3)
+          
+    self.__logger.debug("Loading Json data")
+    data = open( fpath ). read()
+    json_data = json.loads(data)
+    self.__logger.info("CCDP HOME: %s" % ccdp_root)
+
+    # Do I need to add session?
+    sid = params.session_id
+    if sid:
+      self.__logger.info("Adding Session ID: %s" % sid)
+      json_data['session-id'] = sid
+      with open(fpath, 'w') as outfile:
+        self.__logger.info("Adding session %s to file %s" % (sid, fpath) )
+        json.dump(json_data, outfile)
+        
+    self.__logger.info("Using Data: %s" % str(json_data))
+
+    scripts = os.path.join(ccdp_root, 'python')
+    try:
+      sys.path.index(scripts)
+    except ValueError:
+      self.__logger.info("%s was not found in path, adding it" % scripts)
+      sys.path.append(scripts)
+      self.__logger.info("Path (%s) added to the sys.path" % scripts)
+    
+    os.chdir(scripts)
+    self.__logger.debug("Running ./mesos_config.py %s " % fpath)
+    n = call(["./mesos_config.py", fpath ])
+    self.__logger.debug("The Exit Code: %d" % n)
+
+
 """
   Runs the application by instantiating a new Test object and passing all the
   command line arguments
@@ -265,43 +344,52 @@ if __name__ == '__main__':
                         description=desc)
   
   parser.add_option('-v', '--verbosity-level',
-                      type='choice',
-                      action='store',
-                      dest='verb_level',
-                      choices=['debug', 'info', 'warning','error',],
-                      default='debug',
-                      help='The verbosity level of the logging',)
+        type='choice',
+        action='store',
+        dest='verb_level',
+        choices=['debug', 'info', 'warning','error',],
+        default='debug',
+        help='The verbosity level of the logging',)
   
   parser.add_option('-a', '--action',
-                      type='choice',
-                      action='store',
-                      dest='action',
-                      choices=['download', 'upload'],
-                      default='download',                      
-                      help='To either download or upload files to set the env',)
+        type='choice',
+        action='store',
+        dest='action',
+        choices=['download', 'upload'],
+        default='download',                      
+        help='To either download or upload files to set the env',)
   
   parser.add_option("-b", "--s3-bucket",
-                    dest="bkt_name",
-                    default='ccdp-dist',
-                    help="The name of the bucket containing the env files")
+        dest="bkt_name",
+        default='ccdp-dist',
+        help="The name of the bucket containing the env files")
   
   parser.add_option("-i", "--install-ccdp",
-                  action="store_true", dest="inst_ccdp", default=False,
-                  help="Downloads and install the CCDP baseline")
+        action="store_true", dest="inst_ccdp", default=False,
+        help="Downloads and install the CCDP baseline")
 
   parser.add_option("-c", "--compile",
-                    action="store_true", dest="compile", default=False,
-                    help="Compiles the source code by using ant")
+        action="store_true", dest="compile", default=False,
+        help="Compiles the source code by using ant")
 
   parser.add_option("-k", "--keep-file",
-                  action="store_true", dest="keep_file", default=False,
-                  help="It does not delete the ccdp-engine-dist.tar file after upload")
+        action="store_true", dest="keep_file", default=False,
+        help="It does not delete the ccdp-engine-dist.tar file after upload")
+
+  parser.add_option("-n", "--skip-mesos",
+        action="store_false", dest="set_mesos", default=True,
+        help="It does not install mesos components or services")
+
+  parser.add_option("-s", "--session-id",
+                    dest="session_id",
+                    default='',
+                    help="The session id this VM is assigned to ")
 
   parser.add_option('-t', '--target-install',
-                    action='store',
-                    dest='tgt_install',
-                    default='/data',
-                    help='The location where CCDP needs to be installed',)
+        action='store',
+        dest='tgt_install',
+        default='/data',
+        help='The location where CCDP needs to be installed',)
   
 
 

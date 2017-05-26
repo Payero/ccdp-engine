@@ -27,10 +27,16 @@ import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.Protos.Attribute;
 
 import com.amazonaws.services.elastictranscoder.model.Warning;
-import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
+import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.mesos.fmwk.CcdpJob.JobState;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.UndefinedMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -40,7 +46,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author oeg
  *
  */
-public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
+public class SimpleRemoteScheduler implements Scheduler, CcdpMessageConsumerIntf
 {
   /**
    * Stores the Framework Unique ID this Scheduler is running under
@@ -70,7 +76,7 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
   /**
    * Stores the object responsible for sending and receiving tasking information
    */
-  private CcdpTaskingIntf taskingInf = null;
+  private CcdpConnectionIntf connection = null;
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -99,10 +105,10 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
     if( clazz != null )
     {
       ObjectNode task_msg_node = 
-          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
+          CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
       
       CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-      this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
+      this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     }
     else
     {
@@ -132,10 +138,11 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
     
     this.fmwkId = fmwkId;
     this.driver = driver;
-    
-    this.taskingInf.setTaskConsumer(this);
-    this.taskingInf.register(this.fmwkId.getValue());
-    
+    String uuid = this.fmwkId.getValue();
+    this.connection.setConsumer(this);
+    String toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    this.logger.info("Registering as " + uuid);
+    this.connection.registerConsumer(uuid, toMain);
   }
 
   /**
@@ -335,6 +342,32 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpTaskConsumerIntf
     
     this.driver.reconcileTasks(runningTasks);
   }
+  
+  public void onCcdpMessage(CcdpMessage message)
+  {
+    CcdpMessageType msgType = CcdpMessageType.get(message.getMessageType());
+    this.logger.debug("Got a " + msgType + " Message");
+    switch( msgType )
+    {
+      case UNDEFINED:
+        UndefinedMessage undMsg = (UndefinedMessage)message;
+        this.logger.info("Undefined Msg: " + undMsg.getPayload().toString());
+        break;
+      case RESOURCE_UPDATE:
+        ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
+        CcdpVMResource vm = resMsg.getCcdpVMResource();
+        this.logger.info("VM Update: " + vm.toPrettyPrint());
+        break;
+      case THREAD_REQUEST:
+        ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
+        CcdpThreadRequest req = reqMsg.getRequest();
+        this.onTask(req);
+        break;
+      default:
+        this.logger.error("Message Type not found");
+    }
+  }
+  
   
   /**
    * Notifies the object that a new task request has occurred

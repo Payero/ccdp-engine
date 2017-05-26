@@ -1,10 +1,9 @@
 package com.axios.ccdp.factory;
 
+import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -120,24 +119,6 @@ public class CcdpObjectFactory
   }
   
   
-  /**
-   * Gets the object that is used to task the scheduler.  The same interface
-   * is also used to send messages back to a specific destination
-   *
-   * @param config the configuration to use to propertly set this object
-   * 
-   * @return an actual implementation of the object that allows the scheduler
-   *         to send and receive tasking events
-   */
-  public CcdpTaskingIntf getCcdpTaskingInterface(ObjectNode config)
-  {
-    String key = CcdpUtils.CFG_KEY_TASKING_CLASSNAME;
-    Object obj = this.getNewInstance(key, CcdpTaskingIntf.class);
-    CcdpTaskingIntf impl = (CcdpTaskingIntf)obj;
-    impl.configure(config);
-    return impl;
-  }
-
   /**
    * Gets the object responsible for controlling the resources.  For instance, 
    * it starts and stops VMs, ask for status, etc.

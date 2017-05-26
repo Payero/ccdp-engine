@@ -3,10 +3,9 @@
 		Create a Java Project (JAR) with Ant build script
 	</description>
 
-	<property name="project.name" value="mesos-dra" />
 	<property name="executor.name" value="mesos-ccdp-exec" />
 	<property name="agent.name" value="ccdp-agent" />
- 	<property name="engine.name" value="mesos-engine" />
+ 	<property name="engine.name" value="ccdp-engine" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -26,20 +25,14 @@
 	<!-- The name of the distribution directory -->
 	<property name="dist.dir" location="${base.dist.dir}/ccdp-engine" />
 
-	<!-- The name of the ccdp-engine distribution directory -->
-	<property name="eng.dist.dir" location="${base.dist.dir}/eng-dist" />
-
 	<!--Thirdparty jars/libaries -->
 	<property name="lib.dir" location="lib" />
 
  	<!--Scripts used to run -->
  	<property name="install.dir" location="bin" />
 
- 	<!--Scripts used to run -->
- 	<property name="scripts.dir" location="scripts" />
-
  	<!--The location of the javadoc directory -->
-  <property name="doc.dir" location="docs" />
+ 	<property name="doc.dir" location="docs" />
 	
 	<!--The location of the report directory -->
 	<property name="report.dir" location="reports" />
@@ -48,7 +41,8 @@
 	<property name="test.src.dir" location="src/com/axios/ccdp/test/unittest" />
 	<property name="test.bld.dir" location="${build.dir}/test" />
 	
-	<property name="ccdp.config.file" value="${basedir}/config/ccdp-config.properties" />
+	<property name="ccdp.config.file" 
+		value="${basedir}/config/ccdp-config.properties" />
 	
 	<path id="classpath">
 	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -56,25 +50,29 @@
 	
 	<!-- ***************************************************************** -->
 	<!-- ****************  Start  Testing Targets (JUnit) **************** -->
-	
+  	
 	<path id="classpath.test">
 	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
 		<pathelement location="${main.dir}" />
 	</path>
-  
 
 
   <target name="test-compile" depends="compile">
     <mkdir dir="${test.bld.dir}"/>
   	<mkdir dir="${report.dir}"/>
-    <javac srcdir="${test.src.dir}" destdir="${test.bld.dir}" includeantruntime="false">
-        <classpath refid="classpath.test"/>
+    <javac srcdir="${test.src.dir}" 
+    	   destdir="${test.bld.dir}" includeantruntime="false">
+    	<classpath refid="classpath.test"/>
     </javac>
   </target>
 
 	<!-- Runs all the unit tests by calling each one of the test target -->
-	<target name="test.all" depends="test.tasks.gen, test.aws.controller, test.amq.connection" />
-	<target name="which.test">
+	<target name="test.all" 
+          depends="test.tasks.gen, test.aws.controller, test.amq.connection" />
+	
+  <!-- Shows a message with the names of all the unitests available -->
+  <target name="which.test" 
+          description="Shows the names of all the unitests available">
 	  <echo message="The Tests available to run:" />
 		<echo message="    test.tasks.gen" />
 		<echo message="    test.aws.controller" />
@@ -133,7 +131,7 @@
 		<mkdir dir="${classes.dir}" />
 	</target>
 
-	<target name="compile" depends="init" description="compile the source ">
+	<target name="compile" depends="init" description="compiles the source ">
 		<!-- Compile the java code from ${src.dir} into ${main.dir} -->
 		<javac includeantruntime="false" 
 				 debug="true"
@@ -142,80 +140,80 @@
 			   classpathref="classpath"/>
 	</target>
 
-	<target name="dist" depends="compile" description="package, output to JAR">
-
-		<!-- Create the distribution directory -->
-		<mkdir dir="${dist.dir}" />
-
-		<!-- Put everything in ${main} into a jar file -->
-		<jar jarfile="${dist.dir}/${project.name}-${DSTAMP}.jar" 
-         basedir="${main.dir}" >
-		    <manifest>
-			    <!-- create an executable Jar -->
-			    <attribute name="Main-Class" 
-                     value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor" />
-		    </manifest>
-		</jar>
-	</target>
 
   <!-- Generates the distro package for the ccdp-engine -->
-  <target name="ccdp.engine.dist" depends="clean.eng.dist, compile" 
+  <target name="ccdp.engine.dist" depends="clean.eng.dist,compile" 
   	      description="Creates the ccdp-engine distribution package">
-	<mkdir dir="${eng.dist.dir}/ccdp-engine" />  	
-	<mkdir dir="${eng.dist.dir}/ccdp-engine/bin" />
-	<mkdir dir="${eng.dist.dir}/ccdp-engine/config" />
-	<mkdir dir="${eng.dist.dir}/ccdp-engine/lib" />
+	<mkdir dir="${dist.dir}" />  	
+	<mkdir dir="${dist.dir}/bin" />
+  <mkdir dir="${dist.dir}/config" />
+  <mkdir dir="${dist.dir}/lib" />
+  <mkdir dir="${dist.dir}/python" />
 	
-	<jar destfile="${dist.dir}/ccdp-engine.jar" >
-        <manifest>
-            <attribute name="Main-Class" 
-                       value="com.axios.ccdp.newgen.CcdpAgent"/>
-        </manifest>
-        <fileset dir="${main.dir}" includes="*.properties" />
-  		<fileset dir="${main.dir}"/>
+	<jar destfile="${dist.dir}/lib/${engine.name}.jar" >
+    <manifest>
+      <attribute name="Main-Class" 
+                 value="com.axios.ccdp.newgen.CcdpAgent"/>
+    </manifest>
+    <fileset dir="${main.dir}" includes="*.properties" />
+  	<fileset dir="${main.dir}"/>
 
-        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
-    </jar>
+    <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+  </jar>
+
+  <jar destfile="${dist.dir}/lib/${executor.name}.jar" >
+    <manifest>
+      <attribute name="Main-Class" 
+                 value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
+    </manifest>
+    <fileset dir="${main.dir}" includes="*.properties" />
+    <fileset dir="${main.dir}"/>
+
+    <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
+  </jar>
+
 
 	<!-- Copy files to the bin directory -->
-	<copy file="${basedir}/bin/ccdp_agent.sh" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
-	<copy file="${basedir}/bin/ccdp_app.sh" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
-	<copy file="${basedir}/bin/ccdp_install.py" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
-    <copy file="${basedir}/bin/ccdp_install.py" 
-		  todir="${base.dist.dir}" />
-	<chmod dir="${base.dist.dir}/ccdp_install.py" perm="777"/>
-	<copy file="${basedir}/bin/ccdp_mod_test.py" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
-	<copy file="${basedir}/bin/run_app.sh" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
-	<copy file="${basedir}/bin/send_task.sh" 
-		  todir="${eng.dist.dir}/ccdp-engine/bin" />
+	<copy todir="${dist.dir}/bin">
+    <fileset  dir="${basedir}/bin"/>
+  </copy>
 
-	<chmod dir="${eng.dist.dir}/ccdp-engine/bin" 
+  <copy todir="${dist.dir}/config">
+    <fileset  dir="${basedir}/config"/>
+  </copy>
+  <copy todir="${dist.dir}/python">
+    <fileset  dir="${basedir}/python"/>
+  </copy>
+
+	<chmod dir="${dist.dir}/bin" 
 		   perm="777" includes="**/*.sh"/>
-    <chmod dir="${eng.dist.dir}/ccdp-engine/bin" 
+  <chmod dir="${dist.dir}/python" 
     	   perm="777" includes="**/*.py"/>
-	<!-- Copy files to the config directory -->
-	<copy file="${basedir}/config/ccdp-config.properties" 
-		  todir="${eng.dist.dir}/ccdp-engine/config" />
-	<copy file="${basedir}/config/log4j.properties" 
-		  todir="${eng.dist.dir}/ccdp-engine/config" />
-    
-    <!-- Copy files to the lib directory -->
-	<copy file="${dist.dir}/ccdp-engine.jar" 
-		  todir="${eng.dist.dir}/ccdp-engine/lib" />
 
-    <tar destfile="${base.dist.dir}/ccdp-engine.tar"
-    	 basedir="${eng.dist.dir}" />
   </target>
+
+  <!-- Generates the conmpressed file for distribution  -->
+  <target name="gen.tar" depends="ccdp.engine.dist"
+          description="Generates the conmpressed file for distribution">
+    <tar destfile="${base.dist.dir}/${engine.name}.tgz" compression = "gzip">
+      <tarfileset dir="${dist.dir}/bin" 
+                  prefix="ccdp-engine/bin" filemode="755" />
+      <tarfileset dir="${dist.dir}/config" 
+                  prefix="ccdp-engine/config" />
+      <tarfileset dir="${dist.dir}/lib" 
+                  prefix="ccdp-engine/lib" />
+      <tarfileset dir="${dist.dir}/python" 
+                  prefix="ccdp-engine/python" filemode="755" />
+     </tar>
+
+  </target>
+
+
 
   <!-- Removes all the files creatd during the eng dist -->
   <target name="clean.eng.dist" 
   	description="Cleans all the files generated by the engine dist. target">
-  	<delete dir="${eng.dist.dir}" />
+  	<delete dir="${dist.dir}" />
   	<delete file="${base.dist.dir}/ccdp-engine.tar" />
   	<delete file="${base.dist.dir}/ccdp_install.py" />
   </target>
@@ -236,42 +234,9 @@
     </echo>
   </target>
 
-  <!-- Generate all the jars and copies all the corresponding files 
-       in the right places by using other targets
-  -->
-	<target name="gen.jars" depends="compile,copy.scripts,create.file">
-		<!-- <copy file="${basedir}/config/log4j.properties" todir="${main.dir}" /> -->
-
-    <jar destfile="${dist.dir}/${executor.name}.jar" >
-        <manifest>
-            <attribute name="Main-Class" 
-                       value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
-        </manifest>
-        <fileset dir="${main.dir}" includes="*.properties" />
-  		<fileset dir="${main.dir}"/>
-
-        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
-    </jar>
-
-    <copy file="${basedir}/config/ccdp-config.properties" todir="${main.dir}"/>
-    <jar destfile="${dist.dir}/${engine.name}.jar" >
-        <manifest>
-            <attribute name="Main-Class" 
-                       value="com.axios.ccdp.fmwk.CCDPEngineMain"/>
-        </manifest>
-        <fileset dir="${main.dir}" includes="*.properties" />
-      <fileset dir="${main.dir}"/>
-
-        <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
-    </jar>
-
-
-
-	</target>
-
-
   <!-- Generates the JavaDoc for the whole project -->
-  <target name="javadocs" depends="javadoc" />
+  <target name="javadocs" depends="javadoc" 
+          description="Generates the JavaDoc for the whole project" />
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
     <javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
       <classpath>
@@ -281,34 +246,10 @@
     </javadoc>
   </target>
 
-  <!-- Copies the contents of the scripts dir and sets the permissions -->
-  <target name="copy.scripts" 
-          description="Copies all the scripts to the dist directory"
-          depends="copy.install">
-    <copy todir="${dist.dir}/scripts">
-      <fileset dir="${scripts.dir}"/>
-    </copy>
-    
-    <copy file="${basedir}/config/ccdp-config.properties" todir="${dist.dir}" />
-    <copy file="${basedir}/config/log4j.properties" todir="${dist.dir}" />
 
-    <chmod dir="${dist.dir}/scripts" perm="777" includes="**/*.sh"/>
-    <chmod dir="${dist.dir}/scripts" perm="777" includes="**/*.py"/>
-  </target>
+<!-- Default, run this -->
+<target name="main" depends="clean,compile,ccdp.engine.dist,javadoc,gen.tar" 
+        description="Runs all the targets" />
 
-  <!-- Copies the contents of the inst dir and sets the permissions -->
-  <target name="copy.install" 
-          description="Copies all the scripts to the dist directory">
-    <copy todir="${dist.dir}/bin">
-      <fileset dir="${install.dir}"/>
-    </copy>
-    
-    <chmod dir="${dist.dir}/bin" perm="777" includes="**/*.sh"/>
-    <chmod dir="${dist.dir}/bin" perm="777" includes="**/*.py"/>
-  </target>
 
- 	<!-- Default, run this -->
-	<target name="main" depends="clean, compile, dist, gen.jars,javadoc" />
-
-	
 </project>

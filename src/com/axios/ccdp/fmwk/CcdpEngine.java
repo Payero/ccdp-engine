@@ -15,22 +15,18 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
-import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
-import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
-import com.axios.ccdp.newgen.CcdpConnectionIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -153,7 +149,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     // creating the factory that generates the objects used by the scheduler
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_MSG);
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     ObjectNode task_ctr_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
     ObjectNode res_ctr_node = 

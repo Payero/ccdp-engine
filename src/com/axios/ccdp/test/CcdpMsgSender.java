@@ -1,4 +1,4 @@
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.test;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -15,6 +15,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.amq.AmqSender;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;

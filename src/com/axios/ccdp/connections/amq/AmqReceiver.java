@@ -17,15 +17,19 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.message.ResourceUpdateMessage;
 import com.axios.ccdp.message.RunTaskMessage;
+import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.message.UndefinedMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.message.EndSessionMessage;
+import com.axios.ccdp.message.KillTaskMessage;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -62,6 +66,82 @@ public class AmqReceiver extends AmqConnector implements MessageListener
     this.consumer = consumer;
   }
 
+//  /**
+//   * Method invoked every time a new AMQ message is received
+//   */
+//  public void onMessage( Message message )
+//  {
+//    try
+//    {
+//      if (message instanceof TextMessage) 
+//      {
+//        ObjectNode node = this.mapper.createObjectNode();
+//        ObjectNode cfg = this.mapper.createObjectNode();
+//        @SuppressWarnings("unchecked")
+//        Enumeration<String> keys = message.getPropertyNames();
+//        while( keys.hasMoreElements() )
+//        {
+//          String key = keys.nextElement(); 
+//          cfg.put(key, message.getStringProperty(key));
+//        }
+//        
+//        TextMessage text = (TextMessage) message;
+//        String msg = text.getText();
+//        node.set("config", cfg);
+//        JsonNode body = this.mapper.readTree(msg);
+//        
+//        node.set("body", body);
+//        this.logger.debug("Message is : " + node.toString());
+//        this.consumer.onEvent(node);
+//      }
+//      else
+//      {
+//        this.logger.warn("Expecting TextMessages only");
+//      }
+//    }
+//    catch( Exception e )
+//    {
+//      this.logger.error("Message: " + e.getMessage(), e);
+//    }
+//  }
+  
+  private void printMessage( TextMessage msg )
+  {
+    try
+    {
+      Enumeration keys = msg.getPropertyNames();
+      while( keys.hasMoreElements() )
+      {
+        String key = (String)keys.nextElement();
+        Object obj = msg.getObjectProperty(key);
+        System.err.println("Message[" + key + "] = " + obj.toString() );
+        if( obj instanceof String )
+          System.err.println("Is a String");
+        else if( obj instanceof Integer )
+          System.err.println("Is an Integer");
+        else if( obj instanceof Long )
+          System.err.println("Is a Long");
+        else if( obj instanceof Boolean )
+          System.err.println("Is a Boolean");
+        else if( obj instanceof Double )
+          System.err.println("Is a Double");
+        else if( obj instanceof Byte )
+          System.err.println("Is a Byte");
+        else if( obj instanceof Float )
+          System.err.println("Is a Float");
+        else if( obj instanceof Short )
+          System.err.println("Is a Short");
+      }
+      
+      System.err.println("The Body = " + msg.getText());
+    }
+    catch (JMSException e)
+    {
+      e.printStackTrace();
+    }
+    
+  }
+  
   /**
    * Method invoked every time a new AMQ message is received
    */
@@ -73,12 +153,19 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       if (message instanceof TextMessage) 
       {
         TextMessage txtMsg = (TextMessage)message;
+
         // if it has an integer field called msg-type, then it might be a
         // CcdpMessage
         if( txtMsg.propertyExists(CcdpMessage.MSG_TYPE_FLD) )
         {
           int msgTypeNum = txtMsg.getIntProperty(CcdpMessage.MSG_TYPE_FLD);
+          String replyTo = null;
+          if( txtMsg.getJMSReplyTo() != null )
+            replyTo = txtMsg.getJMSReplyTo().toString();
+          
+          this.logger.info("The Message Type (" + msgTypeNum +")");
           CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
+          this.logger.debug("Got a " + msgType + " Message");
           CcdpMessage ccdpMsg = null;
           switch( msgType )
           {
@@ -86,29 +173,43 @@ public class AmqReceiver extends AmqConnector implements MessageListener
               ccdpMsg = 
                   CcdpMessage.buildObject(txtMsg, UndefinedMessage.class);
               break;
+            case THREAD_REQUEST:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, ThreadRequestMessage.class);
+              break;
             case RUN_TASK:
               ccdpMsg = 
                   CcdpMessage.buildObject(txtMsg, RunTaskMessage.class);
               break;
-            case ASSIGN_SESSION:
+            case KILL_TASK:
               ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, AssignSessionMessage.class);
-              break;
-            case RESOURCE_UPDATE:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, ResourceUpdateMessage.class);
+                  CcdpMessage.buildObject(txtMsg, KillTaskMessage.class);
               break;
             case TASK_UPDATE:
               ccdpMsg = 
                   CcdpMessage.buildObject(txtMsg, TaskUpdateMessage.class);
               break;
-            case THREAD_REQUEST:
+            case RESOURCE_UPDATE:
               ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, ThreadRequestMessage.class);
+                  CcdpMessage.buildObject(txtMsg, ResourceUpdateMessage.class);
+              break;  
+            case ASSIGN_SESSION:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, AssignSessionMessage.class);
+              break;
+            case START_SESSION:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, StartSessionMessage.class);
+              break;
+            case END_SESSION:
+              ccdpMsg = 
+                  CcdpMessage.buildObject(txtMsg, EndSessionMessage.class);
               break;
             default:
               this.logger.error("Message Type not found");
           }
+          
+          ccdpMsg.setReplyTo(replyTo);
           // passing the message to the consumer
           this.consumer.onCcdpMessage(ccdpMsg);
         }
@@ -171,6 +272,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
     }
   }
   
+  
   /**
    * Connects to the given channel to start receiving events
    * 
@@ -212,11 +314,19 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   
   public static void main(String[] args) 
   {
-    CcdpUtils.configLogger();
-    Driver driver = new Driver();
-    
-    CcdpUtils.pause(3);
-    driver.stop();
+    try
+    {
+      CcdpUtils.configureProperties();
+      CcdpUtils.configLogger();
+      Driver driver = new Driver();
+      CcdpUtils.pause(30);
+      driver.stop();
+    }
+    catch( Exception e)
+    {
+      System.err.println("Message: " + e.getMessage());
+      
+    }
   }
 }
 
@@ -228,12 +338,48 @@ class Driver implements CcdpMessageConsumerIntf
   public Driver()
   {
     this.rcvr = new AmqReceiver(this);
+    String broker = "failover://tcp://localhost:61616";
+    String channel = "TaskingQueue";
+    this.logger.debug("Broker " + broker);
+    this.logger.debug("Channel " + channel);
+    this.rcvr.connect(broker, channel);
 
   }
   
   public void onCcdpMessage(CcdpMessage message)
   {
-    this.logger.debug("Got a new Message: " + message.toString());
+    
+    CcdpMessageType msgType = CcdpMessageType.get(message.getMessageType());
+    this.logger.debug("Got a " + msgType + " Message");
+    switch( msgType )
+    {
+      case UNDEFINED:
+        UndefinedMessage undMsg = (UndefinedMessage)message;
+        this.logger.info("Undefined Msg: " + undMsg.getPayload().toString());
+        break;
+      case RUN_TASK:
+        RunTaskMessage taskMsg = (RunTaskMessage)message;
+        this.logger.info("RunTask Msg: " + taskMsg.getTask().toPrettyPrint());
+        break;
+      case ASSIGN_SESSION:
+        AssignSessionMessage sessMsg = (AssignSessionMessage)message;
+        this.logger.info("Session Msg: " + sessMsg.getSessionId());
+        break;
+      case RESOURCE_UPDATE:
+        ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
+        this.logger.info("Res Upd. Msg: " + resMsg.getCcdpVMResource().toPrettyPrint());
+        break;
+      case TASK_UPDATE:
+        TaskUpdateMessage updMsg = (TaskUpdateMessage)message;
+        this.logger.info("Task Upd Msg: " + updMsg.getTask().toPrettyPrint());
+        break;
+      case THREAD_REQUEST:
+        ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
+        this.logger.info("Request Msg: " + reqMsg.getRequest().toPrettyPrint());
+        break;
+      default:
+        this.logger.error("Message Type not found");
+    }
   }
   
   public void stop()

@@ -15,10 +15,10 @@ class CcdpEnvSetter:
   __CCDP_DIST = 'ccdp-dist'
   __CCDP_SETTINGS = 'ccdp_mesos_settings.json'
   
-  __LEVELS = {"debug": logging.DEBUG, 
-            "info": logging.INFO, 
-            "warning": logging.WARN,
-            "error": logging.ERROR}
+  __LEVELS = {"debug":    logging.DEBUG, 
+              "info":     logging.INFO, 
+              "warning":  logging.WARN,
+              "error":    logging.ERROR}
   
   def __init__(self, cli_args):
     self.__logger = logging.getLogger('CcdpEnvSetter')

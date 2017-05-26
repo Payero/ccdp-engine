@@ -1,4 +1,4 @@
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.test;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -15,6 +15,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.amq.AmqReceiver;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.KillTaskMessage;

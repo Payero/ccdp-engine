@@ -5,8 +5,8 @@ TEMP=`getopt -o hc:f:j:d: --longoptions help,config-file:,file:,jobs:dest: -n $0
 # Prints the Usage
 usage()
 {
-	echo ''
-	echo 'Sends a taks to the framework.  If the configuration file is not'
+  echo ''
+  echo 'Sends a taks to the framework.  If the configuration file is not'
   echo 'it uses the ${CCDP_HOME}/config/ccdp-config.properties'
   echo ''
   echo 'usage: class com.axios.ccdp.mesos.test.CcdpTaskSender'
@@ -82,18 +82,18 @@ fi
 
 
 JAR_FILE=""
-for i in $( find $CCDP_HOME -name mesos-engine.jar ); do 
+for i in $( find $CCDP_HOME -name ccdp-engine.jar ); do 
   echo "Found $i"
   JAR_FILE=$i
   break
 done
 
 if [ -z "$JAR_FILE" ]; then
-	echo "The mesos-engine.jar was not found, exiting"
+	echo "The ccdp-engine.jar was not found, exiting"
 	exit 1
 fi
 
-CMD="java -cp ${JAR_FILE} com.axios.ccdp.newgen.CcdpMsgSender $APP_ARGS"
+CMD="java -cp ${JAR_FILE} com.axios.ccdp.test.CcdpMsgSender $APP_ARGS"
 
 echo "Running: ${CMD} "
 exec $CMD 

@@ -1,4 +1,4 @@
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.connections.amq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;

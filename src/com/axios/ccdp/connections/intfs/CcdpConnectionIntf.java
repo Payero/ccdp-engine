@@ -1,8 +1,7 @@
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.connections.intfs;
 
 import java.util.Map;
 
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;

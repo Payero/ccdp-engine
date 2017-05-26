@@ -4,12 +4,16 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.KillTaskMessage;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
 /**
@@ -88,7 +92,7 @@ public class AmqSender extends AmqConnector
    * @param props and optional set of properties to attach to the message
    * @param body the actual message or event to send
    */
-  public void sendMessage(Map<String, String> props, String body) 
+  public void sendMessage(Map<String, String> props, CcdpMessage body) 
   {
     this.sendMessage(props,  body, this.defTTL);
   }
@@ -101,7 +105,60 @@ public class AmqSender extends AmqConnector
    * @param body the actual message or event to send
    * @param ttl the message's time to live in milliseconds
    */
-  public void sendMessage(Map<String, String> props, String body, long ttl) 
+  public void sendMessage(Map<String, String> props, CcdpMessage body, long ttl) 
+  {
+    try 
+    {
+      TextMessage message = session.createTextMessage();
+      
+      if( props != null )
+      {
+        Iterator<String> keys = props.keySet().iterator();
+        while( keys.hasNext() )
+        {
+          String key = keys.next();
+          String val = props.get(key);
+          this.logger.debug("Setting " + key + " = " + val);
+          message.setStringProperty(key, val);
+        }
+      }
+      CcdpMessage.buildMessage(body, message);
+      producer.send(message, this.defDelivMode, this.defPriority, ttl); 
+      
+      this.logger.info("Sent: " + message.getText());
+  
+    } 
+    catch (Exception e) 
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+  }
+  
+  /**
+   * Sends a message to the subscribe channel.  If the props argument is not 
+   * null then is used to set the TextMessage properties or header.
+   * 
+   * @param dest the name of the topic or queue to send the message to
+   * @param props and optional set of properties to attach to the message
+   * @param body the actual message or event to send
+   */
+  public void sendMessage(String dest, Map<String, String> props, 
+      CcdpMessage body) 
+  {
+    this.sendMessage(dest, props,  body, this.defTTL);
+  }
+
+  /**
+   * Sends a message to the subscribe channel.  If the props argument is not 
+   * null then is used to set the TextMessage properties or header.
+   * 
+   * @param destination the name of the topic or queue to send the message to
+   * @param props and optional set of properties to attach to the message
+   * @param body the actual message or event to send
+   * @param ttl the message's time to live in milliseconds
+   */
+  public void sendMessage(String destination, Map<String, String> props, 
+      CcdpMessage body, long ttl) 
   {
     try 
     {
@@ -119,30 +176,17 @@ public class AmqSender extends AmqConnector
         }
       }
       
-      message.setText(body);
-      producer.send(message, this.defDelivMode, this.defPriority, ttl); 
+      CcdpMessage.buildMessage(body, message);
+      Destination dest = this.session.createQueue(destination);
+      producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
       this.logger.info("Sent: " + message.getText());
   
     } 
-    catch (JMSException e) 
+    catch (Exception e) 
     {
       this.logger.error("Message: " + e.getMessage(), e);
     }
-  }
-  
-  public static void main(String[] args) 
-  {
-    CcdpUtils.configLogger();
-    
-    AmqSender sender = new AmqSender();
-    Map<String, String> map = new HashMap<String, String>();
-    map.put("name", "Test");
-    map.put("id", "1");
-    
-    sender.sendMessage(map, 
-              "Hello ...This is a sample message..sending from FirstClient");
-    sender.disconnect();
   }
 
 }

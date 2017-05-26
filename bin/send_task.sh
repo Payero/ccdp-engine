@@ -80,20 +80,27 @@ else
 	APP_ARGS+=" -f $TASK"
 fi
 
-
+unset _CLASSPATH
 JAR_FILE=""
 for i in $( find $CCDP_HOME -name ccdp-engine.jar ); do 
   echo "Found $i"
   JAR_FILE=$i
+  _CLASSPATH=${JAR_FILE}
   break
 done
 
 if [ -z "$JAR_FILE" ]; then
-	echo "The ccdp-engine.jar was not found, exiting"
-	exit 1
+  CCDP_LIB_DIR=${CCDP_HOME}/lib
+  CCDP_CLS_DIR=${CCDP_HOME}/classes
+
+	echo "The ccdp-engine.jar was not found, using all jars"
+	unset _JARS
+  _JARS=$(find "$CCDP_LIB_DIR" -follow -name "*.jar" -xtype f 2>/dev/null | sort | tr '\n' ':')
+
+  _CLASSPATH=${_JARS}:${CCDP_CLS_DIR}
 fi
 
-CMD="java -cp ${JAR_FILE} com.axios.ccdp.test.CcdpMsgSender $APP_ARGS"
+CMD="java -cp ${_CLASSPATH} com.axios.ccdp.test.CcdpMsgSender $APP_ARGS"
 
 echo "Running: ${CMD} "
 exec $CMD 

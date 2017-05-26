@@ -14,7 +14,6 @@ import glob
 class CcdpInstaller:
   
   __CCDP_DIST = 'ccdp-engine.tgz'
-  __CCDP_INST = 'ccdp_install.py'
   __MESOS_CFG = 'ccdp_mesos_settings.json'
   
   
@@ -72,13 +71,7 @@ class CcdpInstaller:
     fpath = os.path.join(tgt_dir, self.__CCDP_DIST)
     self.__logger.debug("Saving file in %s" % fpath)
     bkt.download_file(self.__CCDP_DIST, fpath)
-
-    self.__logger.debug("Downloading installation script")
-    fpath = os.path.join(tgt_dir, self.__CCDP_INST)
-    self.__logger.debug("Saving file in %s" % fpath)
-    bkt.download_file(self.__CCDP_INST, fpath)
-    
-    os.chmod(fpath, 0777)    
+ 
 
     # Do I need to install CCDP?
     if params.inst_ccdp:
@@ -134,7 +127,6 @@ class CcdpInstaller:
 
       root_dir = os.path.join(path, "dist")
       dist_file = os.path.join(root_dir, self.__CCDP_DIST)
-      inst_file = os.path.join(path, "python", self.__CCDP_INST)
       mesos_file = os.path.join(path, "config/mesos", self.__MESOS_CFG)
       
       if os.path.isfile('%s' % dist_file):
@@ -148,16 +140,6 @@ class CcdpInstaller:
         self.__logger.error("Failed to create tar file %s" % self.__CCDP_DIST)
 
       
-      if os.path.isfile('%s' % inst_file):
-        self.__logger.debug("File created successfully, uploading it")
-        # Storing data
-        self.__s3.Object(bkt_name, self.__CCDP_INST).put(
-                          Body=open(inst_file, 'rb'))
-        self.__logger.debug("File %s was uploaded successfully" % self.__CCDP_INST)
-
-      else:
-        self.__logger.error("Failed to find script file %s" % inst_file)
-
       if params.set_mesos:
         if os.path.isfile('%s' % mesos_file):
           self.__logger.debug("Uploading mesos configuration: %s" % mesos_file)

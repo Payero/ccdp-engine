@@ -20,9 +20,11 @@ import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.message.EndSessionMessage;
 import com.axios.ccdp.utils.CcdpUtils;
 
 
@@ -110,6 +112,14 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
         ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
         msg = reqMsg.getRequest().toPrettyPrint();
         this.logger.info("Got a ThreadRequestTaskMessage for " + msg);
+        break;
+      case START_SESSION:
+        StartSessionMessage start = (StartSessionMessage)message;
+        this.logger.info("Start Session Message: " + start.getSessionId());
+        break;
+      case END_SESSION:
+        EndSessionMessage end = (EndSessionMessage)message;
+        this.logger.info("End Session Message: " + end.getSessionId());
         break;
       case UNDEFINED:
       default:
@@ -212,7 +222,8 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
     CcdpUtils.configLogger();
     
     
-    Map<String, String> map = CcdpUtils.getKeysByFilter("taskingIntf");
+    Map<String, String> map = 
+        CcdpUtils.getKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     String channel = null;  
     

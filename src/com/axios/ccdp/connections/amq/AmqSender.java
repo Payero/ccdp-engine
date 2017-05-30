@@ -1,6 +1,5 @@
 package com.axios.ccdp.connections.amq;
 
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -10,11 +9,7 @@ import javax.jms.MessageProducer;
 import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
-
 import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.KillTaskMessage;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpUtils;
 
 /**
  * Class used to send ActiveMQ messages.  It was designed to be part of the
@@ -126,7 +121,6 @@ public class AmqSender extends AmqConnector
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
       
       this.logger.info("Sent: " + message.getText());
-  
     } 
     catch (Exception e) 
     {

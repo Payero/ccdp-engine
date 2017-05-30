@@ -47,15 +47,9 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpNodeType def = CcdpNodeType.DEFAULT;
     
-    CcdpImageInfo img = CcdpUtils.getImageInfo(def);
-    CcdpImageInfo copy = new CcdpImageInfo(img);
-    copy.setMinReq(1);
-    copy.setMaxReq(2);
-    copy.getTags().put("copy", "true");
-    this.logger.debug("The Original: " + img.toPrettyPrint());
-    this.logger.debug("The Copy: " + copy.toPrettyPrint());
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode obj = mapper.readTree("{\"k1\":\"v1\"}");
     
   }
   

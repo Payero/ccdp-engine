@@ -6,6 +6,7 @@
 	<property name="executor.name" value="mesos-ccdp-exec" />
 	<property name="agent.name" value="ccdp-agent" />
  	<property name="engine.name" value="ccdp-engine" />
+  <property name="client.name" value="ccdp-client" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -172,6 +173,9 @@
     <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
   </jar>
 
+  <jar destfile="${base.dist.dir}/${client.name}.jar" >
+    <fileset dir="${main.dir}"/>
+  </jar>
 
 	<!-- Copy files to the bin directory -->
 	<copy todir="${dist.dir}/bin">

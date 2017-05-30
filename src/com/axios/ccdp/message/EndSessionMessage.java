@@ -19,6 +19,15 @@ public class EndSessionMessage extends CcdpMessage
     return this.msgType.getValue();
   }
   
+  @Override
+  public void setMessageType( int type )
+  {
+    if( type != this.msgType.getValue() )
+      return;
+    
+    this.msgType = CcdpMessageType.get(type);
+  }
+  
   @PropertyNameGet("session-id")
   public String getSessionId()
   {

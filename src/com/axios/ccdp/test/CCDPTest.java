@@ -47,16 +47,13 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpNodeType def = CcdpNodeType.DEFAULT;
+    CcdpVMResource res = new CcdpVMResource();
+    this.logger.info("The resource " + res.toPrettyPrint());
     
-    CcdpImageInfo img = CcdpUtils.getImageInfo(def);
-    CcdpImageInfo copy = new CcdpImageInfo(img);
-    copy.setMinReq(1);
-    copy.setMaxReq(2);
-    copy.getTags().put("copy", "true");
-    this.logger.debug("The Original: " + img.toPrettyPrint());
-    this.logger.debug("The Copy: " + copy.toPrettyPrint());
-    
+    CcdpThreadRequest req = new CcdpThreadRequest();
+    CcdpTaskRequest task = new CcdpTaskRequest();
+    req.getTasks().add(task);
+    this.logger.info("The Request: " + req.toPrettyPrint());
   }
   
   

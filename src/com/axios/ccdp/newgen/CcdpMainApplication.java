@@ -26,11 +26,14 @@ import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.controllers.aws.AWSCcdpTaskingControllerImplV2;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.EndSessionMessage;
 import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
 import com.axios.ccdp.message.RunTaskMessage;
+import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -275,6 +278,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.logger.debug("Got a new Event: " + message.toString());
     switch( msgType )
     {
+      case START_SESSION:
+        StartSessionMessage start = (StartSessionMessage)message;
+        this.startSession( start );
+        break;
+      case END_SESSION:
+        EndSessionMessage end = (EndSessionMessage)message;
+        this.checkDeallocation( end.getSessionId() );
+        break;
       case RESOURCE_UPDATE:
         ResourceUpdateMessage resMsg = (ResourceUpdateMessage)message;
         this.updateResource( resMsg.getCcdpVMResource() );
@@ -333,6 +344,47 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }// end of the requests loop
     }// end of the sync block
   }
+  
+  /**
+   * Starts a new session and allocates resources to the session if available.
+   * It looks at the node type so we can reassign a node of the same type
+   * 
+   * @param start the message containing the information required to start a
+   *        new session
+   */
+  private void startSession( StartSessionMessage start )
+  {
+    String sid = start.getSessionId();
+    CcdpNodeType node = start.getNodeType();
+    
+    synchronized( this.resources )
+    {
+      if( !this.resources.containsKey(sid) )
+      {
+        this.logger.info("Starting new Session: " + sid);
+        
+        List<CcdpVMResource> list = this.resources.get( node.toString() );
+        if( !list.isEmpty() )
+        {
+          CcdpVMResource vm = list.get(0);
+          vm.setAssignedSession(sid);
+          vm.setStatus(ResourceStatus.REASSIGNED);
+          String iid = vm.getInstanceId();
+          List<CcdpVMResource> sidList = new ArrayList<>();
+          sidList.add(vm);
+          this.logger.info("Reassigning VM " + iid + " to session " + sid);
+          this.resources.put(sid, sidList);
+          this.checkFreeVMRequirements();
+        }// found empty VM
+      }
+      else
+      {
+        this.logger.warn("Session " + sid + 
+                         " already exists, ignoring start session request");
+      }// it does contain a session for it
+    }// end of the sync block
+  }
+
   
   /**
    * Updates the assigned and free resources allocated to this VM.  This 

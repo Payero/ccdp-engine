@@ -48,6 +48,7 @@ of agents is not limited.
 - Add running on a single VM to the Thread Request
 - Need to add different images based on node types!!
 - How to handle lambda tasks
+- Add launching jar files using lambda
 - Integrate NiFi into it
 
 

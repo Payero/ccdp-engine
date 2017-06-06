@@ -1,49 +1,36 @@
 # Cloud Computing Data Processing (CCDP)
 
-## Web Application
+## Processing Engine
 
-  There are two directories; frontend and services.  The frontend is the web
-application itelf.  The services contains a single docker-compose.yml file with
-docker containers shared among multiple projects such as ActiveMQ and MongoDb.
+### Overview
+Cloud Computing Data Processing (CCDP) is an IRAD whose intention is to create a 
+framework to easily interact with the most common services offered by the cloud 
+provider for data processing.  The framework takes the burden away from 
+knowledge about the cloud provider from the processing modules.  It aims to 
+facilitate an environment that is dynamically modified be either allocating or 
+deallocating resources as needed.  This dynamic environment will allow 
+maximizing the resources usage without compromising processing threads.  A 
+processing thread is a sequence of processing modules used to generate some 
+results.  The framework provides a way to allow communications between the 
+modules
 
-  Before we run the GUI we need to make sure both containers are running:
-
-  ```
-  docker ps
-  ```
-  You should see something similar to this:
   
-```
-CONTAINER ID        IMAGE             COMMAND                  STATUS   NAMES
-8f57fac375bd        activemq:5.14.3   "/app/run.sh"            Up       amq
-5285307c71f9        mongo:3.2         "docker-entrypoint..."   Up       mongo
-```
+### Minimum Requirements:
 
-  If you want to see a working version do the following (thanks Kevin Kelly):
-- Clone the gui-angular project
-- Get the feat-react-temp
-- docker-compose build && docker-compose up
-- http://&lt;hostname&gt;:20223 shows the angular version that we n longer use
-- http://&lt;hostname&gt;:20223/react shows the React version we are incorporating
-
-### To Do:
-- Is not running, there is an error message about port 61613, don't know why. 
-    - It works if you run the same python code outside the container
-    - It might be something to do with how the frontend container is launched
-- Find a better way to deply the whole thing:
-    - Can we check if the docker containers are running?
-- This file is not truly what needs to be executed in order to run the GUI so we need to finish it
-- Add a way to upload modules as zip files into a S3 bucket
-
-
-
-
+- Java SDK 8
+- Ant 1.7
 
 ### Installing
 
-- Ensure you have [Docker]() and [Docker-Compose]() installed.
+- Decompress the file containing all the source code
+- cd to the root directory
+- Type ant and hit enter
 
-### Running
+
+### Running the Main Application
+
+
+
 
 - First, build the docker images. Thankfully, `docker-compose` provides a way to orchestrate multiple Docker containers.
 
@@ -74,8 +61,9 @@ CONTAINER ID        IMAGE             COMMAND                  STATUS   NAMES
 
 - Now, by navigating to localhost:20223 (if you are running this on another server, try running <IP_OF_SERVER>:20223), you should be able to see the webapp with several modules listed.
 
-## Engine
+### To Do:
+- Add running on a single VM to the Thread Request
+- Need to add different images based on node types!!
+- How to handle lambda tasks
 
-### Installing
 
-### Running

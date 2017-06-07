@@ -47,8 +47,6 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpVMResource res = new CcdpVMResource();
-    this.logger.info("The resource " + res.toPrettyPrint());
     
     CcdpThreadRequest req = new CcdpThreadRequest();
     CcdpTaskRequest task = new CcdpTaskRequest();

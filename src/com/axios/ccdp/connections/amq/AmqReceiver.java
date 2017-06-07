@@ -3,9 +3,11 @@ package com.axios.ccdp.connections.amq;
 
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -143,7 +145,20 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   }
   
   /**
-   * Method invoked every time a new AMQ message is received
+   * Method invoked every time a new AMQ message is received.  It tries very
+   * hard to determine what the message is.  It first test if is a TextMessage 
+   * and if it is it attempts the get the message type from the header.   If
+   * is not set, then it takes the payload and gets the message type from it.
+   * If the message type is found it creates a CcdpMessage of the appropriate
+   * type and passes it to the consumer.
+   * 
+   * If the message type was not found then it attempts to generate a 
+   * CcdpThreadRequest from the payload.  If it was parsed successfully then is
+   * created into a ThreadRequestMessage and passed to the consumer.
+   * 
+   * If none of the above is possible then it throws an error and ignores the
+   * incoming message
+   * 
    */
   public void onMessage( Message message )
   {
@@ -153,12 +168,35 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       if (message instanceof TextMessage) 
       {
         TextMessage txtMsg = (TextMessage)message;
-
+        this.logger.info("Payload: " + txtMsg.getText());
+        int msgTypeNum = -1;
+        String keyFld = CcdpMessage.MSG_TYPE_FLD;
+        // let's try option one: the message type is in the header
+        if( txtMsg.propertyExists(keyFld) )
+        {
+          msgTypeNum = txtMsg.getIntProperty(keyFld);
+        }
+        else  // is not, is it in the actual body as json?
+        {
+          JsonNode obj = this.mapper.readTree(txtMsg.getText());
+          this.logger.info("The Json Object " + obj.toString());
+          
+          // I am looking for the msg-type field, is it there?
+          if( obj.has(keyFld) )
+          {
+            String val = obj.get(keyFld).asText();
+            msgTypeNum = Integer.valueOf(val);
+          }
+          else
+          {
+            this.logger.error("The Message does not have message type field " + keyFld);
+          }
+        }
+        
         // if it has an integer field called msg-type, then it might be a
         // CcdpMessage
-        if( txtMsg.propertyExists(CcdpMessage.MSG_TYPE_FLD) )
+        if( msgTypeNum >= 0 )
         {
-          int msgTypeNum = txtMsg.getIntProperty(CcdpMessage.MSG_TYPE_FLD);
           String replyTo = null;
           if( txtMsg.getJMSReplyTo() != null )
             replyTo = txtMsg.getJMSReplyTo().toString();
@@ -263,12 +301,12 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       }
       else
       {
-        this.logger.warn("Expecting TextMessages only");
+        this.logger.warn("Expecting TextMessages only " + message.getClass().getName() );
       }
     }
     catch( Exception e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("Message: " + e.getMessage());
     }
   }
   

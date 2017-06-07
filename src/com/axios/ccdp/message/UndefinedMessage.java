@@ -1,5 +1,6 @@
 package com.axios.ccdp.message;
 
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 
 public class UndefinedMessage extends CcdpMessage
 {
@@ -32,4 +33,14 @@ public class UndefinedMessage extends CcdpMessage
   {
     return this.msgType.getValue();
   }
+  
+  @Override
+  public void setMessageType( int type )
+  {
+    if( type != this.msgType.getValue() )
+      return;
+    
+    this.msgType = CcdpMessageType.get(type);
+  }
+  
 }

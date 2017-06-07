@@ -3,6 +3,7 @@ package com.axios.ccdp.message;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 
 public class StartSessionMessage extends CcdpMessage
 {
@@ -21,6 +22,15 @@ public class StartSessionMessage extends CcdpMessage
   public Integer getMessageType()
   {
     return this.msgType.getValue();
+  }
+  
+  @Override
+  public void setMessageType( int type )
+  {
+    if( type != this.msgType.getValue() )
+      return;
+    
+    this.msgType = CcdpMessageType.get(type);
   }
   
   @PropertyNameGet("session-id")

@@ -16,6 +16,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -48,32 +49,42 @@ public class CcdpMsgSender
     this.logger.debug("Running a Task sender, sending " + jobs);
     this.sender = new AmqSender();
     
-    Map<String, String> map = CcdpUtils.getKeysByFilter("taskingIntf");
+    Map<String, String> map = 
+        CcdpUtils.getKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     
     String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     if( channel == null )
-      channel = map.get(CcdpUtils.CFG_KEY_TASKING_CHANNEL);
+      channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL);
     
     channel = channel.trim();
     
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);
-    
-    try
+    boolean send_req = false;
+    if( send_req )
     {
-      List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(jobs);
-      for( CcdpThreadRequest req : reqs )
+      try
       {
-        this.logger.info("Sending " + req.toPrettyPrint());
-        ThreadRequestMessage msg = new ThreadRequestMessage();
-        msg.setRequest(req);
-        this.sender.sendMessage(null, msg);
+        List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(jobs);
+        for( CcdpThreadRequest req : reqs )
+        {
+          this.logger.info("Sending " + req.toPrettyPrint());
+          ThreadRequestMessage msg = new ThreadRequestMessage();
+          msg.setRequest(req);
+          this.sender.sendMessage(null, msg);
+        }
+        this.sender.disconnect();
       }
-      this.sender.disconnect();
+      catch( Exception e )
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+      }
     }
-    catch( Exception e )
+    else
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      StartSessionMessage msg = new StartSessionMessage();
+      msg.setSessionId("abc-123");
+      this.sender.sendMessage(null,  msg);
     }
   }  
   

@@ -1,6 +1,7 @@
 package com.axios.ccdp.message;
 
 
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 
 public class RunTaskMessage extends CcdpMessage
@@ -34,5 +35,14 @@ public class RunTaskMessage extends CcdpMessage
   public Integer getMessageType()
   {
     return this.msgType.getValue();
+  }
+  
+  @Override
+  public void setMessageType( int type )
+  {
+    if( type != this.msgType.getValue() )
+      return;
+    
+    this.msgType = CcdpMessageType.get(type);
   }
 }

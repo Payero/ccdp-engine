@@ -93,20 +93,25 @@ public abstract class CcdpMessage implements Cloneable
   }
   
   @PropertyNameGet(MSG_TYPE_FLD)
+  @JsonGetter("msg-type")
   public abstract Integer getMessageType();
+  
+  @PropertyNameSet(MSG_TYPE_FLD)
+  @JsonSetter("msg-type")
+  public abstract void setMessageType(int type);
   
   
   public enum CcdpMessageType
   {
-    UNDEFINED(-1),
-    THREAD_REQUEST(0),
-    RUN_TASK(1),
-    KILL_TASK(2),
-    TASK_UPDATE(3),
-    RESOURCE_UPDATE(4),
-    ASSIGN_SESSION(5),
-    START_SESSION(6),
-    END_SESSION(7);
+    UNDEFINED(0),
+    THREAD_REQUEST(1),
+    RUN_TASK(2),
+    KILL_TASK(3),
+    TASK_UPDATE(4),
+    RESOURCE_UPDATE(5),
+    ASSIGN_SESSION(6),
+    START_SESSION(7),
+    END_SESSION(8);
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

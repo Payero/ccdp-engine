@@ -13,6 +13,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.InstanceProfileCredentialProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -704,9 +705,15 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     else
     {
-      String txt = "Was not able to find any of the different ways to "
-          + "authenticate.  At least one method needs to be available";
-      throw new IllegalArgumentException(txt);
+      InstanceProfileCredentialsProvider prov = 
+                   InstanceProfileCredentialsProvider.getInstance();
+      credentials = prov.getCredentials();
+      if( credentials == null )
+      {
+        String txt = "Was not able to find any of the different ways to "
+            + "authenticate.  At least one method needs to be available";
+        throw new IllegalArgumentException(txt);
+      }
     }
     
     return credentials;
@@ -736,9 +743,15 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     else
     {
-      String txt = "The profiles file (" + fname + ") is invalid.  Please set"
+      InstanceProfileCredentialsProvider prov =
+                   InstanceProfileCredentialsProvider.getInstance();
+      creds = prov.getCredentials();
+      if( credentials == null )
+      {
+        String txt = "The profiles file (" + fname + ") is invalid.  Please set"
           + " the credentials-file field properly";
-      throw new IllegalArgumentException(txt);
+        throw new IllegalArgumentException(txt);
+      }
     }
     
     return creds;

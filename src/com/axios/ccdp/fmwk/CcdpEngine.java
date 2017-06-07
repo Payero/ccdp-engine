@@ -1026,15 +1026,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     return list;
   }
   
-  /**
-   * Tells the engine to start a new session.  
-   * 
-   * @param sid the session id to allocate resources
-   */
-  private void startSession( String sid )
-  {
-    this.logger.info("Starting a new Session " + sid);
-  }
   
   /**
    * Terminates all the resources that is not currently running any task for the
@@ -1064,6 +1055,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       }
     }
     this.controller.terminateInstances(terminate);
+    this.checkDeallocation(sid);
   }
   
   /**
@@ -1396,8 +1388,8 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         this.startSession( start );
         break;
       case END_SESSION:
-        EndSessionMessage end = (EndSessionMessage)message;
-        this.checkDeallocation( end.getSessionId() );
+        EndSessionMessage endMsg = (EndSessionMessage)message;
+        this.endSession(endMsg.getSessionId());
         break;
       case UNDEFINED:
         UndefinedMessage undMsg = (UndefinedMessage)message;
@@ -1412,14 +1404,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
         CcdpThreadRequest req = reqMsg.getRequest();
         this.onTask(req);
-        break;
-      case START_SESSION:
-        StartSessionMessage startMsg = (StartSessionMessage)message;
-        this.startSession(startMsg.getSessionId());
-        break;
-      case END_SESSION:
-        EndSessionMessage endMsg = (EndSessionMessage)message;
-        this.endSession(endMsg.getSessionId());
         break;
       default:
         this.logger.error("Message Type not found");

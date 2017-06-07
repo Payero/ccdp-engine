@@ -146,6 +146,9 @@ case $1 in
 		elif [ -e "/usr/lib/jvm/default-java" ] ; then
 			JAVA_HOME="/usr/lib/jvm/default-java"
 			export JAVA_HOME
+    elif [ -e "/usr/bin/java" ] ; then
+      JAVA_HOME="/usr"
+      export JAVA_HOME
 		else
 			echo ""
 			echo "Could not find the Java Installation, exiting!"

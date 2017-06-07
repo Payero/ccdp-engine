@@ -23,10 +23,12 @@ import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.message.EndSessionMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -1047,6 +1049,46 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   }
   
   /**
+   * Tells the engine to start a new session.  
+   * 
+   * @param sid the session id to allocate resources
+   */
+  private void startSession( String sid )
+  {
+    this.logger.info("Starting a new Session " + sid);
+  }
+  
+  /**
+   * Terminates all the resources that is not currently running any task for the
+   * given session id.
+   * 
+   * @param sid the session id of the resources to terminate
+   */
+  private void endSession( String sid )
+  {
+    this.logger.info("Terminating Session " + sid);
+    List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
+    this.logger.info("Terminating " + list.size() + " VMs");
+    List<String> terminate = new ArrayList<>();
+    for( CcdpVMResource res : list )
+    {
+      String id = res.getInstanceId();
+      if( res.isFree() )
+      {
+        this.logger.info("Adding " + id + " for termination");
+        terminate.add(res.getInstanceId());
+      }
+      else
+      {
+        String txt = "Instance " + id + 
+                     " still running tasks, postponing termination";
+        this.logger.info(txt);
+      }
+    }
+    this.controller.terminateInstances(terminate);
+  }
+  
+  /**
    * Checks the minimum number of available VMs required by the framework and
    * deploy as many instances as needed.
    * 
@@ -1384,6 +1426,14 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         ThreadRequestMessage reqMsg = (ThreadRequestMessage)message;
         CcdpThreadRequest req = reqMsg.getRequest();
         this.onTask(req);
+        break;
+      case START_SESSION:
+        StartSessionMessage startMsg = (StartSessionMessage)message;
+        this.startSession(startMsg.getSessionId());
+        break;
+      case END_SESSION:
+        EndSessionMessage endMsg = (EndSessionMessage)message;
+        this.endSession(endMsg.getSessionId());
         break;
       default:
         this.logger.error("Message Type not found");

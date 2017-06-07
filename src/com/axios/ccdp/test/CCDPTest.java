@@ -48,9 +48,10 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode obj = mapper.readTree("{\"k1\":\"v1\"}");
-    
+    CcdpThreadRequest req = new CcdpThreadRequest();
+    CcdpTaskRequest task = new CcdpTaskRequest();
+    req.getTasks().add(task);
+    this.logger.info("The Request: " + req.toPrettyPrint());
   }
   
   

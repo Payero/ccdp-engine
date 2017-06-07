@@ -40,8 +40,6 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -63,10 +61,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 //public class CcdpEngine implements CcdpTaskConsumerIntf, TaskEventIntf, CcdpMessageConsumerIntf
 public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
 {
-//  /**
-//   * Stores the name of the session with available resources
-//   */
-//  private static final String FREE_SESSION = "available";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -85,10 +79,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   private SimpleDateFormat formatter = 
       new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
   /**
-   * Creates all the ArrayNode and ObjectNode
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  /**
    * Stores a list of requests to process.  Each request is a processing thread
    * containing one or more processing task.
    */
@@ -101,10 +91,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    */
   private CcdpConnectionIntf connection;
   
-//  /**
-//   * Stores the object responsible for sending and receiving tasking information
-//   */
-//  private CcdpTaskingIntf taskingInf = null;
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
@@ -125,10 +111,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * The unique identifier for this engine
    */
   private String engineId = UUID.randomUUID().toString();
-//  /**
-//   * Stores the instance id of the EC2 running this framework
-//   */
-//  private String instanceId = null;
   /**
    * Continuously monitors the state of the system
    */
@@ -159,14 +141,11 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     ObjectNode storage_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
     
-//    this.taskingInf = factory.getCcdpTaskingInterface(task_msg_node);
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
     this.controller = factory.getCcdpResourceController(res_ctr_node);
     this.storage = factory.getCcdpStorageControllerIntf(storage_node);
     
-//    this.taskingInf.setTaskConsumer(this);
-//    this.taskingInf.register(this.engineId);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
     if( this.def_channel != null )
@@ -188,15 +167,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       }
     }// end of the do not terminate section
     
-//    try
-//    {
-//      this.instanceId = CcdpUtils.retrieveEC2Info("instance-id");
-//      this.logger.info("Framework running on instance: " + this.instanceId );
-//    }
-//    catch( Exception e )
-//    {
-//      this.logger.warn("Could not get Instance ID, assigning one");
-//    }
 
     // Let's check what is out there....
     int cycle = 5;;
@@ -422,43 +392,51 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     }// end of synch block
   }
   
+  /**
+   * Starts a new session and allocates resources to the session if available.
+   * It looks at the node type so we can reassign a node of the same type
+   * 
+   * @param start the message containing the information required to start a
+   *        new session
+   */
+  private void startSession( StartSessionMessage start )
+  {
+    String sid = start.getSessionId();
+    CcdpNodeType node = start.getNodeType();
+    
+    synchronized( this.resources )
+    {
+      if( !this.resources.containsKey(sid) )
+      {
+        this.logger.info("Starting new Session: " + sid);
+        List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
+        if( list.isEmpty() )
+        {
+          list = this.getResourcesBySessionId(node.toString());
+          if( !list.isEmpty() )
+          {
+            CcdpVMResource vm = list.get(0);
+            vm.setAssignedSession(sid);
+            vm.setStatus(ResourceStatus.REASSIGNED);
+            String iid = vm.getInstanceId();
+            this.logger.info("Reassigning VM " + iid + " to session " + sid);
+            this.resources.put(vm.getInstanceId(), vm);
+            this.checkMinVMRequirements();
+          }// found empty VM
+        }
+        else
+        {
+          this.logger.warn("Should not have any VM for a starting session");
+        }
+      }
+      else
+      {
+        this.logger.warn("Session " + sid + 
+                         " already exists, ignoring start session request");
+      }// it does contain a session for it
+    }// end of the sync block
+  }
   
-//  /**
-//   * Allows an external entity to notify the framework that one of the resources
-//   * is having issues and needs to be removed.
-//   * 
-//   * @param identifier the agent id or identifier to determine which resource 
-//   *        is having issues
-//   * 
-//   */
-//  public void resourceLost( String identifier )
-//  {
-//    this.logger.warn("Resource Lost: " + identifier);
-//    
-//    synchronized( this.resources )
-//    {
-//      String to_remove = null;
-//      for( String key : this.resources.keySet() )
-//      {
-//        CcdpVMResource vm = this.resources.get(key);
-//        String id = vm.getAgentId();
-//        this.logger.debug("Comparing " + identifier + " against " + id);
-//        if( identifier.equals( id ) )
-//        {
-//          this.logger.info("Found lost resource " + key + ", removing it");
-//          to_remove = key;
-//          break;
-//        }
-//      }
-//      
-//      // need to remove it outside of the iterator
-//      if( to_remove != null )
-//        this.resources.remove(to_remove);
-//      
-//    }// end of synchronized block
-//    
-//  }
-//  
   
   /**
    * Once a Task using a dedicated host ends this method is called to reset
@@ -1413,6 +1391,14 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     this.logger.debug("Got a " + msgType + " Message");
     switch( msgType )
     {
+      case START_SESSION:
+        StartSessionMessage start = (StartSessionMessage)message;
+        this.startSession( start );
+        break;
+      case END_SESSION:
+        EndSessionMessage end = (EndSessionMessage)message;
+        this.checkDeallocation( end.getSessionId() );
+        break;
       case UNDEFINED:
         UndefinedMessage undMsg = (UndefinedMessage)message;
         this.logger.info("Undefined Msg: " + undMsg.getPayload().toString());

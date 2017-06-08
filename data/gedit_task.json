@@ -1,0 +1,6 @@
+{
+  "jobs": 
+    [
+      {"session-id":"test-1", "command": ["/usr/bin/gedit"]}
+    ]
+}

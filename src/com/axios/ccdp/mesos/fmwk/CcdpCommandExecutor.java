@@ -108,7 +108,6 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    */
   public void onEvent()
   {
-    this.logger.debug("Sending Heartbeat");
     // if we have a driver then send heartbeat messages
     if( this.driver != null )
     {

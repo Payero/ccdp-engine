@@ -13,7 +13,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.InstanceProfileCredentialProvider;
+import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
 import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
@@ -746,7 +746,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       InstanceProfileCredentialsProvider prov =
                    InstanceProfileCredentialsProvider.getInstance();
       creds = prov.getCredentials();
-      if( credentials == null )
+      if( creds == null )
       {
         String txt = "The profiles file (" + fname + ") is invalid.  Please set"
           + " the credentials-file field properly";

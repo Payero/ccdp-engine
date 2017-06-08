@@ -54,13 +54,13 @@ public class CcdpMsgSender
     
     String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     if( channel == null )
-      channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL);
+      channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
     
     channel = channel.trim();
     
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);
-    boolean send_req = false;
+    boolean send_req = true;
     if( send_req )
     {
       try
@@ -72,8 +72,11 @@ public class CcdpMsgSender
           ThreadRequestMessage msg = new ThreadRequestMessage();
           msg.setRequest(req);
           this.sender.sendMessage(null, msg);
+          this.logger.debug("Message sent");
         }
+        this.logger.debug("Done sending messages, disconnecting");
         this.sender.disconnect();
+        this.logger.info("Done, disconnecting quiting now");
       }
       catch( Exception e )
       {

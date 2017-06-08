@@ -1026,6 +1026,38 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     return list;
   }
   
+  
+  /**
+   * Terminates all the resources that is not currently running any task for the
+   * given session id.
+   * 
+   * @param sid the session id of the resources to terminate
+   */
+  private void endSession( String sid )
+  {
+    this.logger.info("Terminating Session " + sid);
+    List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
+    this.logger.info("Terminating " + list.size() + " VMs");
+    List<String> terminate = new ArrayList<>();
+    for( CcdpVMResource res : list )
+    {
+      String id = res.getInstanceId();
+      if( res.isFree() )
+      {
+        this.logger.info("Adding " + id + " for termination");
+        terminate.add(res.getInstanceId());
+      }
+      else
+      {
+        String txt = "Instance " + id + 
+                     " still running tasks, postponing termination";
+        this.logger.info(txt);
+      }
+    }
+    this.controller.terminateInstances(terminate);
+    this.checkDeallocation(sid);
+  }
+  
   /**
    * Checks the minimum number of available VMs required by the framework and
    * deploy as many instances as needed.
@@ -1356,8 +1388,8 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         this.startSession( start );
         break;
       case END_SESSION:
-        EndSessionMessage end = (EndSessionMessage)message;
-        this.checkDeallocation( end.getSessionId() );
+        EndSessionMessage endMsg = (EndSessionMessage)message;
+        this.endSession(endMsg.getSessionId());
         break;
       case UNDEFINED:
         UndefinedMessage undMsg = (UndefinedMessage)message;

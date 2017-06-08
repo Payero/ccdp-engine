@@ -77,7 +77,7 @@ class CcdpEnvSetter:
       sys.exit(-2)
 
     self.__logger.debug("Downloading settings file ")
-    fpath = os.path.join(ccdp_root, "scripts", self.__CCDP_SETTINGS)
+    fpath = os.path.join(ccdp_root, "config/mesos", self.__CCDP_SETTINGS)
     self.__logger.debug("Saving file in %s" % fpath)
     bkt.download_file(self.__CCDP_SETTINGS, fpath)
 
@@ -102,7 +102,7 @@ class CcdpEnvSetter:
         
     self.__logger.info("Using Data: %s" % str(json_data))
 
-    scripts = os.path.join(ccdp_root, 'scripts')
+    scripts = os.path.join(ccdp_root, 'python')
     try:
       sys.path.index(scripts)
     except ValueError:
@@ -161,9 +161,11 @@ class CcdpEnvSetter:
       fname = '%s.tar.gz' % self.__CCDP_DIST
       self.__logger.debug("Creating file: %s" % fname)
       #base_name, format, root_dir=None, base_dir=None,
-      root_dir = os.path.join(path, "dist")
-      tarfile.shutil.make_archive(base_name=self.__CCDP_DIST, format='gztar', 
-                          root_dir=root_dir, base_dir='ccdp-engine')
+      root_dir = os.path.join(path, "dist/ccdp-engine")
+      
+      tar = tarfile.open(fname, "w:gz")
+      tar.add(root_dir, os.path.basename(root_dir))
+      tar.close()
       
       if os.path.isfile('%s' % fname):
         self.__logger.debug("File created successfully, uploading it")
@@ -181,7 +183,7 @@ class CcdpEnvSetter:
       self.__logger.info("Skipping CCDP baseline upload")
       
       
-    fname = os.path.join(path, 'scripts', self.__CCDP_SETTINGS)
+    fname = os.path.join(path, 'config/mesos', self.__CCDP_SETTINGS)
     if os.path.isfile(fname):
       self.__logger.info("Uploading CCDP Settings file: %s" % fname)
       self.__s3.Object(bkt_name, self.__CCDP_SETTINGS).put(
@@ -193,6 +195,7 @@ class CcdpEnvSetter:
     bkt = self.__s3.Bucket(bkt_name)
     acl = bkt.Acl()
     for grant in acl.grants:
+      if grant['Grantee'].has_key('DisplayName'):
         print(grant['Grantee']['DisplayName'], grant['Permission'])
     
     bkt.Acl().put(ACL='public-read')   

@@ -50,6 +50,8 @@ of agents is not limited.
 - How to handle lambda tasks
 - Add launching jar files using lambda
 - Integrate NiFi into it
+- If a task fails, it retries properly and eventually fails, but it never gets removed
+- 
 
 
 

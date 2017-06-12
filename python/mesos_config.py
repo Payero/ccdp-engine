@@ -310,8 +310,8 @@ ff02::3 ip6-allhosts
     d = {"ZOO_SERVERS": "\n".join(servers)}
     zoo_cfg = src.substitute(d)
     out = open('/etc/zookeeper/conf/zoo.cfg', 'w')
-    if not os.path.isdir(('/etc/zookeeper/conf/'):
-      os.makedirs(('/etc/zookeeper/conf/')
+    if not os.path.isdir( ('/etc/zookeeper/conf/') ):
+      os.makedirs( ('/etc/zookeeper/conf/') )
 
     out.write(zoo_cfg)
     out.flush()

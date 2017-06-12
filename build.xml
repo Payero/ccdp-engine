@@ -177,6 +177,7 @@
     <fileset dir="${main.dir}"/>
   </jar>
 
+
 	<!-- Copy files to the bin directory -->
 	<copy todir="${dist.dir}/bin">
     <fileset  dir="${basedir}/bin"/>

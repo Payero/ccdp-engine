@@ -203,6 +203,24 @@ public class CcdpThreadRequest implements Serializable
   }
 
   /**
+   * Returns the task matching the given task id.  If the task is not found, it
+   * returns null 
+   * 
+   * @param taskId the unique id identifying the task
+   * @return the task matching the given task id or null if not found
+   */
+  public CcdpTaskRequest getTask( String taskId)
+  {
+    for( CcdpTaskRequest task : this.tasks )
+    {
+      if( task.getTaskId().equals(taskId) )
+        return task;
+    }
+    
+    return null;
+  }
+  
+  /**
    * @return the tasks
    */
   public List<CcdpTaskRequest> getTasks()

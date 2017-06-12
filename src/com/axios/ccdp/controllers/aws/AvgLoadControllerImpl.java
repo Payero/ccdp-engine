@@ -4,9 +4,8 @@
 package com.axios.ccdp.controllers.aws;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -14,25 +13,24 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpImageInfo;
-import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * @author Oscar E. Ganteaume
  *
  */
-public class AWSCcdpTaskingControllerImplV2
+public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(AWSCcdpTaskingControllerImplV2.class
+  private Logger logger = Logger.getLogger(AvgLoadControllerImpl.class
       .getName());
   
   /**
@@ -44,13 +42,12 @@ public class AWSCcdpTaskingControllerImplV2
    * Stores the configuration passed to this object
    */
   private ObjectNode config = null;
-
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
    * assignments    
    */
-  public AWSCcdpTaskingControllerImplV2()
+  public AvgLoadControllerImpl()
   {
     this.logger.debug("Initiating Tasker object");
     // making the JSON Objects Pretty Print
@@ -125,25 +122,23 @@ public class AWSCcdpTaskingControllerImplV2
 
   /**
    * Determines whether or not additional resources are needed based on
-   * the utilization level of the given resources.  If there is a need for more
-   * resources then it returns the image information to launch otherwrise it 
-   * returns null.
+   * the utilization level of the given resources.  If the resources combined
+   * reaches the threshold then it returns true otherwise it returns false.
    * 
    * @param resources the list of resources to test for need of additional 
    *        resources
-   * @return The image configuration required to launch more resources or null
-   *         if no additonal resources are needed
+   * 
+   * @return true if more resources need to be allocated or false otherwise
+   * 
    */
-  public CcdpImageInfo needResourceAllocation(List<CcdpVMResource> resources)
+  public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
-    CcdpImageInfo imgCfg = null;
     if( resources == null )
-      return imgCfg;
+      return true;
     
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
-    int tasks = alloc.get("max-tasks").asInt();
     
     int sz = resources.size();
     double[] assignedCPU = new double[sz];
@@ -152,14 +147,12 @@ public class AWSCcdpTaskingControllerImplV2
     double[] availableMEM = new double[sz];
     int load = 0;
     
-    // let's try to guess the node type
-    Map<CcdpNodeType, CcdpImageInfo> types = new HashMap<>();
-    
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
-      CcdpNodeType type = vm.getNodeType();
-      types.put(type, CcdpUtils.getImageInfo(type));
+      // do not consider single tasked VMs
+      if( vm.isSingleTasked() )
+        continue;
       
       assignedCPU[i] = vm.getAssignedCPU();
       assignedMEM[i] = vm.getAssignedMemory();
@@ -167,43 +160,7 @@ public class AWSCcdpTaskingControllerImplV2
       availableMEM[i] = vm.getTotalMemory();
       load += vm.getNumberTasks();
     }
-    
-    for( CcdpNodeType type : types.keySet() )
-      imgCfg = new CcdpImageInfo(CcdpUtils.getImageInfo(type));
-    
-    if( types.size() == 1 )
-      this.logger.info("Need more " + imgCfg.getNodeTypeAsString() + " nodes");
-    else
-      this.logger.warn("Has more than one type of node, returning first one");
-    
-    if( cpu == 0 && mem == 0 && tasks > 0 )
-    {
-      this.logger.info("Using Max number of Tasks " + tasks);
-      if(sz > 0 )
-      {
-        int avgLoad = (int)(load / sz) ;
-        if( avgLoad >= tasks )
-        {
-          String txt = "Need Resources: the Average Load " + avgLoad + 
-              " is greater than allowed " + tasks;
-          this.logger.info(txt);
-          return imgCfg;
-        }
-        else
-        {
-          String txt = "Does not need Resources: the Average Load " + avgLoad + 
-              " is greater than allowed " + tasks;
-          this.logger.info(txt);
-          return null;
-        }
-      }
-      else
-      {
-        this.logger.info("Need Resources: There are no resources running");
-        return imgCfg;
-      }
-    }
-    
+
     // Now let's check averages...
     double avgCpu = this.getAverage(assignedCPU, availableCPU);
     double avgMem = this.getAverage(assignedMEM, availableMEM);
@@ -229,13 +186,13 @@ public class AWSCcdpTaskingControllerImplV2
       if( diff <= alloc.get("time").asInt() )
       {
         this.logger.info("Last allocation was recent, need resources");
-        return imgCfg;  
+        return true;  
       }
     }
     else
       this.logger.info("Low utilization rate, don't need additional resources");
     
-    return null;
+    return false;
   }
   
   /**
@@ -254,33 +211,6 @@ public class AWSCcdpTaskingControllerImplV2
     double mem = dealloc.get("mem").asDouble();
     long now = System.currentTimeMillis();
     
-    if( cpu == 0 && mem == 0 )
-    {
-      this.logger.info("Using last allocation time only");
-      List<CcdpVMResource> terminate = new ArrayList<>();
-      for( CcdpVMResource vm : resources )
-      {
-        long last = vm.getLastAssignmentTime();
-        int diff = (int)( ( (now - last) / 1000) / 60 );
-        // is the time of the last assignment greater than allowed and it was
-        // running (avoiding new launches)
-        if( diff >= dealloc.get("time").asInt() && 
-            ResourceStatus.RUNNING.equals( vm.getStatus() ) &&
-            vm.getTasks().size() == 0 &&
-            !vm.isSingleTasked()
-           )
-        {
-          this.logger.info("VM has not been allocated for a while, "
-                            + "marked for termination");
-          
-          this.logger.debug("VM Details: " + vm.toString());
-          
-          terminate.add(vm);  
-        }
-      }
-      return terminate;
-    }// end of using tasking only
-    
     this.logger.info("Using CPU and Memory average");
     List<CcdpVMResource> terminate = new ArrayList<>();
     int sz = resources.size();
@@ -292,6 +222,7 @@ public class AWSCcdpTaskingControllerImplV2
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
+      
       if( vm.isSingleTasked() && ( vm.getTasks().size() == 0 ) )
       {
         this.logger.info("VM Single Tasked and task is complete, terminating");
@@ -321,6 +252,7 @@ public class AWSCcdpTaskingControllerImplV2
       this.logger.info("Low Utilization for this Session, checking assignement time");
       for( CcdpVMResource vm : resources )
       {
+        
         long last = vm.getLastAssignmentTime();
         int diff = (int)( ( (now - last) / 1000) / 60 );
         // is the time of the last assignment greater than allowed and it was
@@ -344,25 +276,26 @@ public class AWSCcdpTaskingControllerImplV2
     return terminate;
   }
   
+  
   /**
    * Assigns all the tasks in the given list to the target VM based on 
    * resources availability and other conditions.
    * 
    * @param tasks a list of tasks to consider running in the intended VM
+   * @param target the VM candidate to run the tasks
    * @param resources all available resources that could be potentially
    *        used to run this tasks
-   * 
-   * @return a map specifying which tasks can be run on which resource
    */
-  public Map<CcdpVMResource, List<CcdpTaskRequest>> assignTasks(List<CcdpTaskRequest> tasks, 
+  public List<CcdpTaskRequest> assignTasks(List<CcdpTaskRequest> tasks, 
+                                           CcdpVMResource target,
                                            List<CcdpVMResource> resources)
   {
-    Map<CcdpVMResource, List<CcdpTaskRequest>> tasked = new HashMap<>();
-    
+    List<CcdpTaskRequest> assigned = new ArrayList<>();
     
     for( CcdpTaskRequest task: tasks )
     {
       double cpu = task.getCPU();
+      
       // cannot assigned less mem than required
       if(task.getMEM() < CcdpTaskRequest.MIN_MEM_REQ )
         task.setMEM(CcdpTaskRequest.MIN_MEM_REQ);
@@ -374,51 +307,107 @@ public class AWSCcdpTaskingControllerImplV2
       if( cpu == 0 )
       {
         this.logger.info("CPU = " + cpu + " Assigning Task based on session");
-        CcdpVMResource target = CcdpVMResource.leastUsed(resources);
-        String iid = target.getInstanceId();
-        task.assigned();
-        target.addTask(task);
-        task.setHostId(iid);
-        if( !tasked.containsKey( target ) )
-          tasked.put(target, new ArrayList<CcdpTaskRequest>());
-        tasked.get(target).add( task );
+        if( this.isLeastUtilized( task, target, resources) )
+        {
+          // cannot have a CPU less than the minimum required (mesos-master dies)
+          task.setCPU(CcdpTaskRequest.MIN_CPU_REQ);
+          task.setSubmitted(true);
+          task.assigned();
+        //this.addTaskToResource(target, task);
+          target.addTask(task);
+          task.setHostId(target.getInstanceId());
+          assigned.add( task );
+        }
       }
       else if( cpu >= 100 )
       {
         this.logger.info("CPU = " + cpu + " Assigning a Resource just for this task");
-        CcdpVMResource target = this.getAssignedResource(task, resources);
-        if( target != null  )
+        if( this.canAssignResource(task, target) )
         {
-          String iid = target.getInstanceId();
+          //TODO Changing the task's cpu to make sure "it will fit"
+          this.logger.info("Setting the Task's CPU to max amount for this resource");
+          task.setCPU(CcdpTaskRequest.MIN_CPU_REQ);
+          task.setSubmitted(true);
           task.assigned();
-          task.setHostId( iid );
+          task.setHostId(target.getInstanceId());
+          //this.addTaskToResource(target, task);
           target.addTask(task);
-          if( !tasked.containsKey( target ) )
-            tasked.put(target, new ArrayList<CcdpTaskRequest>());
-          tasked.get(target).add( task );
+          assigned.add( task );
         }
       }
       else
       {
         this.logger.info("CPU = " + cpu + " Assigning Task using First Fit");
-        CcdpVMResource target = this.getFirstFit(task, resources);
-        if( target != null  )
+        if( this.canRunTask(task, target) )
         {
-          String iid = target.getInstanceId();
+          task.setSubmitted(true);
           task.assigned();
-          task.setHostId( iid );
           target.addTask(task);
-          if( !tasked.containsKey( target ) )
-            tasked.put(target, new ArrayList<CcdpTaskRequest>());
-          tasked.get(target).add( task );
+          task.setHostId(target.getInstanceId());
+        //this.addTaskToResource(target, task);
+          target.addTask(task);
         }
       }
     }
     
-    return tasked;
+    return assigned;
   }
 
-  
+  /**
+   * Uses the list of resources to determine which one is the least
+   * utilized.  If the target resource is the least utilized then 
+   * it returns true otherwise it returns false.
+   * 
+   * @param target the intended VM to run the task
+   * @param resources a list of available VMs 
+   * 
+   * @return true if the task has not been submitted and the target VM is the
+   *         least utilized in the list
+   */
+  private boolean isLeastUtilized(CcdpTaskRequest task, CcdpVMResource target, 
+                                  List<CcdpVMResource> resources)
+  {
+    this.logger.debug("Finding least used VM of the session");
+    
+    if( task.isSubmitted() )
+    {
+      this.logger.debug("Job already submitted, skipping it");
+      return false;
+    }
+    
+    if( target.isSingleTasked() )
+    {
+      this.logger.debug("Target is assigned to a dedicated task " + target.getSingleTask() );
+      return false;
+    }
+    
+    JsonNode alloc = this.config.get("allocate");
+    double cpu = alloc.get("cpu").asDouble();
+    double mem = alloc.get("mem").asDouble();
+    int tasks = alloc.get("max-tasks").asInt();
+    
+    if( cpu == 0 && mem == 0 && tasks > 0 )
+    {
+      this.logger.info("Using Max number of Tasks " + tasks);
+      if( target.getNumberTasks() >= tasks )
+        return false;
+      else
+        return true;
+    }
+    
+    if( resources == null || resources.isEmpty() )
+    {
+      this.logger.debug("The list is invalid, returning true (use target VM)");
+      return true;
+    }
+    
+    CcdpVMResource vm = CcdpVMResource.leastUsed(resources);
+    if( vm != null && vm.equals(target))
+    {
+      return true;
+    }
+    return false;
+  }
   
   
   /**
@@ -430,50 +419,45 @@ public class AWSCcdpTaskingControllerImplV2
    * 
    * @return true if this task can be executed on this node
    */
-   private CcdpVMResource getFirstFit( CcdpTaskRequest task, 
-       List<CcdpVMResource> resources )
+   private boolean canRunTask( CcdpTaskRequest task, CcdpVMResource resource )
    {
      this.logger.debug("Running First Fit");
      if( task.isSubmitted() )
      {
        this.logger.debug("Job already submitted, skipping it");
-       return null;
+       return false;
      }
      
-     for( CcdpVMResource resource : resources )
+     // if the VM is not running then do not assign task to it
+     ResourceStatus status = resource.getStatus();
+     if( !ResourceStatus.RUNNING.equals(status) )
      {
-       // if the VM is not running then do not assign task to it
-       ResourceStatus status = resource.getStatus();
-       if( !ResourceStatus.RUNNING.equals(status) )
-       {
-         String msg = "VM " + resource.getInstanceId() + 
-                      " not running " + status.toString(); 
-         this.logger.debug(msg);
-         continue;
-       }
-       
-       double offerCpus = resource.getCPU();
-       double offerMem = resource.getTotalMemory();
-       
-       String str = 
-       String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
-       this.logger.debug(str);
-       
-       double jobCpus = task.getCPU();
-       double jobMem = task.getMEM();
-       this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
-       // does the offer has more resources than needed?
-       if( jobCpus <= offerCpus && jobMem <= offerMem )
-       {
-         this.logger.info("Enough resources for a new Job");
-         offerCpus -= jobCpus;
-         offerMem -= jobMem;
-         
-         return resource;
-       }
+       String msg = "VM " + resource.getInstanceId() + " not running " + status.toString(); 
+       this.logger.info(msg);
+       return false;
      }
-      
-     return null;
+     
+     double offerCpus = resource.getCPU();
+     double offerMem = resource.getTotalMemory();
+     
+     String str = 
+     String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
+     this.logger.debug(str);
+     
+     double jobCpus = task.getCPU();
+     double jobMem = task.getMEM();
+     this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
+     // does the offer has more resources than needed?
+     if( jobCpus <= offerCpus && jobMem <= offerMem )
+     {
+       this.logger.info("Enough resources for a new Job");
+       offerCpus -= jobCpus;
+       offerMem -= jobMem;
+       
+       return true;
+     }
+     
+     return false;
    }
    
    /**
@@ -487,32 +471,27 @@ public class AWSCcdpTaskingControllerImplV2
     * 
     * @return true if the VM is found and is RUNNING
     */
-   private CcdpVMResource getAssignedResource(CcdpTaskRequest task, 
-       List<CcdpVMResource> resources )
+   private boolean canAssignResource(CcdpTaskRequest task, CcdpVMResource resource )
    {
      String hid = task.getHostId();
-     
-     for( CcdpVMResource resource : resources )
+     String id = resource.getInstanceId();
+     this.logger.debug("Comparing Host " + id + " and task's Host Id " + hid);
+     if( hid != null && hid.equals( id ) )
      {
-       String id = resource.getInstanceId();
-       this.logger.debug("Comparing Host " + id + " and task's Host Id " + hid);
-       if( hid != null && hid.equals( id ) )
+       this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
+       if( resource.getStatus().equals(ResourceStatus.RUNNING) )
        {
-         this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
-         if( resource.getStatus().equals(ResourceStatus.RUNNING) )
-         {
-           String tid = task.getTaskId();
-           this.logger.info("VM " + id + " was assigned to task " + tid);
-           return resource;
-         }
-         else
-         {
-           this.logger.info("Found assigned resource but is not RUNNING");
-         }
+         String tid = task.getTaskId();
+         this.logger.info("VM " + id + " was assigned to task " + tid);
+         return true;
+       }
+       else
+       {
+         this.logger.info("Found assigned resource but is not RUNNING");
        }
      }
      
-     return null;
+     return false;
    }
    
    /**

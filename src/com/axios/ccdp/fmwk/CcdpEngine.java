@@ -352,7 +352,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
                 if( task.getState().equals(CcdpTaskState.FAILED))
                 {
                   this.logger.info("Task Failed after enough tries, removing");
-                  toRemove.add(task);
                   this.resetDedicatedHost(task);
                   changed = true;
                 }
@@ -360,6 +359,9 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
                 {
                   this.logger.debug("Status changed to " + task.getState());
                 }
+                
+                toRemove.add(task);
+                
                 break;
               default:
                 break;
@@ -383,6 +385,15 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         req.removeAllTasks( toRemove );
         if( req.isDone() )
           doneThreads.add(req);
+
+        synchronized( this.resources )
+        {
+          for( String iid : this.resources.keySet() )
+          {
+            CcdpVMResource res = this.resources.get(iid);
+            res.removeTasks(toRemove);
+          }
+        }
         
       }// end of the thread request loop
       
@@ -390,7 +401,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       this.logger.info("Removing " + doneThreads.size() + " done Threads");
       this.requests.removeAll(doneThreads);
     }// end of synch block
-  }
+  }    
   
   /**
    * Starts a new session and allocates resources to the session if available.
@@ -799,9 +810,10 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
           String iid = target.getInstanceId();
           String tid = task.getTaskId();
           
-          String txt = "Comparing Vm tasked (" + tasked +") and task "+ hid +
+          String txt = "Comparing Vm tasked (" + tasked +") and host id "+ hid +
               " and cpu " + cpu + " on Instance " + iid + " and Task " + tid;
           this.logger.info(txt);
+          this.logger.info("Task Submitted? " + task.isSubmitted());
           
           if( !task.isSubmitted() )
           {
@@ -811,7 +823,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
               this.logger.info("Adding Task (VM is ST) " + tid);
               tasks.add(task);
             }
-            else if( hid == null && cpu < 100 )
+            else if( hid == null  && cpu < 100 )
             {
               this.logger.info("Adding Task (VM is NOT ST) " + tid);
               tasks.add(task);
@@ -1349,6 +1361,12 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     to.setAssignedDisk(from.getAssignedDisk());
     to.setCPU(from.getCPU());
     to.setTotalMemory(from.getTotalMemory());
+    
+    // resetting all the tasks by first removing them all and then adding them
+    to.removeTasks(from.getTasks());
+    to.getTasks().addAll(from.getTasks());
+    
+    
     ResourceStatus stat = to.getStatus();
     // only update if it was LAUNCHED
     if( ResourceStatus.LAUNCHED.equals(stat ) || 

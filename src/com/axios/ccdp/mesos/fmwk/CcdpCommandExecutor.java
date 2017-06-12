@@ -84,6 +84,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void statusUpdate(TaskID taskId, TaskState state, String message)
   {
     this.logger.debug("Setting the status to " + state);
+    String tid = taskId.getValue();
+    
     TaskStatus.Builder bldr = TaskStatus.newBuilder();
     bldr.setTaskId(taskId);
     bldr.setState(state);
@@ -98,6 +100,17 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
         state.equals(TaskState.TASK_FINISHED) )
     {
       this.tasks.remove(taskId);
+      CcdpTaskRequest rem = null;
+      for( CcdpTaskRequest task : this.me.getTasks() )
+      {
+        if(task.getTaskId().equals( tid ) )
+        {
+          rem = task;
+          break;
+        }
+      }
+      if( rem != null )
+        this.me.removeTask(rem);
 //      if( this.tasks.isEmpty() )
 //        this.driver.abort();
     }
@@ -356,8 +369,6 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     CcdpUtils.configureProperties();
     CcdpUtils.configLogger();
     
-    System.out.println("Creating a new Executor from main");
-    System.err.println("Creating a new Executor from main");
     Executor executor = new CcdpCommandExecutor();
     ExecutorDriver driver = new MesosExecutorDriver(executor);
     int exitCode = driver.run() == Status.DRIVER_STOPPED ? 0 : 1;

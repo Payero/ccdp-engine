@@ -681,9 +681,18 @@ public class CcdpVMResource implements Serializable
    * @return true if the task is found or false otherwise
    * 
    */
-  public boolean removeAllTasks( List<CcdpTaskRequest> tasks )
+  public boolean removeTasks( List<CcdpTaskRequest> tasks )
   {
     return this.tasks.removeAll(tasks);
+  }
+  
+  /**
+   * Removes all the tasks stored in this resource
+   * 
+   */
+  public void removeAllTasks()
+  {
+    this.tasks = new ArrayList<CcdpTaskRequest>();
   }
   
   /**

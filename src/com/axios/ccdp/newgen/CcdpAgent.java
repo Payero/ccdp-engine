@@ -221,7 +221,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
         state.equals(CcdpTaskState.SUCCESSFUL) )
     {
       this.tasks.remove(task);
-      this.me.getTasks().remove(task);
+      this.me.removeTask(task);
     }
     
     this.logger.debug("Have " + this.tasks.size() + " tasks remaining");

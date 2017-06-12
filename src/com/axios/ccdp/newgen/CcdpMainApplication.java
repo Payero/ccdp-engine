@@ -23,7 +23,6 @@ import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.controllers.aws.AWSCcdpTaskingControllerImplV2;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.EndSessionMessage;
@@ -38,6 +37,7 @@ import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -86,7 +86,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
-  private AWSCcdpTaskingControllerImplV2 tasker = null;
+  private AvgLoadControllerImpl tasker = null;
   /**
    * Controls all the VMs
    */
@@ -152,7 +152,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     //this.tasker = factory.getCcdpTaskingController(task_ctr_node);
-    this.tasker = new AWSCcdpTaskingControllerImplV2();
+    this.tasker = new AvgLoadControllerImpl();
     this.tasker.configure(task_ctr_node);
     
     this.controller = factory.getCcdpResourceController(res_ctr_node);
@@ -432,6 +432,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setAssignedMEM(vm.getAssignedMemory());
           res.setAssignedDisk(vm.getAssignedDisk());
           
+       // resetting all the tasks by first removing them all and then adding them
+          res.removeTasks(vm.getTasks());
+          res.getTasks().addAll(vm.getTasks());
+          
           return;
         }
       }
@@ -450,39 +454,135 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void updateTaskStatus( CcdpTaskRequest task )
   {
-    String tid = task.getTaskId();      
+    String tid = task.getTaskId();   
+    CcdpTaskState state = task.getState();
+    CcdpTaskRequest delTask = null;
+    CcdpThreadRequest delThread = null;
+    
     this.logger.info("Killing Task: " + tid );
     synchronized( this.requests )
     {
       boolean found = false;
+      
       for( CcdpThreadRequest req : this.requests )
       {
         if( found )
           break;
-        for( CcdpTaskRequest t : req.getTasks() )
+        
+        CcdpTaskRequest current = req.getTask(tid);
+        if( current != null )
         {
-          if( t.getTaskId().equals( tid ) )
+          found = true;
+          switch ( state )
           {
-            String iid = t.getHostId();
-            this.logger.info("Found Task to Update " + tid + " at " + iid);
-            t.setState(task.getState());
-            found = true;
-            String reply = t.getReplyTo();
-            if( reply != null )
+            case STAGING:
+            
+            case RUNNING:
+              task.started();
+              this.sendUpdateMessage(task);
+              break;
+            case SUCCESSFUL:
+              task.succeed();
+              delTask = task;
+              this.resetDedicatedHost(task);
+              this.sendUpdateMessage(task);
+              this.logger.debug("Job (" + task.getTaskId() + ") Finished");
+              break;
+            case FAILED:
+              task.fail();
+              // if tried enough times, then remove it
+              if( task.getState().equals(CcdpTaskState.FAILED))
+              {
+                this.logger.info("Task Failed after enough tries, removing");
+                this.resetDedicatedHost(task);
+                this.sendUpdateMessage(task);
+              }
+              else
+              {
+                this.logger.debug("Status changed to " + task.getState());
+              }
+              
+              delTask = task;
+              if( req.isDone() )
+                delThread = req;
+              
+              break;
+            default:
+              break;
+          }// end of switch statement
+        }// found the task
+        
+        // removing the task from the thread request
+        if( delTask != null )
+        {
+          this.logger.info("Removing Task " + delTask.getTaskId() );
+          req.removeTask(delTask);
+          String sid = delTask.getSessionId();
+          synchronized( this.resources )
+          {
+            for( CcdpVMResource vm : this.resources.get(sid) )
             {
-              this.logger.info("Sending Status Update to " + reply);
-              this.connection.registerProducer(reply);
-              TaskUpdateMessage msg = new TaskUpdateMessage();
-              msg.setTask(t);
-              this.connection.sendCcdpMessage(reply, msg);
+              vm.removeTask(delTask);
+            }
+          }// end of sync block
+        }// deleting task
+      }// for request loop
+      
+      // removing the thread request
+      if( delThread != null )
+      {
+        this.logger.info("Thread Request complete: " + delThread.getThreadId());
+        this.requests.remove(delThread);
+      }
+    }// end of the sync request
+  }
+  
+  private void sendUpdateMessage(CcdpTaskRequest task)
+  {
+    String reply = task.getReplyTo();
+    if( reply != null )
+    {
+      this.logger.info("Sending Status Update to " + reply);
+      this.connection.registerProducer(reply);
+      TaskUpdateMessage msg = new TaskUpdateMessage();
+      msg.setTask(task);
+      this.connection.sendCcdpMessage(reply, msg);
+    }
+    
+  }
+  
+  /**
+   * Once a Task using a dedicated host ends this method is called to reset
+   * the single-tasked field in the VM.
+   * 
+   * @param task the tasks that ended processing and was used a dedicated VM
+   */
+  private void resetDedicatedHost(CcdpTaskRequest task)
+  {
+    synchronized( this.resources )
+    {
+      String sid = task.getSessionId();
+      String hid = task.getHostId();
+      String tid = task.getTaskId();
+      
+      if( this.resources.containsKey(sid) )
+      {
+        for( CcdpVMResource res : this.resources.get(sid) )
+        {
+          if( res.getInstanceId().equals(hid))
+          {
+            if( res.isSingleTasked() && tid.equals(res.getSingleTask()))
+            {
+              this.logger.info("Resetting Dedicated Host " + hid);
+              res.isSingleTasked(false);
+              res.setSingleTask(null);
             }
             break;
           }
-        }// end of the tasks loop
-      }// end of the requests loop
+        }// resource iteration
+      }// contains session-id
     }// end of the sync block
   }
-  
   
   /**
    * First it makes sure the request is valid by testing that is not null.  If

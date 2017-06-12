@@ -17,11 +17,8 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -532,6 +529,7 @@ public class CcdpTaskRequest implements Serializable
     this.submitted = submitted;
   }
   
+  
   /**
    * Indicates that this job as been submitted to be executed and therefore it 
    * sets its status to STAGING 
@@ -593,6 +591,7 @@ public class CcdpTaskRequest implements Serializable
       this.retries--;
       this.state = CcdpTaskState.PENDING;
       this.submitted = false;
+      this.hostId = null;
     }
   }
   

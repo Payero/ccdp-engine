@@ -29,6 +29,9 @@ class MesosConfig:
       if os.path.isdir("/data/ccdp-engine"):
         self.__logger.info("Using '/data/ccdp-engine' as CCDP_HOME")
         self.__root = '/data/ccdp-engine'
+      elif os.path.isdir("/share/ccdp/ccdp-engine"):
+        self.__logger.info("Using '/share/ccdp/ccdp-engine' as CCDP_HOME")
+        self.__root = '/share/ccdp/ccdp-engine'
       else:
         self.__logger.error("CCDP_HOME is not set and is not in default location")
 
@@ -272,16 +275,11 @@ ff02::3 ip6-allhosts
     self.__logger.debug("Executing: %s" % cmd)
     os.system(cmd)
   
-    found_template = False
-    if os.path.isfile('/home/ubuntu/ZOO_CFG'):
-      file_in = open('/home/ubuntu/ZOO_CFG', 'r')
-      found_template = True
+    zoo_file = os.path.join(self.__root, 'config/mesos/ZOO_CFG')
+
+    if os.path.isfile(zoo_file):
+      file_in = open(zoo_file, 'r')
     else:
-      if os.path.isfile('./ZOO_CFG'):
-        file_in = open('./ZOO_CFG', 'r')
-        found_template = True
-  
-    if not found_template:
       self.__logger.error("")
       self.__logger.error("ERROR:  Could not find the ZOO_CFG Template returning")
       self.__logger.error("")
@@ -312,6 +310,9 @@ ff02::3 ip6-allhosts
     d = {"ZOO_SERVERS": "\n".join(servers)}
     zoo_cfg = src.substitute(d)
     out = open('/etc/zookeeper/conf/zoo.cfg', 'w')
+    if not os.path.isdir(('/etc/zookeeper/conf/'):
+      os.makedirs(('/etc/zookeeper/conf/')
+
     out.write(zoo_cfg)
     out.flush()
     out.close()

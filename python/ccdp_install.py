@@ -159,13 +159,10 @@ class CcdpInstaller:
     
     bkt = self.__s3.Bucket(bkt_name)
     acl = bkt.Acl()
-    for grant in acl.grants:
-        print(grant['Grantee']['DisplayName'], grant['Permission'])
-    
     bkt.Acl().put(ACL='public-read')   
     
-    # want to delete dist file only if uploading (factory)
-    if not params.keep_file:
+    # want to delete dist file only if uploading (factory) and we compiled the code
+    if params.compile and not params.keep_file:
       self.__logger.debug("Removing files")
       rc = os.system("ant -f %s clean" % build_file)
 
@@ -306,8 +303,20 @@ class CcdpInstaller:
       self.__logger.info("Path (%s) added to the sys.path" % scripts)
     
     os.chdir(scripts)
+    cmd = []
+    os.environ['CCDP_HOME'] = ccdp_root
+
+    if os.getuid() != 0:
+      self.__logger.warn("")
+      self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
+      self.__logger.warn("")
+      cmd = ["sudo", "./mesos_config.py", fpath]
+    else:
+      cmd = ["./mesos_config.py", fpath]
+
+      
     self.__logger.debug("Running ./mesos_config.py %s " % fpath)
-    n = call(["./mesos_config.py", fpath ])
+    n = call( cmd )
     self.__logger.debug("The Exit Code: %d" % n)
 
 

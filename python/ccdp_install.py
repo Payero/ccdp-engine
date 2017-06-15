@@ -315,7 +315,7 @@ class CcdpInstaller:
       cmd = ["./mesos_config.py", fpath]
 
       
-    self.__logger.debug("Running ./mesos_config.py %s " % fpath)
+    self.__logger.debug("Running: %s " % ' '.join( cmd ) )
     n = call( cmd )
     self.__logger.debug("The Exit Code: %d" % n)
 

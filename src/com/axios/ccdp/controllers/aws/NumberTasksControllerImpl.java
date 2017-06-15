@@ -335,7 +335,8 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
      ResourceStatus status = resource.getStatus();
      if( !ResourceStatus.RUNNING.equals(status) )
      {
-       String msg = "VM " + resource.getInstanceId() + " not running " + status.toString(); 
+       String msg = "VM " + resource.getInstanceId() + 
+                    " not running " + status.toString(); 
        this.logger.info(msg);
        return false;
      }

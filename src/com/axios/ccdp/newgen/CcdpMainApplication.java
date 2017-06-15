@@ -172,6 +172,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       for( String id : ids.split(",") )
       {
+        id = id.trim();
         this.logger.info("Skipping " + id + " from termination");
         this.skipTermination.add(id);
       }

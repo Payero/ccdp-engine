@@ -700,11 +700,29 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     {
       logger.info("Setting Credentials using default");
       String fname = System.getenv("HOME") + "/.aws/credentials";
-      String profile = "default";
-      credentials = AWSCcdpVMControllerImpl.getCredentials(fname, profile);
+      File file = new File(fname);
+      if( file.isFile() )
+      {
+        String profile = "default";
+        credentials = AWSCcdpVMControllerImpl.getCredentials(fname, profile);
+      }
+      else
+      {
+        logger.info(".aws/credentials file not found using Instance Profile");
+        InstanceProfileCredentialsProvider prov = 
+            InstanceProfileCredentialsProvider.getInstance();
+        credentials = prov.getCredentials();
+        if( credentials == null )
+        {
+         String txt = "Was not able to find any of the different ways to "
+             + "authenticate.  At least one method needs to be available";
+         throw new IllegalArgumentException(txt);
+        } 
+      }
     }
     else
     {
+      logger.info("Using Instance Profle Credentials Provider");
       InstanceProfileCredentialsProvider prov = 
                    InstanceProfileCredentialsProvider.getInstance();
       credentials = prov.getCredentials();

@@ -363,7 +363,7 @@ public class CcdpUtils
     while( keys.hasMoreElements() )
     {
       String key = (String)keys.nextElement();
-      String val = CcdpUtils.expandVars(props.getProperty(key));
+      String val = CcdpUtils.expandVars(props.getProperty(key)).trim();
       CcdpUtils.properties.setProperty(key, val);
     }
     // now we can load the image configuration

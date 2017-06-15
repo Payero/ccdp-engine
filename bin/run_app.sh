@@ -63,6 +63,8 @@ CCDP_CFG_DIR="$CCDP_HOME/config"
 # CCDP Library directory
 CCDP_LIB_DIR="$CCDP_HOME/lib"
 
+# CCDP classes directory
+CCDP_CLS_DIR="$CCDP_HOME/classes"
 
 # CCDP Log directory
 CCDP_LOG_DIR="$CCDP_HOME/logs"
@@ -168,8 +170,16 @@ case $1 in
 		JMX_PROP="-Dcom.sun.management.jmxremote=disabled"
 	fi
 	
-	echo "Running nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} "
-	nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
+  # If running from the command line and want to see the output
+  if [ -z $CCDP_SKIP_REDIRECTION ] ; then
+    CMD="nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &"
+  else
+    CMD="${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS"
+  fi
+
+	echo "Running ${CMD} "
+	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
+  exec $CMD
 	echo $! > ${CCDP_PIDFILE}
 	echo "."
 

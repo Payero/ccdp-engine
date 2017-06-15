@@ -19,6 +19,8 @@ import com.amazonaws.auth.SystemPropertiesCredentialsProvider;
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.amazonaws.http.SdkHttpMetadata;
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
@@ -168,6 +170,13 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( credentials != null )
     {
       this.ec2 = new AmazonEC2Client(credentials);
+      String region = def.getRegion();
+      if( region != null )
+      {
+        logger.info("Setting the Region to " + region);
+        Region reg = RegionUtils.getRegion(region);
+        this.ec2.setRegion( reg );
+      }
     }
   }
   

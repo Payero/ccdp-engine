@@ -38,6 +38,10 @@ public class CcdpImageInfo
    */
   private String imageId = null;
   /**
+   * The name of the region where this image is located
+   */
+  private String region = null;
+  /**
    * The session id that will use an instance of this type of node
    */
   private String sessionId = null;
@@ -237,6 +241,28 @@ public class CcdpImageInfo
     this.imageId = imageId;
   }
 
+  /**
+   * Gets the Region where this image resides
+   * 
+   * @return the region where this image resides
+   */
+  @JsonGetter("region")
+  public String getRegion()
+  {
+    return region;
+  }
+
+  /**
+   * Sets the Region where this image resides
+   * 
+   * @param region the region where this image resides
+   */
+  @JsonSetter("region")
+  public void setRegion(String region)
+  {
+    this.region = region;
+  }
+  
   /**
    * Gets the session id associated with this instance
    * 

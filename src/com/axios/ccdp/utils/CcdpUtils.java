@@ -844,6 +844,8 @@ public class CcdpUtils
           img.setSubnet(map.get("subnet.id"));
         if( map.containsKey("key.file.name") )
           img.setKeyFile(map.get("key.file.name"));
+        if( map.containsKey("region") )
+          img.setRegion(map.get("region"));
         
         try
         {

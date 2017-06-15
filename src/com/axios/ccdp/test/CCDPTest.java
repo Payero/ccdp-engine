@@ -7,6 +7,8 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.regions.Region;
+import com.amazonaws.regions.RegionUtils;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -48,10 +50,11 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    CcdpThreadRequest req = new CcdpThreadRequest();
-    CcdpTaskRequest task = new CcdpTaskRequest();
-    req.getTasks().add(task);
-    this.logger.info("The Request: " + req.toPrettyPrint());
+    for(Region region : RegionUtils.getRegions() )
+    {
+      this.logger.debug("Region Name " + region.getName());
+      this.logger.debug("Region Domain " + region.getDomain());
+    }
   }
   
   

@@ -3,13 +3,16 @@ package com.axios.ccdp.test;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
+import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
@@ -49,12 +52,18 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    ObjectNode res_ctr_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
+    CcdpVMControllerIntf controller = factory.getCcdpResourceController(res_ctr_node);
     
-    for(Region region : RegionUtils.getRegions() )
-    {
-      this.logger.debug("Region Name " + region.getName());
-      this.logger.debug("Region Domain " + region.getDomain());
-    }
+    CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+    List<String> ids = controller.startInstances(imgCfg);
+    
+    for( String id : ids )
+      this.logger.debug("Started Instance " + id);
+    
+    
   }
   
   

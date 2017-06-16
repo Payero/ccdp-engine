@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.InstanceProfileCredentialsProvider;
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
@@ -23,6 +24,8 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.CreateTagsRequest;
+import com.amazonaws.services.ec2.model.CreateTagsResult;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
@@ -62,6 +65,14 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   public static final String FLD_PROFILE_NAME = "profile.name";
   /** The type of instance to deploy (default t2.micro) */
   public static final String FLD_INST_TYPE    = "instance.type";
+  
+  /** The region to use, if other than default */
+  public static final String FLD_REGION    = "region";
+  /** The URL of a proxy to use to contact AWS */
+  public static final String FLD_PROXY_URL    = "proxy.url";
+  /** The port number of a proxy to use to contact AWS */
+  public static final String FLD_PROXY_PORT    = "proxy.port";
+  
   
 //  /** The Image ID to use */
 //  public static final String FLD_IMAGE_ID = "image.id";
@@ -164,19 +175,47 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       throw new IllegalArgumentException(msg);
     }
     
+    /**
+     * Need to provide basic credentials as well as a way to set the proxy if
+     * required.
+     */
     AWSCredentials credentials = 
         AWSCcdpVMControllerImpl.getAWSCredentials(config);
     
+    // get the proxy port if it was set
+    ClientConfiguration cc = new ClientConfiguration();
+    if( config.has(FLD_PROXY_PORT) )
+    {
+      int port = config.get(FLD_PROXY_PORT).asInt();
+      logger.info("Setting Proxy Port: " + port);
+      cc.setProxyPort(port);
+    }
+    
+    // get the proxy url if it was provided
+    if( config.has(FLD_PROXY_URL) )
+    {
+      String proxy = config.get(FLD_PROXY_URL).asText().trim();
+      logger.info("Setting Proxy: " + proxy);
+      cc.setProxyHost(proxy);
+    }
+    
+    // Create a new EC2 client using available credentials and configuration
     if( credentials != null )
     {
-      this.ec2 = new AmazonEC2Client(credentials);
-      String region = def.getRegion();
-      if( region != null )
-      {
-        logger.info("Setting the Region to " + region);
-        Region reg = RegionUtils.getRegion(region);
-        this.ec2.setRegion( reg );
-      }
+      this.ec2 = new AmazonEC2Client(credentials, cc);
+    }
+    else
+    {
+      this.ec2 = new AmazonEC2Client(cc);
+    }
+    
+    // set the region if available
+    if( config.has(FLD_REGION) )
+    {
+      String region = config.get(FLD_REGION).asText().trim();
+      logger.info("Setting the Region to " + region);
+      Region reg = RegionUtils.getRegion(region);
+      this.ec2.setRegion( reg );
     }
   }
   
@@ -341,6 +380,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       {
         Instance inst = instances.next();
         String instId = inst.getInstanceId();
+        logger.debug("Adding Tags to " + instId);
+        
+        // Tags are added by creating a CreateTagRequest
+        CreateTagsRequest tagsReq = new CreateTagsRequest();
         
         List<Tag> new_tags = new ArrayList<Tag>();
         new_tags.add(new Tag(CcdpUtils.KEY_INSTANCE_ID, instId));
@@ -357,10 +400,13 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
             logger.debug("Setting Tag[" + key + "] = " + val);
             new_tags.add(new Tag(key , val));
           }
-          
         }
+        // associate the tags with a resource and create them
+        tagsReq.withResources(instId)
+               .withTags(new_tags);
+        this.ec2.createTags(tagsReq);
         
-        inst.setTags(new_tags);
+        // Add the instance id to the list of launched
         launched.add(instId);
       }
     }
@@ -370,7 +416,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     return launched;
-    
   }
   
   

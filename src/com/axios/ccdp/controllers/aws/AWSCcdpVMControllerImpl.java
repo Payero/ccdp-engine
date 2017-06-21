@@ -338,6 +338,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
     int max = imgCfg.getMaxReq();
+    if( min == 0 )
+      min = 1;
+   
+    if( max == 0 )
+      max = 1;
+
     String session_id = imgCfg.getSessionId();
     String type = imgCfg.getNodeTypeAsString();
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;

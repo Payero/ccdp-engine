@@ -55,7 +55,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitor monitor = new SystemResourceMonitor();
+  private SystemResourceMonitor monitor = 
+      new SystemResourceMonitor(SystemResourceMonitor.UNITS.MB);
   /**
    * Stores information about the VM hosting the executor
    */
@@ -70,6 +71,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.info("Running the Executor");
     this.me = new CcdpVMResource(UUID.randomUUID().toString() );
     this.me.setStatus(ResourceStatus.RUNNING);
+    this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
   }
 
   /**
@@ -125,7 +127,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     if( this.driver != null )
     {
       // just need to update what is free to use
-      this.me.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
+      this.me.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
       this.me.setCPULoad(this.monitor.getSystemCpuLoad());
       this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
     

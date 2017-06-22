@@ -64,7 +64,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitor monitor = new SystemResourceMonitor();
+  private SystemResourceMonitor monitor = 
+            new SystemResourceMonitor(SystemResourceMonitor.UNITS.MB);
   /**
    * Object used to send and receive messages such as incoming tasks to process
    * and sending heartbeats and tasks updates

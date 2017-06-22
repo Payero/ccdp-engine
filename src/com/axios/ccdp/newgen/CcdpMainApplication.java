@@ -429,9 +429,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         if( res.getInstanceId().equals(vm.getInstanceId()) )
         {
           this.logger.info("Found Resource");
-          res.setAssignedCPU(vm.getAssignedCPU());
-          res.setAssignedMEM(vm.getAssignedMemory());
-          res.setAssignedDisk(vm.getAssignedDisk());
+          res.setFreeDiskSpace(vm.getFreeDiskspace());
+          res.setTotalMemory(vm.getTotalMemory());
+          res.setMemLoad(vm.getMemLoad());
+          res.setCPULoad(vm.getCPULoad());
           
        // resetting all the tasks by first removing them all and then adding them
           res.removeTasks(vm.getTasks());

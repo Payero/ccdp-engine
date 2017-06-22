@@ -123,6 +123,7 @@ public class CcdpVMResource implements Serializable
    */
   private double totalCPU = 0;
   private double cpuLoad = 0;
+  private double memLoad = 0;
   
   /**
    * The total amount of MEM available for this resource to use
@@ -341,6 +342,28 @@ public class CcdpVMResource implements Serializable
     
     this.cpuLoad = cPU;
   }
+  
+  /**
+   * @return the mem
+   */
+  @JsonGetter("system-mem-load")
+  public double getMemLoad()
+  {
+    return this.memLoad;
+  }
+
+  /**
+   * @param mem the mem to set
+   */
+  @JsonSetter("system-mem-load")
+  public void setMemLoad(double mem)
+  {
+    if( mem < 0)
+      throw new IllegalArgumentException("The Mem needs to be > 0");
+    
+    this.memLoad = mem;
+  }
+  
   
   /**
    * @return the assignedDisk

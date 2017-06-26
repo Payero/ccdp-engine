@@ -4,6 +4,8 @@ import java.io.File;
 import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +43,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.NumberTasksComparator;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
@@ -293,7 +296,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         break;
       case KILL_TASK:
         KillTaskMessage killMsg = (KillTaskMessage)message;
-        this.killTask(killMsg.getTask());
+        this.killTaskRequest(killMsg);
         break;
       case TASK_UPDATE:
         TaskUpdateMessage taskMsg = (TaskUpdateMessage)message;
@@ -309,6 +312,93 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.logger.warn(msg);
     }
   }
+
+  
+  /**
+   * Checks the kill task message and determines to whether terminate a single
+   * task based on the task id or a series of tasks based on the name.
+   * 
+   *  If the task-id is not provided, then it searches through all the resources
+   *  for the session and terminates matching tasks.  The termination is done
+   *  first to the VMs with the lowest number of running matching tasks to the
+   *  highest.  This is in order to empty running VMs quicker.
+   *  
+   * @param killMsg the kill task request message
+   */
+  private void killTaskRequest( KillTaskMessage killMsg )
+  {
+    CcdpTaskRequest task = killMsg.getTask();
+    String tid = task.getTaskId();
+    
+    // if it has a taskId, then don't need to do anything just pass it
+    if( tid != null )
+    {
+      this.logger.info("Killing task " + tid);
+      this.killTask(task);
+    }
+    else
+    {
+      String name = task.getName();
+      if( name == null || name.isEmpty() )
+      {
+        this.logger.error("The name is required");
+        return;
+      }
+      
+      int number = killMsg.getHowMany();
+      this.logger.info("Killing " + number + " " + name + " tasks");
+      String sid = task.getSessionId();
+      List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+      if( resources != null && !resources.isEmpty() )
+      {
+        // let's sort the list from lowest number of tasks to higher
+        Collections.sort(resources, new NumberTasksComparator(name));
+        Collections.reverse(resources);
+        int remaining = 0;
+        boolean done = false;
+        // we need to go through the resources and kill from the lower amount
+        // of matching running tasks to the highest.  This is so we can free
+        // resources if possible
+        for( CcdpVMResource vm : resources )
+        {
+          if( done )
+          {
+            this.logger.info("Done killing tasks");
+            break;
+          }
+          // Get the matching tasks and send a request to kill it
+          for( CcdpTaskRequest toKill : vm.getTasks() )
+          {
+            // if it matches the name, send a kill message to the scheduler
+            if( name.equals(toKill.getName() ) )
+            {
+              this.logger.info("Found a matching task in " + vm.getAgentId());
+              this.killTask(toKill);
+              
+              remaining--;
+              if(remaining <= 0 )
+              {
+                done = true;
+                break;
+              }
+            }// end of the name matching condition
+          }// end of the tasks loop
+        }// end of the resources loop
+        
+        // if we are not done then we got more requests to terminate tasks 
+        // than available
+        if( !done )
+        {
+          this.logger.error("Got a request to kill more tasks than are " +
+                            "currently running");
+        }
+      }// resources is not null nor empty
+    }// the task id was not provided
+    
+  }
+  
+  
+  
   
   /**
    * Iterates through all the requests looking for the task to kill.  If the 
@@ -319,7 +409,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void killTask( CcdpTaskRequest task )
   {
-    String tid = task.getTaskId();      
+    String tid = task.getTaskId();  
+    String sid = task.getSessionId();
+    
+    
     this.logger.info("Killing Task: " + tid );
     synchronized( this.requests )
     {

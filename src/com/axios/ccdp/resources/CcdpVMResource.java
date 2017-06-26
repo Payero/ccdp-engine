@@ -998,8 +998,8 @@ public class CcdpVMResource implements Serializable
   /** 
    * Generates a String representing this object serialized.
    * 
-   * @return a String representation of this object serialzed
-   * @throws IOException an IOException is thrown if there is a problem durin
+   * @return a String representation of this object serialized
+   * @throws IOException an IOException is thrown if there is a problem during
    *         the serialization of the object
    */
   public String toSerializedString( ) throws IOException 

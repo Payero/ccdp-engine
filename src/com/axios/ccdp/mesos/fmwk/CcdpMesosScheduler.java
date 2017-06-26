@@ -30,8 +30,16 @@ import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.Protos.Filters;
 import org.apache.mesos.Protos.Attribute;
 
+import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.fmwk.CcdpEngine;
+import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.message.EndSessionMessage;
+import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
+import com.axios.ccdp.message.StartSessionMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.message.UndefinedMessage;
+import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -59,7 +67,7 @@ import com.google.protobuf.ByteString;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpMesosScheduler implements Scheduler
+public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
 {
   /**
    * Stores the Framework Unique ID this Scheduler is running under
@@ -98,7 +106,7 @@ public class CcdpMesosScheduler implements Scheduler
   {
     this.logger.debug("Creating a new CCDP Remote Scheduler");
     this.executor = execInfo;
-    this.engine = new CcdpEngine(jobs);
+    this.engine = new CcdpEngine(jobs, this);
   }
 
 
@@ -331,6 +339,32 @@ public class CcdpMesosScheduler implements Scheduler
     this.engine.taskUpdate(taskId, state);
   }
   
+  /**
+   * Gets CcdpMessage requests from the engine.  This is used as the bridge to
+   * receive messages from the engine that needs to be injected into Mesos.
+   * 
+   * @param msg the message to process
+   */
+  public void onCcdpMessage( CcdpMessage msg )
+  {
+    CcdpMessageType msgType = CcdpMessageType.get(msg.getMessageType());
+    this.logger.debug("Got a " + msgType + " Message");
+    switch( msgType )
+    {
+      case KILL_TASK:
+        KillTaskMessage killMsg = (KillTaskMessage)msg;
+        CcdpTaskRequest task = killMsg.getTask();
+        String tid = task.getTaskId();
+        this.logger.info("Sending kill request for " + tid);
+        TaskID id = TaskID.newBuilder()
+            .setValue( tid )
+            .build();
+        this.driver.killTask(id);
+        break;
+      default:
+        this.logger.error("Message Type not found");
+    }
+  }
   
   /***************************************************************************/
   /***************************************************************************/

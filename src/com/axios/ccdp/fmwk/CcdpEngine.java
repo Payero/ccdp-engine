@@ -5,6 +5,7 @@ package com.axios.ccdp.fmwk;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,7 @@ import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.message.EndSessionMessage;
+import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -40,6 +42,7 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.utils.NumberTasksComparator;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -116,6 +119,23 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * Stores a list of host ids that should not be terminated
    */
   private List<String> skipTermination = new ArrayList<>(); 
+  
+  /**
+   * The main object that starts this engine
+   */
+  private CcdpMessageConsumerIntf main = null;
+  
+  /**
+   * Instantiates a new executors and starts the jobs assigned as the jobs
+   * argument.  If the jobs is null then it ignores them
+   * 
+   * @param jobs an optional list of jobs
+   */
+  public CcdpEngine(List<CcdpThreadRequest> jobs, CcdpMessageConsumerIntf main)
+  {
+    this(jobs);
+    this.main = main;
+  }
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -1208,23 +1228,23 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   }
   
   
-  private boolean isSingleTaskedAssigned( CcdpThreadRequest req )
-  {
-    this.logger.info("Checking Single Tasking for Request " + req.getThreadId());
-    
-    for( CcdpTaskRequest task: req.getTasks() )
-    {
-      double cpu = task.getCPU();
-      String hid = task.getHostId();
-      String tid = task.getTaskId();
-      this.logger.debug("Task " + tid + " ==> CPU " + cpu + " Host " + hid);
-      if( cpu >= 100 && hid == null )
-        return false;
-    }
-    
-    this.logger.info("checkSingleTasked is returning true");
-    return true;
-  }
+//  private boolean isSingleTaskedAssigned( CcdpThreadRequest req )
+//  {
+//    this.logger.info("Checking Single Tasking for Request " + req.getThreadId());
+//    
+//    for( CcdpTaskRequest task: req.getTasks() )
+//    {
+//      double cpu = task.getCPU();
+//      String hid = task.getHostId();
+//      String tid = task.getTaskId();
+//      this.logger.debug("Task " + tid + " ==> CPU " + cpu + " Host " + hid);
+//      if( cpu >= 100 && hid == null )
+//        return false;
+//    }
+//    
+//    this.logger.info("checkSingleTasked is returning true");
+//    return true;
+//  }
   
   
   /**
@@ -1369,9 +1389,104 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         CcdpThreadRequest req = reqMsg.getRequest();
         this.onTask(req);
         break;
+      case KILL_TASK:
+        KillTaskMessage killMsg = (KillTaskMessage)message;
+        this.killTaskRequest(killMsg);
+        break;
       default:
         this.logger.error("Message Type not found");
     }
+  }
+  
+  /**
+   * Checks the kill task message and determines to whether terminate a single
+   * task based on the task id or a series of tasks based on the name.
+   * 
+   *  If the task-id is not provided, then it searches through all the resources
+   *  for the session and terminates matching tasks.  The termination is done
+   *  first to the VMs with the lowest number of running matching tasks to the
+   *  highest.  This is in order to empty running VMs quicker.
+   *  
+   * @param killMsg the kill task request message
+   */
+  private void killTaskRequest( KillTaskMessage killMsg )
+  {
+    if( this.main == null )
+    {
+      this.logger.error("Cannot send the request to the main app");
+      return;
+    }
+    
+    CcdpTaskRequest task = killMsg.getTask();
+    String tid = task.getTaskId();
+    
+    // if it has a taskId, then don't need to do anything just pass it
+    if( tid != null )
+    {
+      this.logger.info("Killing task " + tid);
+      this.main.onCcdpMessage(killMsg);
+    }
+    else
+    {
+      String name = task.getName();
+      if( name == null || name.isEmpty() )
+      {
+        this.logger.error("The name is required");
+        return;
+      }
+      
+      int number = killMsg.getHowMany();
+      this.logger.info("Killing " + number + " " + name + " tasks");
+      String sid = task.getSessionId();
+      List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+      if( resources != null && !resources.isEmpty() )
+      {
+        // let's sort the list from lowest number of tasks to higher
+        Collections.sort(resources, new NumberTasksComparator(name));
+        Collections.reverse(resources);
+        int remaining = 0;
+        boolean done = false;
+        // we need to go through the resources and kill from the lower amount
+        // of matching running tasks to the highest.  This is so we can free
+        // resources if possible
+        for( CcdpVMResource vm : resources )
+        {
+          if( done )
+          {
+            this.logger.info("Done killing tasks");
+            break;
+          }
+          // Get the matching tasks and send a request to kill it
+          for( CcdpTaskRequest toKill : vm.getTasks() )
+          {
+            // if it matches the name, send a kill message to the scheduler
+            if( name.equals(toKill.getName() ) )
+            {
+              this.logger.info("Found a matching task in " + vm.getAgentId());
+              KillTaskMessage msg = new KillTaskMessage();
+              msg.setTask(toKill);
+              this.main.onCcdpMessage(msg);
+              
+              remaining--;
+              if(remaining <= 0 )
+              {
+                done = true;
+                break;
+              }
+            }// end of the name matching condition
+          }// end of the tasks loop
+        }// end of the resources loop
+        
+        // if we are not done then we got more requests to terminate tasks 
+        // than available
+        if( !done )
+        {
+          this.logger.error("Got a request to kill more tasks than are " +
+                            "currently running");
+        }
+      }// resources is not null nor empty
+    }// the task id was not provided
+    
   }
   
   /**
@@ -1466,12 +1581,5 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       }
     }
   }
-  
 }
 
-class AvailableVM
-{
-  int minReq = 0;
-  CcdpNodeType nodeType = CcdpNodeType.EC2;
-  String sessionId = CcdpNodeType.EC2.toString();
-}

@@ -4,8 +4,9 @@
 package com.axios.ccdp.controllers.aws;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -13,11 +14,9 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -42,6 +41,10 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    * Stores the configuration passed to this object
    */
   private ObjectNode config = null;
+  /**
+   * Stores the first time a high utilization rate was noticed
+   */
+  private Map<String, Double> high_use_time = new HashMap<>();
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
@@ -49,7 +52,7 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    */
   public AvgLoadControllerImpl()
   {
-    this.logger.debug("Initiating Tasker object");
+    this.logger.debug("Initiating Avg Load Controller object");
     // making the JSON Objects Pretty Print
     this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
     this.config = this.mapper.createObjectNode();
@@ -65,11 +68,10 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    *        CPU:  70
    *        MEM:  70
    *        Time: 3
-   *        max:  -1
    *        
    *    Deallocation:
-   *        CPU:  0
-   *        MEM:  0
+   *        CPU:  10
+   *        MEM:  10
    *        Time: 5
    * 
    * If the CPU and the memory are set to zero then the it will deallocate the
@@ -84,12 +86,11 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
     ObjectNode allocate = this.mapper.createObjectNode();
     allocate.put("cpu", 70);
     allocate.put("mem", 70);
-    allocate.put("time", 2);
-    allocate.put("max-tasks", -1);
+    allocate.put("time", 3);
     
     ObjectNode deallocate = this.mapper.createObjectNode();
-    deallocate.put("cpu", 0);
-    deallocate.put("mem", 0);
+    deallocate.put("cpu", 10);
+    deallocate.put("mem", 10);
     deallocate.put("time", 5);
     
     // if a configuration is given then check values
@@ -102,8 +103,6 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
         allocate.put("mem", config.get("allocate.avg.load.mem").asDouble());
       if( config.has("allocate.avg.load.time") )
         allocate.put("time", config.get("allocate.avg.load.time").asInt());
-      if( config.has("allocate.no.more.than") )
-        allocate.put("max-tasks", config.get("allocate.no.more.than").asInt());
       
       // Setting all the de-allocation parameters
       if( config.has("deallocate.avg.load.cpu") )
@@ -123,7 +122,8 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
   /**
    * Determines whether or not additional resources are needed based on
    * the utilization level of the given resources.  If the resources combined
-   * reaches the threshold then it returns true otherwise it returns false.
+   * reaches the threshold for over a determined time then it returns true 
+   * otherwise it returns false.
    * 
    * @param resources the list of resources to test for need of additional 
    *        resources
@@ -133,64 +133,59 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    */
   public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
-    if( resources == null )
+    this.logger.debug("Checking Allocation Requirements");
+    // making sure we have valid data
+    if( resources == null || resources.isEmpty() )
       return true;
     
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
     
-    int sz = resources.size();
-    double[] assignedCPU = new double[sz];
-    double[] assignedMEM = new double[sz];
-    double[] availableCPU = new double[sz];
-    double[] availableMEM = new double[sz];
-    int load = 0;
+    Map<String, Double> map = this.getAvgLoad(resources);
+    String sid = resources.get(0).getAssignedSession();
     
-    for( int i = 0; i < sz; i++ )
-    {
-      CcdpVMResource vm = resources.get(i);
-      // do not consider single tasked VMs
-      if( vm.isSingleTasked() )
-        continue;
-      
-      assignedCPU[i] = vm.getAssignedCPU();
-      assignedMEM[i] = vm.getAssignedMemory();
-      availableCPU[i] = vm.getCPU();
-      availableMEM[i] = vm.getTotalMemory();
-      load += vm.getNumberTasks();
-    }
-
-    // Now let's check averages...
-    double avgCpu = this.getAverage(assignedCPU, availableCPU);
-    double avgMem = this.getAverage(assignedMEM, availableMEM);
+    // now let's check averages...
+    double avgCpuLoad = map.get("CPU");
+    double avgMem = map.get("MEM");
+    double avgTime = map.get("TIME");
     
-    
-    this.logger.debug("Average CPU Utilization: " + avgCpu);
-    this.logger.debug("Average MEM Utilization: " + avgMem);
+    String txt = "SID " + sid + "Avg Cpu Load: " + 
+                 avgCpuLoad + "Avg Mem Load: " + avgMem; 
+    this.logger.info(txt);
     long now = System.currentTimeMillis();
     
-    
-    if( avgCpu >= cpu && avgMem >= mem )
+    if( avgCpuLoad >= cpu && avgMem >= mem )
     {
       this.logger.info("High utilization for this session, checking time");
-      long last = 0;
-      for( CcdpVMResource vm : resources )
+      // we need to do add it just once
+      if( !this.high_use_time.containsKey(sid) )
+        this.high_use_time.put(sid, avgTime);
+      
+      int time = alloc.get("time").asInt();
+      double last_high_res_rec = this.high_use_time.get(sid);
+      int diff = (int)( ( (now - last_high_res_rec) / 1000) / 60 );
+      
+      this.logger.debug("Allocation allowed time " + time);
+      this.logger.debug("Last assignement time: " + diff);
+      
+      // if the diff is greater than the first time we noticed a spike in 
+      // utilization then we need more resources
+      if( diff >= time )
       {
-        if( vm.getLastAssignmentTime() > last )
-          last = vm.getLastAssignmentTime();
-      }  
-      int diff = (int)( ( (now - last) / 1000) / 60 );
-      // if the last time a task was allocated is less than the allocation time
-      // then we need more resources
-      if( diff <= alloc.get("time").asInt() )
-      {
-        this.logger.info("Last allocation was recent, need resources");
+        this.logger.info("The spike started longer than " + time + " mins ago");
         return true;  
       }
+      else
+        this.logger.info("Recent spike, waiting...");
     }
     else
+    {
       this.logger.info("Low utilization rate, don't need additional resources");
+      // if low again, need to remove it from the list
+      if( this.high_use_time.containsKey(sid) )
+        this.high_use_time.remove(sid);
+    }
     
     return false;
   }
@@ -206,50 +201,39 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    */
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
+    this.logger.info("Checking Deallocation Requirements");
+    List<CcdpVMResource> terminate = new ArrayList<>();
+    // making sure we have good input data
+    if( resources == null || resources.isEmpty() )
+      return terminate;
+    
     JsonNode dealloc = this.config.get("deallocate");
     double cpu = dealloc.get("cpu").asDouble();
     double mem = dealloc.get("mem").asDouble();
     long now = System.currentTimeMillis();
     
-    this.logger.info("Using CPU and Memory average");
-    List<CcdpVMResource> terminate = new ArrayList<>();
-    int sz = resources.size();
-    double[] assignedCPU = new double[sz];
-    double[] assignedMEM = new double[sz];
-    double[] availableCPU = new double[sz];
-    double[] availableMEM = new double[sz];
-    
-    for( int i = 0; i < sz; i++ )
+    for( CcdpVMResource vm : resources )
     {
-      CcdpVMResource vm = resources.get(i);
-      
       if( vm.isSingleTasked() && ( vm.getTasks().size() == 0 ) )
       {
         this.logger.info("VM Single Tasked and task is complete, terminating");
         terminate.add(vm);
       }
-      else
-      {
-        this.logger.debug("Adding resources to average lists");
-        assignedCPU[i] = vm.getAssignedCPU();
-        assignedMEM[i] = vm.getAssignedMemory();
-        availableCPU[i] = vm.getCPU();
-        availableMEM[i] = vm.getTotalMemory();
-      }
     }
     
-    // Now let's check averages...
-    double avgCpu = this.getAverage(assignedCPU, availableCPU);
-    double avgMem = this.getAverage(assignedMEM, availableMEM);
-    this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
+    Map<String, Double> map = this.getAvgLoad(resources);
     
-    this.logger.debug("Average CPU Utilization: " + avgCpu);
-    this.logger.debug("Average MEM Utilization: " + avgMem);
+    // Now let's check averages...
+    double avgCpu = map.get("CPU");
+    double avgMem = map.get("EM");
+    String sid = resources.get(0).getAssignedSession();
+    this.logger.debug("SID: " + sid + " Avg CPU: " + 
+                      avgCpu + " Avg Mem: " + avgMem);
     
     
     if( avgCpu <= cpu && avgMem <= mem )
     {
-      this.logger.info("Low Utilization for this Session, checking assignement time");
+      this.logger.info("Low use for this session, checking assignement time");
       for( CcdpVMResource vm : resources )
       {
         
@@ -276,6 +260,54 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
     return terminate;
   }
   
+  /**
+   * Calculates the average load of memory, cpu, and allocation time for all 
+   * the given resources combined.  If the resources is null or is empty it
+   * returns null
+   * 
+   * The keys used to gather the information are: CPU, MEM, and TIME
+   * 
+   * @param resources a list of resources to determine the average load 
+   * @return a map containing the three averages
+   */
+  private Map<String, Double> getAvgLoad( List<CcdpVMResource> resources )
+  {
+    if( resources == null || resources.isEmpty() )
+      return null;
+    
+    Map<String, Double> map = new HashMap<>();
+    int sz = resources.size();
+    double totalMemLoad = 0;
+    double totalMem = 0;
+    double totalCpuLoad =0;
+    long totalTime = 0l;
+    
+    for( CcdpVMResource vm : resources )
+    {
+      // do not consider single tasked VMs
+      if( vm.isSingleTasked() )
+        continue;
+      
+      totalMem += vm.getTotalMemory();
+      totalMemLoad += vm.getMemLoad();
+      totalCpuLoad += vm.getCPULoad();
+      totalTime += vm.getLastAssignmentTime();
+    }
+    
+    // now let's check the averages (we need percentages from mem and cpu)
+    double avgCpuLoad = ( totalCpuLoad / sz) * 100;
+    double totalAvgMem = totalMem / sz;
+    double avgMemLoad = totalMemLoad / sz;
+    double avgLoadTime = totalTime / sz;
+    
+    double avgMem = ( avgMemLoad / totalAvgMem ) * 100;
+    
+    map.put("MEM", avgMem);
+    map.put("CPU", avgCpuLoad);
+    map.put("TIME", avgLoadTime);
+    
+    return map;
+  }
   
   /**
    * Assigns all the tasks in the given list to the target VM based on 
@@ -381,19 +413,6 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
       return false;
     }
     
-    JsonNode alloc = this.config.get("allocate");
-    double cpu = alloc.get("cpu").asDouble();
-    double mem = alloc.get("mem").asDouble();
-    int tasks = alloc.get("max-tasks").asInt();
-    
-    if( cpu == 0 && mem == 0 && tasks > 0 )
-    {
-      this.logger.info("Using Max number of Tasks " + tasks);
-      if( target.getNumberTasks() >= tasks )
-        return false;
-      else
-        return true;
-    }
     
     if( resources == null || resources.isEmpty() )
     {
@@ -411,17 +430,19 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
   
   
   /**
-   * Checks the amount of CPU and memory available in this VM resource.  If the VM has enough resources to run the
-   * task then it returns the CcdpTaskRequest otherwise it returns null
+   * Checks the amount of CPU and memory available in this VM resource.  If the 
+   * VM has enough resources to run the task then it returns the 
+   * CcdpTaskRequest otherwise it returns null
    * 
    * @param task the task to assign to a resource
-   * @param resource the resource to determine whether or not it can be run this task
+   * @param resource the resource to determine whether or not it can be run  
+   *        this task
    * 
    * @return true if this task can be executed on this node
    */
    private boolean canRunTask( CcdpTaskRequest task, CcdpVMResource resource )
    {
-     this.logger.debug("Running First Fit");
+     this.logger.debug("Determining if task fits in resource");
      if( task.isSubmitted() )
      {
        this.logger.debug("Job already submitted, skipping it");
@@ -432,17 +453,16 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
      ResourceStatus status = resource.getStatus();
      if( !ResourceStatus.RUNNING.equals(status) )
      {
-       String msg = "VM " + resource.getInstanceId() + " not running " + status.toString(); 
-       this.logger.info(msg);
+       this.logger.info("VM " + resource.getInstanceId() + " not running " + 
+           status.toString());
        return false;
      }
      
      double offerCpus = resource.getCPU();
      double offerMem = resource.getTotalMemory();
      
-     String str = 
-     String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
-     this.logger.debug(str);
+     this.logger.debug(String.format("Offer CPUs: %f, Memory: %f", 
+                       offerCpus, offerMem));
      
      double jobCpus = task.getCPU();
      double jobMem = task.getMEM();
@@ -461,10 +481,10 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
    }
    
    /**
-    * Finds the VM that is assigned to this task.  This method is invoked when 
-    * a task requires to be executed alone on a VM.  If the VM is found and its
-    * ResourceStatus is set to RUNNING then it returns true otherwise it returns
-    * false
+    * Finds if this VM is assigned to this task.  This method is invoked when 
+    * a task requires to be executed alone on a VM.  If the VM host id matches 
+    * the task's resource id and the VM's ResourceStatus is set to RUNNING then 
+    * it returns true otherwise it returns false
     * 
     * @param task the task to assign to the VM 
     * @param resource the VM to test for assignment
@@ -493,31 +513,5 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
      
      return false;
    }
-   
-   /**
-    * Gets the average of the given list.  This is obtain by simply adding all
-    * the values and dividing it by the size of the array
-    * 
-    * @param dbls the list of values to get the average
-    * 
-    * @return the average value of the given list
-    */
-   private double getAverage( double[] assignedDbls, double[] availableDbls )
-   {
-     double assignedTotal = 0;
-     double availableTotal = 0;
-     int sz = availableDbls.length;
-     for( int i = 0; i < sz; i++ )
-     {
-       assignedTotal += assignedDbls[i];
-       availableTotal += availableDbls[i];
-     }
-     
-     double avgUsed = assignedTotal / sz;
-     double avgTotal = availableTotal / sz;
-     
-     return ( avgUsed * 100 ) / avgTotal;
-   }
-   
 }
 

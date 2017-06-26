@@ -3,6 +3,10 @@ package com.axios.ccdp.test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -13,9 +17,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest.TasksRunningMode;
 import com.axios.ccdp.utils.CcdpImageInfo;
-import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
 public class CCDPTest 

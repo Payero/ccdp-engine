@@ -1460,7 +1460,8 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         this.logger.debug("Received a heartbeat from " + iid );
         CcdpVMResource res = this.resources.get(iid);
         res.setFreeDiskSpace(resource.getFreeDiskspace());
-        res.setFreeMemory(resource.getFreeMemory());
+        res.setTotalMemory(resource.getTotalMemory());
+        res.setMemLoad(resource.getMemLoad());
         res.setCPULoad(resource.getCPULoad());
       }
     }

@@ -88,6 +88,8 @@ public class CCDPTest
     vm4.getTasks().add(task3);
     vm4.getTasks().add(task3);
     vm4.getTasks().add(task3);
+    vm4.getTasks().add(task2);
+    vm4.getTasks().add(task2);
     
     List<CcdpVMResource> resources = new ArrayList<>();
     resources.add(vm1);

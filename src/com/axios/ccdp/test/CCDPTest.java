@@ -1,27 +1,20 @@
 package com.axios.ccdp.test;
 
 
-import java.io.IOException;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.amazonaws.regions.Region;
-import com.amazonaws.regions.RegionUtils;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.factory.CcdpObjectFactory;
-import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.tasking.CcdpPort;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.tasking.CcdpThreadRequest.TasksRunningMode;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -52,17 +45,21 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    ObjectNode res_ctr_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
-    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    CcdpVMControllerIntf controller = factory.getCcdpResourceController(res_ctr_node);
+    CcdpTaskRequest task = new CcdpTaskRequest();
+    CcdpPort port = new CcdpPort();
+    port.setPortId("port-id-123");
+    List<String> out = new ArrayList<>();
+    out.add("out1");
+    out.add("out2");
+    port.setToPort(out);
+    List<CcdpPort> ports = new ArrayList<>();
+    ports.add(port);
+    task.setOutputPorts(ports);
     
-    CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
-    List<String> ids = controller.startInstances(imgCfg);
-    
-    for( String id : ids )
-      this.logger.debug("Started Instance " + id);
-    
+    CcdpThreadRequest req = new CcdpThreadRequest();
+    req.getTasks().add(task);
+    req.setTasksRunningMode(TasksRunningMode.PARALLEL);
+    this.logger.info("Task: " + req.toPrettyPrint());
     
   }
   

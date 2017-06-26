@@ -111,7 +111,10 @@ public abstract class CcdpMessage implements Cloneable
     RESOURCE_UPDATE(5),
     ASSIGN_SESSION(6),
     START_SESSION(7),
-    END_SESSION(8);
+    END_SESSION(8),
+    START_THREAD(9),
+    PAUSE_THREAD(10),
+    STOP_THREAD(11);
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

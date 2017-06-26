@@ -189,7 +189,7 @@ case $1 in
 	# Use pid saved in pidfile to kill the app
 	if [ ! -f "${CCDP_PIDFILE}" ] ; then
 		echo "The $CCDP_PIDFILE does not exists.  Killing apps matching ${SRCH_APP_NAME}"
-		pid="${SRCH_PID}"
+		pid=`ps aux | grep ${SRCH_APP_NAME} | grep -v grep | grep java | grep -v ${MY_PID} | grep -v $0 | awk '{print $2}'`
 
 		if [ "${pid}" != "" ] ; then
 			echo "Stopping ${APP_NAME}: $pid"

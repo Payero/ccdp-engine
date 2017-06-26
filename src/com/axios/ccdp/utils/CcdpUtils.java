@@ -29,11 +29,8 @@ import org.apache.log4j.PropertyConfigurator;
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -844,8 +841,6 @@ public class CcdpUtils
           img.setSubnet(map.get("subnet.id"));
         if( map.containsKey("key.file.name") )
           img.setKeyFile(map.get("key.file.name"));
-        if( map.containsKey("region") )
-          img.setRegion(map.get("region"));
         
         try
         {

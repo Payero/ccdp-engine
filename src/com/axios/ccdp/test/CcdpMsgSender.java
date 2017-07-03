@@ -16,8 +16,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
@@ -43,10 +45,8 @@ public class CcdpMsgSender
    */
   private AmqSender sender = null;
   
-  public CcdpMsgSender( String channel, String jobs )
+  public CcdpMsgSender( String channel, String jobs, String task )
   {
-    jobs = jobs.trim();
-    this.logger.debug("Running a Task sender, sending " + jobs);
     this.sender = new AmqSender();
     
     Map<String, String> map = 
@@ -60,11 +60,14 @@ public class CcdpMsgSender
     
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);
-    boolean send_req = true;
-    if( send_req )
+    
+    try
     {
-      try
+      if( jobs != null )
       {
+        jobs = jobs.trim();
+        this.logger.debug("Running a Task sender, sending " + jobs);
+        
         List<CcdpThreadRequest> reqs = CcdpUtils.toCcdpThreadRequest(jobs);
         for( CcdpThreadRequest req : reqs )
         {
@@ -74,20 +77,29 @@ public class CcdpMsgSender
           this.sender.sendMessage(null, msg);
           this.logger.debug("Message sent");
         }
-        this.logger.debug("Done sending messages, disconnecting");
-        this.sender.disconnect();
-        this.logger.info("Done, disconnecting quiting now");
       }
-      catch( Exception e )
+      
+      if( task != null )
       {
-        this.logger.error("Message: " + e.getMessage(), e);
+        this.logger.info("Sending KillTaskMessage: " + task);
+        KillTaskMessage msg = new KillTaskMessage();
+        msg.setHowMany(1);
+        CcdpTaskRequest task_req = new CcdpTaskRequest();
+        task_req.setTaskId(null);
+        task_req.setName(task);
+        msg.setTask(task_req);
+        this.sender.sendMessage(null, msg);
       }
+      
     }
-    else
+    catch(Exception e)
     {
-      StartSessionMessage msg = new StartSessionMessage();
-      msg.setSessionId("abc-123");
-      this.sender.sendMessage(null,  msg);
+      this.logger.error("Got an error: " + e.getMessage());
+    }
+    finally
+    {
+      this.logger.info("Done, disconnecting quiting now");
+      this.sender.disconnect();
     }
   }  
   
@@ -140,9 +152,14 @@ public class CcdpMsgSender
     dest_string.setRequired(false);
     options.addOption(dest_string);
     
+
+    // an optional task to kill
+    Option kill_task = new Option("t", "kill-task", true, 
+        "Optional task to kill");
+    kill_task.setRequired(false);
+    options.addOption(kill_task);
     
     CommandLineParser parser = new DefaultParser();
-    
     CommandLine cmd;
 
     try 
@@ -169,6 +186,7 @@ public class CcdpMsgSender
     String filename = null;
     String jobs = null;
     String dest = null;
+    String task = null;
         
     String key = CcdpUtils.CFG_KEY_CFG_FILE;
     
@@ -207,8 +225,12 @@ public class CcdpMsgSender
         usage("The jobs file (" + fname + ") is invalid");
     }
     
-    if( filename == null && jobs == null )
-      usage("Need to provide either a job file or a job as an argument");
+    if( cmd.hasOption('t') )
+    {
+      task = cmd.getOptionValue('t');
+    }
+    if( filename == null && jobs == null  && task == null)
+      usage("Need to provide either a job file, a job, or a task as argument");
     
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
@@ -217,13 +239,10 @@ public class CcdpMsgSender
     {
       byte[] data = Files.readAllBytes( Paths.get( filename ) );
       String job = new String(data, "utf-8");
-      new CcdpMsgSender(dest, job);
+      new CcdpMsgSender(dest, job, task);
     }
     
-    if( jobs != null )
-    {
-      new CcdpMsgSender(dest, jobs);
-    }
+    new CcdpMsgSender(dest, jobs, task);
     
   }
 }

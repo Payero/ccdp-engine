@@ -284,26 +284,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       return false;
     }
     
-    JsonNode alloc = this.config.get("allocate");
-    double cpu = alloc.get("cpu").asDouble();
-    double mem = alloc.get("mem").asDouble();
-    int tasks = alloc.get("max-tasks").asInt();
-    
-    if( cpu == 0 && mem == 0 && tasks > 0 )
-    {
-      this.logger.info("Using Max number of Tasks " + tasks);
-      if( target.getNumberTasks() >= tasks )
-        return false;
-      else
-        return true;
-    }
-    
-    if( resources == null || resources.isEmpty() )
-    {
-      this.logger.debug("The list is invalid, returning true (use target VM)");
-      return true;
-    }
-    
     CcdpVMResource vm = CcdpVMResource.leastUsed(resources);
     if( vm != null && vm.equals(target))
     {

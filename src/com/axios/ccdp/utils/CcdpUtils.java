@@ -443,7 +443,6 @@ public class CcdpUtils
    */
   public static HashMap<String, String> getKeysByFilter( String filter )
   {
-    logger.debug("Parsing all the keys starting with " + filter);
     HashMap<String, String> map = new HashMap<String, String>();
     Enumeration<?> e = CcdpUtils.properties.propertyNames();
     
@@ -462,7 +461,6 @@ public class CcdpUtils
         if( key.length() > filter.length() )
         {
           String prop = key.substring(start);
-          logger.debug("Storing Property[" + prop + "] = " + val);
           map.put(prop, val);
         }
       }
@@ -857,7 +855,6 @@ public class CcdpUtils
         }
       }// the map is not empty
       CcdpUtils.images.put(type, img);
-      logger.debug("ImagCfg: " + img.toPrettyPrint());
     }// end of the NodeType loop
   }// end of the method
   

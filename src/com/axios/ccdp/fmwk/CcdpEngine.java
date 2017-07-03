@@ -130,6 +130,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * argument.  If the jobs is null then it ignores them
    * 
    * @param jobs an optional list of jobs
+   * @param main the object expecting CcdpMessage objects from the engine
    */
   public CcdpEngine(List<CcdpThreadRequest> jobs, CcdpMessageConsumerIntf main)
   {
@@ -1444,7 +1445,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         // let's sort the list from lowest number of tasks to higher
         Collections.sort(resources, new NumberTasksComparator(name));
         Collections.reverse(resources);
-        int remaining = 0;
+        int remaining = number;
         boolean done = false;
         // we need to go through the resources and kill from the lower amount
         // of matching running tasks to the highest.  This is so we can free

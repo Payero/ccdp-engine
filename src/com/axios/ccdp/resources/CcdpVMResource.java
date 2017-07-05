@@ -440,8 +440,8 @@ public class CcdpVMResource implements Serializable
   @JsonSetter("total-mem")
   public void setTotalMemory(double mEM)
   {
-    if( mEM <= 0)
-      throw new IllegalArgumentException("The MEM needs to be > 0");
+    if( mEM < 0)
+      throw new IllegalArgumentException("The total memory needs to be > 0");
     totalMEM = mEM;
   }
 
@@ -460,8 +460,8 @@ public class CcdpVMResource implements Serializable
   @JsonSetter("free-mem")
   public void setFreeMemory(double mEM)
   {
-    if( mEM <= 0)
-      throw new IllegalArgumentException("The MEM needs to be > 0");
+    if( mEM < 0)
+      throw new IllegalArgumentException("The free memory needs to be > 0");
     freeMEM = mEM;
   }
   

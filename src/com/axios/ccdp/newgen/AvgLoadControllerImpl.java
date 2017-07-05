@@ -358,6 +358,8 @@ public class AvgLoadControllerImpl
   {
     Map<CcdpVMResource, List<CcdpTaskRequest>> tasked = new HashMap<>();
     
+    if( resources == null || resources.isEmpty() )
+      return tasked;
     
     for( CcdpTaskRequest task: tasks )
     {

@@ -48,7 +48,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   /**
    * Stores all the information about this resource
    */
-  private CcdpVMResource me;
+  private CcdpVMResource vmInfo;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -110,17 +110,18 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
     catch( Exception e )
     {
       this.logger.error("Could not retrieve Instance ID");
-      hostId = UUID.randomUUID().toString();
+      String[] items = UUID.randomUUID().toString().split("-");
+      hostId = "i-test-" + items[items.length - 1];
     }
     this.logger.info("Using Host Id: " + hostId);
-    this.me = new CcdpVMResource(hostId);
+    this.vmInfo = new CcdpVMResource(hostId);
 //    this.me.setAssignedSession("available");
-    this.me.setStatus(ResourceStatus.RUNNING);
+    this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
     
-    this.me.setCPU(this.monitor.getTotalNumberCpuCores());
-    this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-    this.me.setDisk(this.monitor.getTotalDiskSpace());
+    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
+    this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
+    this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 
     
     long hb = 3000;
@@ -163,9 +164,13 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
    */
   private void updateResourceInfo()
   {
-    this.me.setAssignedMEM(this.monitor.getUsedPhysicalMemorySize());
-    this.me.setAssignedDisk(this.monitor.getUsedDiskSpace());
-    this.me.setAssignedCPU(this.monitor.getSystemCpuLoad());
+    this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
+    this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
+    this.vmInfo.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
+    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
+    this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
+    this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
+    this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
   }
   
   /**
@@ -222,7 +227,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
         state.equals(CcdpTaskState.SUCCESSFUL) )
     {
       this.tasks.remove(task);
-      this.me.removeTask(task);
+      this.vmInfo.removeTask(task);
     }
     
     this.logger.debug("Have " + this.tasks.size() + " tasks remaining");
@@ -235,7 +240,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   {
     this.logger.debug("Sending Heartbeat");
     this.updateResourceInfo();
-    this.connection.sendHeartbeat(this.toMain, this.me);
+    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
   }
   
 
@@ -246,7 +251,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
    */
   public void setSessionId( String sid )
   {
-    this.me.setAssignedSession(sid);
+    this.vmInfo.setAssignedSession(sid);
   }
   
   /**
@@ -267,7 +272,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
         if( runner != null )
         {
           runner.killTask();
-          this.me.getTasks().remove(task);
+          this.vmInfo.getTasks().remove(task);
         }
       }
     }
@@ -296,7 +301,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
       {
         CcdpTaskRunner ccdpTask = new CcdpTaskRunner(task, this);
         this.tasks.put(task, ccdpTask);
-        this.me.addTask(task);
+        this.vmInfo.addTask(task);
         
         task.setState(CcdpTaskState.STAGING);
         this.statusUpdate(task, null);

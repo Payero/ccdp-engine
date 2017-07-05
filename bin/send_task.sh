@@ -1,6 +1,6 @@
 #!/bin/bash
 
-TEMP=`getopt -o hc:f:j:d: --longoptions help,config-file:,file:,jobs:dest: -n $0 -- "$@"`
+TEMP=`getopt -o hc:f:j:d:t: --longoptions help,config-file:,file:,jobs:dest:,kill-task: -n $0 -- "$@"`
 
 # Prints the Usage
 usage()
@@ -16,6 +16,7 @@ usage()
   echo '   -j,--jobs <arg>          Optional JSON file with the jobs to run'
   echo '                            passed as a string'
   echo '   -d,--dest <arg>          The name of the Queue to send the job'
+  echo '   -t,--task <arg>          The name of task to kill'
   echo ''
   exit 0
 }
@@ -40,6 +41,7 @@ TASK=""
 APP_ARGS=""
 JSON=""
 DEST=""
+KILL=""
 
 
 eval set -- "$TEMP"
@@ -51,6 +53,7 @@ while true ; do
 	-c | --config-file ) CFG_FILE=$2 ; shift 2 ;;
 	-j | --jobs ) JSON=$2 ; shift 2 ;;
 	-d | --dest ) DEST=$2 ; shift 2 ;;
+  -t | --task ) KILL=$2 ; shift 2 ;;
     * ) break ;;
   esac
 done
@@ -69,7 +72,7 @@ fi
 
 
 # If the task file was not passed
-if [ -z "$TASK" ] ; then
+if [ -z "$TASK" -a -z "$KILL" ] ; then
 	if [ -z "$JSON" ] ; then
 		echo "ERROR: Either a file or a JSON needs to be provided"
 		usage
@@ -77,7 +80,14 @@ if [ -z "$TASK" ] ; then
 		APP_ARGS+=" -j $JSON"
 	fi
 else
-	APP_ARGS+=" -f $TASK"
+  if [ ! -z "$TASK" ]; then 
+	 APP_ARGS+=" -f $TASK"
+  fi
+fi
+
+if [ ! -z "$KILL" ] ; then
+  echo "Adding Task to kill"
+  APP_ARGS+=" -t $KILL"
 fi
 
 unset _CLASSPATH

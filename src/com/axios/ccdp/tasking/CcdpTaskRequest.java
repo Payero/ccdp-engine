@@ -255,7 +255,7 @@ public class CcdpTaskRequest implements Serializable
   /**
    * @param outputPorts the outputPorts to set
    */
-  @JsonSetter("putput-ports")
+  @JsonSetter("output-ports")
   public void setOutputPorts(List<CcdpPort> outputPorts)
   {
     this.outputPorts = outputPorts;

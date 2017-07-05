@@ -78,9 +78,17 @@ if [ -z "$CCDP_PIDFILE" ] ; then
 	CCDP_PIDFILE="$CCDP_LOG_DIR/${BASE_NAME}.pid"
 fi
 
-
+# if the jar file name was given first look in the lib
+# dir.  If not there search for it
 if [ $CCDP_JAR_NAME ] ; then
-	_JARS="${CCDP_LIB_DIR}/${CCDP_JAR_NAME}"
+  if [ -f "${CCDP_LIB_DIR}/${CCDP_JAR_NAME}" ]; then
+    _JARS="${CCDP_LIB_DIR}/${CCDP_JAR_NAME}"
+  else
+    FNAME=`find ${CCDP_HOME} -name ${CCDP_JAR_NAME}`
+    if [ ! -z "${FNAME}" ]; then
+      _JARS="${FNAME}"
+    fi
+  fi
 else
 	unset _JARS
 	_JARS=$(find "$CCDP_LIB_DIR" -follow -name "*.jar" -xtype f 2>/dev/null | sort | tr '\n' ':')

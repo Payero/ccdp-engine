@@ -61,7 +61,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   /**
    * Stores information about the VM hosting the executor
    */
-  private CcdpVMResource me = null;
+  private CcdpVMResource vmInfo = null;
   
   /**
    * Instantiates a new instance of the agent responsible for running all the
@@ -70,9 +70,9 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public CcdpCommandExecutor()
   {
     this.logger.info("Running the Executor");
-    this.me = new CcdpVMResource(UUID.randomUUID().toString() );
-    this.me.setStatus(ResourceStatus.RUNNING);
-    this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
+    this.vmInfo = new CcdpVMResource(UUID.randomUUID().toString() );
+    this.vmInfo.setStatus(ResourceStatus.RUNNING);
+    this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
   }
 
   /**
@@ -104,7 +104,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     {
       this.tasks.remove(taskId);
       CcdpTaskRequest rem = null;
-      for( CcdpTaskRequest task : this.me.getTasks() )
+      for( CcdpTaskRequest task : this.vmInfo.getTasks() )
       {
         if(task.getTaskId().equals( tid ) )
         {
@@ -113,7 +113,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
         }
       }
       if( rem != null )
-        this.me.removeTask(rem);
+        this.vmInfo.removeTask(rem);
 //      if( this.tasks.isEmpty() )
 //        this.driver.abort();
     }
@@ -128,11 +128,11 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     if( this.driver != null )
     {
       // just need to update what is free to use
-      this.me.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
-      this.me.setCPULoad(this.monitor.getSystemCpuLoad());
-      this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+      this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
+      this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
+      this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
     
-      this.driver.sendFrameworkMessage(this.me.toString().getBytes());
+      this.driver.sendFrameworkMessage(this.vmInfo.toString().getBytes());
     }
   }
   
@@ -160,16 +160,16 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
           break;
         }
       }
-      this.me.setInstanceId(iid);
-      this.me.setAssignedSession(sid);
-      this.me.setAgentId(this.agentInfo.getId().getValue() );
-      this.me.setHostname(this.agentInfo.getHostname());
-      this.me.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-      this.me.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
-      this.me.setCPU(this.monitor.getTotalNumberCpuCores());
-      this.me.setCPULoad(this.monitor.getSystemCpuLoad());
-      this.me.setDisk(this.monitor.getTotalDiskSpace());
-      this.me.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+      this.vmInfo.setInstanceId(iid);
+      this.vmInfo.setAssignedSession(sid);
+      this.vmInfo.setAgentId(this.agentInfo.getId().getValue() );
+      this.vmInfo.setHostname(this.agentInfo.getHostname());
+      this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
+      this.vmInfo.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
+      this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
+      this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
+      this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
+      this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
     }
   }
   
@@ -217,7 +217,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   @Override
   public void frameworkMessage(ExecutorDriver driver, byte[] msg)
   {
-    this.me.setAssignedSession( new String(msg) ); 
+    this.vmInfo.setAssignedSession( new String(msg) ); 
   }
 
   /**
@@ -240,12 +240,12 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       if( task != null )
       {
         task.killTask();
-        for( CcdpTaskRequest t : this.me.getTasks() )
+        for( CcdpTaskRequest t : this.vmInfo.getTasks() )
         {
           if( t.getTaskId().equals(tid) )
           {
             this.logger.info("Task " + tid + " was killed, removing it");
-            this.me.getTasks().remove(t);
+            this.vmInfo.getTasks().remove(t);
             break;
           }
         }
@@ -287,7 +287,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
         ccdpTask.start();
         CcdpTaskRequest taskReq = new CcdpTaskRequest(taskId.getValue());
         
-        this.me.addTask(taskReq);
+        this.vmInfo.addTask(taskReq);
         this.statusUpdate(taskId, TaskState.TASK_RUNNING, null);
       }
       catch( Exception e )

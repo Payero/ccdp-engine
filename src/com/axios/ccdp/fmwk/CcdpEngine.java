@@ -130,6 +130,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * argument.  If the jobs is null then it ignores them
    * 
    * @param jobs an optional list of jobs
+   * @param main the main application expecting CcdpMessage requests
    */
   public CcdpEngine(List<CcdpThreadRequest> jobs, CcdpMessageConsumerIntf main)
   {
@@ -939,7 +940,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     list = this.getResourcesBySessionId(sid);
     
     
-    if ( this.tasker.needResourceAllocation(list) )
+    if ( this.tasker.needResourceAllocation(list) || list.size() == 0 )
     {
       this.logger.info("The session id " + sid + 
                        " does not have resources, checking free");

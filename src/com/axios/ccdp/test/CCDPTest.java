@@ -52,11 +52,11 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    // i-test-204747cfe979
-    String[] items = UUID.randomUUID().toString().split("-");
-    String uuid = "i-test-" + items[items.length - 1];
-    
-    this.logger.info("THe UUID " + uuid);
+   String id = "i-test-bff4b6a0c8c5";
+   String cp = "i-test-bff4b6a0c8c5";
+   
+   this.logger.info("Test 1 = " + id.equals(cp));
+   this.logger.info("Test 2 = " + id ==  cp);
   }
   
   

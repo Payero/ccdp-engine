@@ -6,11 +6,12 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.fusesource.hawtbuf.ByteArrayInputStream;
 
@@ -717,7 +718,7 @@ public class CcdpTaskRequest implements Serializable
     ObjectOutputStream oos = new ObjectOutputStream( baos );
     oos.writeObject( this );
     oos.close();
-    return Base64.getEncoder().encodeToString(baos.toByteArray()); 
+    return DatatypeConverter.printBase64Binary(baos.toByteArray());
   }  
   
   /** Reads a serialized string object and generates a CcdpTaskRequest object
@@ -732,7 +733,7 @@ public class CcdpTaskRequest implements Serializable
   public static CcdpTaskRequest fromSerializedString( String s ) 
                                   throws IOException, ClassNotFoundException 
   {
-     byte [] data = Base64.getDecoder().decode( s );
+    byte[] data = DatatypeConverter.parseBase64Binary(s);
      ObjectInputStream ois = new ObjectInputStream( 
                                      new ByteArrayInputStream(  data ) );
      Object o  = ois.readObject();

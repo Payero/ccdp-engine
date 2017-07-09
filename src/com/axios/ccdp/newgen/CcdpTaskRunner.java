@@ -59,7 +59,13 @@ public class CcdpTaskRunner extends Thread
     // adding the basic commands to run it on a shell
     this.cmdArgs.add("/bin/bash");
     this.cmdArgs.add("-c");
-    this.cmdArgs.add( String.join( " ", this.task.getCommand() ) );
+    StringBuffer buf = new StringBuffer();
+    for( String cmd : task.getCommand() )
+    {
+      buf.append(cmd);
+      buf.append(" ");
+    }
+    this.cmdArgs.add( buf.toString().trim() );
   }
 
   /**

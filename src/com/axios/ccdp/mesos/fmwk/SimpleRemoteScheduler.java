@@ -26,7 +26,6 @@ import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
 import org.apache.mesos.Protos.Attribute;
 
-import com.amazonaws.services.elastictranscoder.model.Warning;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -383,7 +382,14 @@ public class SimpleRemoteScheduler implements Scheduler, CcdpMessageConsumerIntf
       CcdpJob job = new CcdpJob();
       job.setCpus(task.getCPU());
       job.setMemory(task.getMEM());
-      job.setCommand( String.join(" ", task.getCommand() ) );
+      
+      StringBuffer buf = new StringBuffer();
+      for( String cmd : task.getCommand() )
+      {
+        buf.append(cmd);
+        buf.append(" ");
+      }
+      job.setCommand( buf.toString().trim() );
       this.logger.debug("Adding Job: " + job.toString());
       this.jobs.add(job);
     }

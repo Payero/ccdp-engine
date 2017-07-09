@@ -110,7 +110,13 @@ if [ -z "$JAR_FILE" ]; then
   _CLASSPATH=${_JARS}:${CCDP_CLS_DIR}
 fi
 
-CMD="java -cp ${_CLASSPATH} com.axios.ccdp.test.CcdpMsgSender $APP_ARGS"
+if [ -z ${JAVA_HOME} ]; then 
+  JAVA_CMD=java
+else
+  JAVA_CMD=${JAVA_HOME}/bin/java
+fi
+
+CMD="${JAVA_CMD} -cp ${_CLASSPATH} com.axios.ccdp.test.CcdpMsgSender $APP_ARGS"
 
 echo "Running: ${CMD} "
 exec $CMD 

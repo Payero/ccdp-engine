@@ -53,7 +53,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
    */
   private ExecutorInfo execInfo = null;
   /**
-   * Retrieves all the system's resources as a JSON object
+   * Retrieves all the system's resources as a JSON object.  Using MB as the
+   * units because that is what mesos uses
    */
   private SystemResourceMonitor monitor = 
       new SystemResourceMonitor(SystemResourceMonitor.UNITS.MB);

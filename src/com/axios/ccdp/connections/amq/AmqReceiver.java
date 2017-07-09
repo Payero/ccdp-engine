@@ -307,6 +307,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
     catch( Exception e )
     {
       this.logger.error("Message: " + e.getMessage());
+      e.printStackTrace();
     }
   }
   

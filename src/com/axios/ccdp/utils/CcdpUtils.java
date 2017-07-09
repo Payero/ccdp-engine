@@ -58,6 +58,8 @@ public class CcdpUtils
   public static final String CFG_KEY_FMWK_ROOT = "ccdp.framework.root";
   /**  The key name of the property with the self contained executor jar  */
   public static final String CFG_KEY_EXEC_JAR = "executor.src.jar.file";
+  /**  The key name of the property with the self contained executor jar  */
+  public static final String CFG_KEY_EXEC_CMD = "executor.cmd.line";
   /**  The key name of the property used to locate the mesos master  */
   public static final String CFG_KEY_MESOS_MASTER_URI = "mesos.master.uri";
   /**  The key name of the property used to send tasks to the Scheduler  */

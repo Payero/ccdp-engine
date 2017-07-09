@@ -95,8 +95,7 @@ public class CCDPEngineMain
                   .setExtract(false)
                   .build();
 
-    String cmdExec = "java -cp " + jar_file + 
-                     " com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor";
+    String cmdExec = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_EXEC_CMD);
     
     CommandInfo commandInfoJson = CommandInfo.newBuilder()
                   .setValue(cmdExec)

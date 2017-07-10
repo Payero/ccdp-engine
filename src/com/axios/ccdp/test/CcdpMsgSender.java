@@ -2,6 +2,7 @@ package com.axios.ccdp.test;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,8 @@ import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 public class CcdpMsgSender
@@ -39,13 +42,17 @@ public class CcdpMsgSender
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
+  /**
+   * Generates all the JSON Objects
+   */
+  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Sends JMS Tasking Messages to the framework
    */
   private AmqSender sender = null;
   
-  public CcdpMsgSender( String channel, String jobs, String task )
+  public CcdpMsgSender( String channel, String jobs, String task_filename )
   {
     this.sender = new AmqSender();
     
@@ -79,18 +86,26 @@ public class CcdpMsgSender
         }
       }
       
-      if( task != null )
+      if( task_filename != null )
       {
-        this.logger.info("Sending KillTaskMessage: " + task);
-        KillTaskMessage msg = new KillTaskMessage();
-        msg.setHowMany(1);
-        CcdpTaskRequest task_req = new CcdpTaskRequest();
-        task_req.setTaskId(null);
-        task_req.setName(task);
-        msg.setTask(task_req);
-        this.sender.sendMessage(null, msg);
+        this.logger.info("Sending KillTaskMessage: " + task_filename);
+        File file = new File(task_filename);
+        if( file != null && file.isFile() )
+        {
+          byte[] data = Files.readAllBytes(Paths.get( file.getAbsolutePath()));
+          JsonNode node = this.mapper.readTree( data );
+          CcdpTaskRequest to_kill = 
+                    this.mapper.treeToValue(node, CcdpTaskRequest.class);
+          KillTaskMessage msg = new KillTaskMessage();
+          msg.setHowMany(1);
+          msg.setTask(to_kill);
+          this.sender.sendMessage(null, msg);
+        }
+        else
+        {
+          this.logger.error("The file " + task_filename + " is invalid");
+        }
       }
-      
     }
     catch(Exception e)
     {
@@ -186,7 +201,7 @@ public class CcdpMsgSender
     String filename = null;
     String jobs = null;
     String dest = null;
-    String task = null;
+    String task_filename = null;
         
     String key = CcdpUtils.CFG_KEY_CFG_FILE;
     
@@ -227,9 +242,9 @@ public class CcdpMsgSender
     
     if( cmd.hasOption('t') )
     {
-      task = cmd.getOptionValue('t');
+      task_filename = cmd.getOptionValue('t');
     }
-    if( filename == null && jobs == null  && task == null)
+    if( filename == null && jobs == null  && task_filename == null)
       usage("Need to provide either a job file, a job, or a task as argument");
     
     CcdpUtils.loadProperties(cfg_file);
@@ -239,10 +254,10 @@ public class CcdpMsgSender
     {
       byte[] data = Files.readAllBytes( Paths.get( filename ) );
       String job = new String(data, "utf-8");
-      new CcdpMsgSender(dest, job, task);
+      new CcdpMsgSender(dest, job, task_filename);
     }
     
-    new CcdpMsgSender(dest, jobs, task);
+    new CcdpMsgSender(dest, jobs, task_filename);
     
   }
 }

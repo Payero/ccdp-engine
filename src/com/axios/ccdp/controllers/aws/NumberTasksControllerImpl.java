@@ -12,7 +12,6 @@ import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -23,22 +22,31 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
 {
-
+  /**
+   * The default value of the maximum number of tasks to execute
+   */
+  public static int DEF_MAX_NUMBER_TASKS = 5;
+  /**
+   * The default maximum number of minutes since the VM was last tasked
+   */
+  public static int DEF_MAX_IDLE_TIME = 5;
   /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(NumberTasksControllerImpl.class
       .getName());
-  
   /**
    * Creates all the ObjectNode and ArrayNode required by this object
    */
   private ObjectMapper mapper = new ObjectMapper();
-
   /**
-   * Stores the configuration passed to this object
+   * The maximum number of tasks to run on a given VM
    */
-  private ObjectNode config = null;
+  private int max_tasks = DEF_MAX_NUMBER_TASKS;
+  /**
+   * The maximum number of minutes since the VM was last tasked
+   */
+  private int max_time = DEF_MAX_IDLE_TIME;
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
@@ -49,7 +57,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     this.logger.debug("Initiating Tasker object");
     // making the JSON Objects Pretty Print
     this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
-    this.config = this.mapper.createObjectNode();
   }
 
   /**
@@ -75,12 +82,36 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       throw new RuntimeException("The configuration cannot be null");
     }
     
-    this.config.put("max-tasks",  config.get("allocate.no.more.than").asInt());
-    this.config.put("max-time",  config.get("deallocate.avg.load.time").asInt());
+    this.setParam(config, "allocate.no.more.than", this.max_tasks);
+    this.setParam(config, "deallocate.avg.load.time", this.max_time);
     
-    this.logger.info("Configuring Tasker using " + this.config.toString());    
   }
 
+  /**
+   * Checks if the field was set in the ObjectNode object and if found and is
+   * set to an integer greater than 0 it set the given field to that parameter
+   * 
+   * @param config The object containing the desired configuration
+   * @param field the name of the field to extract
+   * @param param the parameter to set
+   */
+  private void setParam(ObjectNode config, String field, int param)
+  {
+    if( config.has(field) )
+    {
+      int tmp = config.get(field).asInt();
+      if( tmp > 0 )
+      {
+        param = tmp;
+      }
+      else
+      {
+        String msg = "The field " + field + " needs to be a positive integer";
+        this.logger.warn(msg);
+      }
+    }
+  }
+  
   /**
    * Determines whether or not additional resources are needed based on
    * the utilization level of the given resources.  If the resources combined
@@ -98,47 +129,39 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       return true;
     
     int sz = resources.size();
-    int tasks = this.config.get("max-tasks").asInt();
+    this.logger.info("Using Max number of Tasks "+ this.max_tasks);
     
-    
-    if( tasks > 0 )
+    if( sz > 0 )
     {
-      this.logger.info("Using Max number of Tasks " + tasks);
-      
-      if( sz > 0 )
+      int total_tasks = 0;
+      for( CcdpVMResource res : resources )
       {
-        int total_tasks = 0;
-        for( CcdpVMResource res : resources )
-        {
-          total_tasks += res.getNumberTasks();
-        }
-        
-        int avgLoad = (int)( total_tasks / sz);
+        total_tasks += res.getNumberTasks();
+      }
+      
+      int avgLoad = (int)( total_tasks / sz);
 
-        
-        if( avgLoad >= tasks )
-        {
-          String txt = "Need Resources: the Average Load " + avgLoad + 
-              " is greater than allowed " + tasks;
-          this.logger.info(txt);
-          return true;
-        }
-        else
-        {
-          String txt = "Does not need Resources: the Average Load " + avgLoad + 
-              " is greater than allowed " + tasks;
-          this.logger.info(txt);
-          return false;
-        }
+      
+      if( avgLoad >= this.max_tasks )
+      {
+        String txt = "Need Resources: the Average Load " + avgLoad + 
+            " is greater than allowed " + this.max_tasks;
+        this.logger.info(txt);
+        return true;
       }
       else
       {
-        this.logger.info("Need Resources: There are no resources running");
-        return true;
+        String txt = "Does not need Resources: the Average Load " + avgLoad + 
+            " is greater than allowed " + this.max_tasks;
+        this.logger.info(txt);
+        return false;
       }
     }
-    
-    return false;
+    else
+    {
+      this.logger.info("Need Resources: There are no resources running");
+      return true;
+    }
   }
   
   /**
@@ -153,8 +176,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
     long now = System.currentTimeMillis();
-    int time = this.config.get("max-time").asInt();
-    
     this.logger.info("Using last allocation time only");
     List<CcdpVMResource> terminate = new ArrayList<>();
     for( CcdpVMResource vm : resources )
@@ -163,7 +184,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       int diff = (int)( ( (now - last) / 1000) / 60 );
       // is the time of the last assignment greater than allowed and it was
       // running (avoiding new launches)
-      if( diff >= time && 
+      if( diff >= this.max_time && 
           ResourceStatus.RUNNING.equals( vm.getStatus() ) &&
           vm.getTasks().size() == 0 &&
           !vm.isSingleTasked()
@@ -176,7 +197,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       }
     }
     return terminate;
-
   }
   
   
@@ -210,7 +230,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       if( cpu == 0 )
       {
         this.logger.info("CPU = " + cpu + " Assigning Task based on session");
-        if( this.isLeastUtilized( task, target, resources) )
+        if( this.hasCapacity( task, target ) )
         {
           // cannot have a CPU less than the minimum required (mesos-master dies)
           task.setCPU(CcdpTaskRequest.MIN_CPU_REQ);
@@ -257,21 +277,18 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   }
 
   /**
-   * Uses the list of resources to determine which one is the least
-   * utilized.  If the target resource is the least utilized then 
-   * it returns true otherwise it returns false.
-   * 
+   * Determines whether or not the target VM has the capacity to run the task.
+   * This is determine by the number of tasks currently running as well as by
+   * the task not being submitted
+   *  
+   * @param task  the task to run
    * @param target the intended VM to run the task
-   * @param resources a list of available VMs 
    * 
-   * @return true if the task has not been submitted and the target VM is the
-   *         least utilized in the list
+   * @return true if the task has not been submitted and the target VM is not
+   *         running as many tasks as required
    */
-  private boolean isLeastUtilized(CcdpTaskRequest task, CcdpVMResource target, 
-                                  List<CcdpVMResource> resources)
+  private boolean hasCapacity( CcdpTaskRequest task, CcdpVMResource target )
   {
-    this.logger.debug("Finding least used VM of the session");
-    
     if( task.isSubmitted() )
     {
       this.logger.debug("Job already submitted, skipping it");
@@ -280,18 +297,17 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     
     if( target.isSingleTasked() )
     {
-      this.logger.debug("Target is assigned to a dedicated task " + target.getSingleTask() );
+      this.logger.debug("Task is assigned to a dedicated task: " + 
+                        target.getSingleTask());
       return false;
     }
     
-    CcdpVMResource vm = CcdpVMResource.leastUsed(resources);
-    if( vm != null && vm.equals(target))
-    {
+    this.logger.info("Using Max Number of Tasks " + this.max_tasks);
+    if( target.getNumberTasks() >= this.max_tasks )
+      return false;
+    else
       return true;
-    }
-    return false;
   }
-  
   
   /**
    * Checks the amount of CPU and memory available in this VM resource.  If the VM has enough resources to run the
@@ -325,7 +341,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
      double offerMem = resource.getTotalMemory();
      
      String str = 
-     String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
+         String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
      this.logger.debug(str);
      
      double jobCpus = task.getCPU();

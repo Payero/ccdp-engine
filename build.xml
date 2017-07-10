@@ -7,6 +7,13 @@
 	<property name="agent.name" value="ccdp-agent" />
  	<property name="engine.name" value="ccdp-engine" />
   <property name="client.name" value="ccdp-client" />
+  <property name="connection.name" value="ccdp-client-connection" />
+
+  <!-- Determines whether to compile as 1.7 or 1.8 
+       It relies on having a link pointing to the rt.jar as follow:
+       /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
+  -->
+  <property name="tgt.jdk" value="1.7" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -62,10 +69,15 @@
     <mkdir dir="${test.bld.dir}"/>
   	<mkdir dir="${report.dir}"/>
     <javac srcdir="${test.src.dir}" 
-    	   destdir="${test.bld.dir}" includeantruntime="false">
+    	   destdir="${test.bld.dir}" 
+         target="${tgt.jdk}"
+         source="${tgt.jdk}"
+         bootclasspath="/usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar"
+         includeantruntime="false">
     	<classpath refid="classpath.test"/>
     </javac>
   </target>
+
 
 	<!-- Runs all the unit tests by calling each one of the test target -->
 	<target name="test.all" 
@@ -138,6 +150,9 @@
 				 debug="true"
 			   srcdir="${src.dir}" 
 			   destdir="${main.dir}" 
+         target="${tgt.jdk}"
+         source="${tgt.jdk}" 
+         bootclasspath="/usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar"
 			   classpathref="classpath"/>
 	</target>
 
@@ -174,6 +189,10 @@
   </jar>
 
   <jar destfile="${base.dist.dir}/${client.name}.jar" >
+    <fileset dir="${main.dir}"/>
+  </jar>
+
+  <jar destfile="${base.dist.dir}/${connection.name}.jar" >
     <fileset dir="${main.dir}"/>
   </jar>
 
@@ -242,7 +261,8 @@
   <target name="javadocs" depends="javadoc" 
           description="Generates the JavaDoc for the whole project" />
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
-    <javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
+    <javadoc sourcepath="${src.dir}" 
+             destdir="${doc.dir}">
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />
         

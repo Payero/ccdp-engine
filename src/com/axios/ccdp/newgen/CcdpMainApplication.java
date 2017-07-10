@@ -190,7 +190,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     catch( Exception e )
     {
       this.logger.warn("Could not get Instance ID, assigning one");
-      this.hostId = UUID.randomUUID().toString();
+      String[] items = UUID.randomUUID().toString().split("-");
+      this.hostId = "i-test-" + items[items.length - 1];
     }
 
     // Let's check what is out there....
@@ -498,9 +499,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       boolean found = false;
       for( CcdpVMResource res : list )
       {
-        this.logger.info("Comparing " + res.getInstanceId() + 
-                         " and " + vm.getInstanceId() );
-        if( res.getInstanceId().equals(vm.getInstanceId()))
+        this.logger.info("Comparing [" + res.getInstanceId() + 
+                         "] and [" + vm.getInstanceId() +"]" );
+        if( res.getInstanceId().equals( vm.getInstanceId() ) )
         {
           found = true;
           break;

@@ -168,7 +168,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       if (message instanceof TextMessage) 
       {
         TextMessage txtMsg = (TextMessage)message;
-        this.logger.info("Payload: " + txtMsg.getText());
+        this.logger.debug("Payload: " + txtMsg.getText());
         int msgTypeNum = -1;
         String keyFld = CcdpMessage.MSG_TYPE_FLD;
         // let's try option one: the message type is in the header
@@ -179,7 +179,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
         else  // is not, is it in the actual body as json?
         {
           JsonNode obj = this.mapper.readTree(txtMsg.getText());
-          this.logger.info("The Json Object " + obj.toString());
+          this.logger.debug("The Json Object " + obj.toString());
           
           // I am looking for the msg-type field, is it there?
           if( obj.has(keyFld) )
@@ -201,7 +201,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
           if( txtMsg.getJMSReplyTo() != null )
             replyTo = txtMsg.getJMSReplyTo().toString();
           
-          this.logger.info("The Message Type (" + msgTypeNum +")");
+          this.logger.debug("The Message Type (" + msgTypeNum +")");
           CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
           this.logger.debug("Got a " + msgType + " Message");
           CcdpMessage ccdpMsg = null;

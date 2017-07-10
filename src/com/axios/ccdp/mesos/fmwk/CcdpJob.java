@@ -2,7 +2,6 @@ package com.axios.ccdp.mesos.fmwk;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.StringJoiner;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -327,21 +326,21 @@ public class CcdpJob
     if( obj.has("command") )
     {
       ArrayNode args = (ArrayNode)obj.get("command");
-      List<String> list = new ArrayList<String>();
+      StringBuffer buf = new StringBuffer();
       for( JsonNode arg : args )
       {
         String cmd = arg.asText();
-        list.add(cmd);
+        buf.append(cmd);
+        buf.append(" ");
       }
-      StringJoiner joiner = new StringJoiner(" ");
-      list.forEach(joiner::add);
-      job.command = joiner.toString();
+      //list.forEach(joiner::add);
+      job.command = buf.toString().trim();
     }
     else
       System.err.println("The command field is required");
     
     if( obj.has("cfg") )
-      job.setConfig(obj.get("cfg").deepCopy());
+      job.setConfig( (ObjectNode)obj.get("cfg").deepCopy() );
       
     return job;
   }

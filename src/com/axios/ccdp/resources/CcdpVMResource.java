@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
-import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.xml.bind.DatatypeConverter;
 
 import org.fusesource.hawtbuf.ByteArrayInputStream;
 
@@ -1008,7 +1008,9 @@ public class CcdpVMResource implements Serializable
     ObjectOutputStream oos = new ObjectOutputStream( baos );
     oos.writeObject( this );
     oos.close();
-    return Base64.getEncoder().encodeToString(baos.toByteArray()); 
+    
+    //return Base64.getEncoder().encodeToString(baos.toByteArray()); 
+    return DatatypeConverter.printBase64Binary(baos.toByteArray());
   }  
   
   /** Reads a serialized string object and generates a CcdpVMResource object
@@ -1023,7 +1025,8 @@ public class CcdpVMResource implements Serializable
   public static CcdpVMResource fromSerializedString( String s ) 
                                   throws IOException, ClassNotFoundException 
   {
-     byte [] data = Base64.getDecoder().decode( s );
+     //byte [] data = Base64.getDecoder().decode( s );
+     byte[] data = DatatypeConverter.parseBase64Binary(s);
      ObjectInputStream ois = new ObjectInputStream( 
                                      new ByteArrayInputStream(  data ) );
      Object o  = ois.readObject();

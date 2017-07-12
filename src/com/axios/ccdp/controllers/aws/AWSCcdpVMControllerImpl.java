@@ -334,6 +334,12 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     
     List<String> launched = null;
+    boolean launch = true;
+    System.out.println("NOT STARTING A NEW VM!");
+    if (launch)
+    {
+      return launched;
+    }
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
     int max = imgCfg.getMaxReq();

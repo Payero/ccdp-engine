@@ -26,6 +26,7 @@ import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.EndSessionMessage;
 import com.axios.ccdp.message.KillTaskMessage;
@@ -164,6 +165,18 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
     
+    try
+    {
+      this.hostId = CcdpUtils.retrieveEC2Info("instance-id");
+      this.logger.info("Framework running on instance: " + this.hostId );
+    }
+    catch( Exception e )
+    {
+      this.logger.warn("Could not get Instance ID, assigning one");
+      String[] items = UUID.randomUUID().toString().split("-");
+      this.hostId = "i-test-" + items[items.length - 1];
+    }
+    
     String toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
     this.logger.info("Registering as " + this.hostId);
     this.connection.registerConsumer(this.hostId, toMain);
@@ -182,16 +195,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }// end of the do not terminate section
     
     
-    try
-    {
-      this.hostId = CcdpUtils.retrieveEC2Info("instance-id");
-      this.logger.info("Framework running on instance: " + this.hostId );
-    }
-    catch( Exception e )
-    {
-      this.logger.warn("Could not get Instance ID, assigning one");
-      this.hostId = UUID.randomUUID().toString();
-    }
 
     // Let's check what is out there....
     int cycle = 5;;
@@ -492,15 +495,22 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     if( sid == null )
     {
       String type = vm.getNodeTypeAsString();
-      this.logger.info("Session ID is null, assign VM to available as " + type);
+      String iid = vm.getInstanceId();
+      
+      this.logger.info(iid + " -> Session ID is null, assign VM to available as " + type);
       vm.setAssignedSession(type);
+      this.connection.registerProducer(iid);
+      AssignSessionMessage msg = new AssignSessionMessage();
+      msg.setSessionId(type);
+      this.connection.sendCcdpMessage(iid, msg);
+      
       List<CcdpVMResource> list = this.getResourcesBySessionId(type);
       boolean found = false;
       for( CcdpVMResource res : list )
       {
-        this.logger.info("Comparing " + res.getInstanceId() + 
-                         " and " + vm.getInstanceId() );
-        if( res.getInstanceId().equals(vm.getInstanceId()))
+        this.logger.info("Comparing [" + res.getInstanceId() + 
+                         "] and [" + vm.getInstanceId() +"]" );
+        if( res.getInstanceId().equals( vm.getInstanceId() ) )
         {
           found = true;
           break;
@@ -517,17 +527,18 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       for( CcdpVMResource res : this.getResourcesBySessionId(sid) )
       {
-        this.logger.info("Comparing " + res.getInstanceId() + 
+        this.logger.debug("Comparing " + res.getInstanceId() + 
                          " and " + vm.getInstanceId() );
         if( res.getInstanceId().equals(vm.getInstanceId()) )
         {
-          this.logger.info("Found Resource");
+          this.logger.debug("Found Resource");
           res.setFreeDiskSpace(vm.getFreeDiskspace());
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
           
-       // resetting all the tasks by first removing them all and then adding them
+          // resetting all the tasks by first removing them all and then 
+          // adding them
           res.removeTasks(vm.getTasks());
           res.getTasks().addAll(vm.getTasks());
           
@@ -538,7 +549,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.resources.get(sid).add(vm);
     }// the sid is not null
     
-    this.logger.warn("Could not find VM " + vm.getInstanceId() );
+    this.logger.info("Could not find VM " + vm.getInstanceId() );
   }
   
   /**
@@ -896,15 +907,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       synchronized(this.resources)
       {
-        this.logger.debug("----------------------------------------------------------");
-        this.logger.debug("Has " + this.resources.size() + " Sessions");
-        for( String sid : this.resources.keySet() )
-        {
-          this.logger.info("Session " + sid + " has " + this.resources.get(sid).size() + " VMs");
-        }
-        this.logger.debug("----------------------------------------------------------");
-        
-        
         for( CcdpNodeType type : CcdpNodeType.values() )
         {
           String typeStr = type.toString();
@@ -912,8 +914,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
           int free_vms = imgCfg.getMinReq();
           List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
+          
           int available = avails.size();
-                
           if( free_vms > 0 )
           {
             int need = free_vms - available;
@@ -953,7 +955,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
               {
                 this.logger.info("Flagging VM " + id + " for termination");
-                res.setStatus(ResourceStatus.SHUTTING_DOWN);
                 
                 // it is not in the 'do not terminate' list
                 if( !this.skipTermination.contains(id) )
@@ -975,6 +976,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 }
                 
               }// done searching for running VMs
+              
               
               // Remove the ones 'SHUTTING_DOWN'
               if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
@@ -1001,6 +1003,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             this.logger.debug("Removing " + iid + " from resources map");
             this.resources.remove(iid);
           }
+          
         }// end of the NodeType for loop
       }// end of the sync block
     }
@@ -1011,6 +1014,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.logger.error(msg);
       e.printStackTrace();
     }
+    
   }
   
   /**
@@ -1084,7 +1088,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         CcdpVMResource resource = new CcdpVMResource(iid);
         resource.setStatus(ResourceStatus.LAUNCHED);
         resource.setAssignedSession(sid);
-        this.logger.debug("Adding resource " + resource.toString());
+        this.logger.info("Adding resource " + resource.toString());
         synchronized( this.resources )
         {
           this.resources.get(sid).add(resource);
@@ -1132,6 +1136,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private List<CcdpVMResource> getResourcesBySessionId( String sid )
   {
+    this.logger.debug("Getting resources for [" + sid +"]");
     if( sid == null )
     {
       this.logger.error("The Session ID cannot be null");
@@ -1143,6 +1148,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       if( this.resources.containsKey( sid ) )
       {
+        this.logger.debug("Found them, checking status");
         List<CcdpVMResource> assigned = this.resources.get(sid);
         for( CcdpVMResource res : assigned )
         {
@@ -1150,6 +1156,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             this.logger.debug("Found Resource based on SID, adding it to list");
             list.add(res);
+          }
+          else
+          {
+            this.logger.debug("Status was " + res.getStatus());
           }
         }
       }// found a list of sessions

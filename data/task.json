@@ -9,7 +9,7 @@
 	 "cpu": "10",
 	 "mem": "128",
 	 "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=3,max=6"],
-	 "configuration": { "ccdp.log.dir": "/tmp/ccdp_logs" },
+	 "configuration": { "ccdp.logs.dir": "/tmp/ccdp_logs" },
 	 "input-ports": 
 	      [{"port-id": "from-exterior", 
 	        "from-port": ["source-1", "source-2"],

@@ -118,7 +118,7 @@ ARGS=""
 
 SRCH_APP_NAME="${JAVA_APP}"
 APP_NAME=`echo ${JAVA_APP} | sed 's/.*\.//'`
-JAVA_OPTS="-Dccdp.log.dir=${CCDP_LOG_DIR} \
+JAVA_OPTS="-Dccdp.logs.dir=${CCDP_LOG_DIR} \
 					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.properties \
 		       -Xmx1500m"
 
@@ -190,6 +190,7 @@ case $1 in
 #	echo "Running ${CMD} "
 #	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
   #exec $CMD
+
 	echo $! > ${CCDP_PIDFILE}
 	echo "."
 

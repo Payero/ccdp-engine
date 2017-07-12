@@ -52,7 +52,11 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    
+   String id = "i-test-bff4b6a0c8c5";
+   String cp = "i-test-bff4b6a0c8c5";
+   
+   this.logger.info("Test 1 = " + id.equals(cp));
+   this.logger.info("Test 2 = " + (id ==  cp));
   }
   
   

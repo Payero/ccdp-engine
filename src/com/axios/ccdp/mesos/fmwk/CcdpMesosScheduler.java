@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.StringJoiner;
 
 import org.apache.log4j.Logger;
 import org.apache.mesos.Protos.CommandInfo;
@@ -460,10 +459,14 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
     bldr.addResources(memRes);
     
     Protos.CommandInfo.Builder cmdBldr = CommandInfo.newBuilder();
-    StringJoiner joiner = new StringJoiner(" ");
-    task.getCommand().forEach(joiner::add);
+    StringBuffer buf = new StringBuffer();
     
-    String cmd = joiner.toString();
+    for( String cmd : task.getCommand() )
+    {
+      buf.append(cmd);
+      buf.append(" ");
+    }
+    String cmd = buf.toString().trim();
     cmdBldr.setValue(cmd);
     this.logger.debug("Running Command: " + cmd);
     

@@ -181,13 +181,15 @@ case $1 in
   # If running from the command line and want to see the output
   if [ -z $CCDP_SKIP_REDIRECTION ] ; then
     CMD="nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &"
+    nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
   else
     CMD="${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS"
+    exec $CMD
   fi
 
-	echo "Running ${CMD} "
-	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
-  exec $CMD
+#	echo "Running ${CMD} "
+#	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
+  #exec $CMD
 	echo $! > ${CCDP_PIDFILE}
 	echo "."
 

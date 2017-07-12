@@ -123,9 +123,8 @@ public class CcdpUtils
   /** Stores the name of the Queue where to send events to the main app **/
   public static final String CFG_KEY_MAIN_CHANNEL = "ccdp.main.queue";
   /** Stores the name of the configuration key with the log folder location **/
-  public static final String CFG_KEY_LOG_DIR = "ccdp.log.dir";
-  /** Stores the name of the key with the log directory location **/
-  public static final String KEY_CCDP_LOG_DIR = "ccdp-log-dir";
+  public static final String CFG_KEY_LOG_DIR = "ccdp.logs.dir";
+
   
   /****************************************************************************/
   /**

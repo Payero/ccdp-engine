@@ -23,10 +23,12 @@ import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.RunTaskMessage;
+import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
@@ -197,9 +199,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
         KillTaskMessage killMsg = (KillTaskMessage)message;
         this.killTask(killMsg.getTask());
         break;
-      case TASK_UPDATE:
       case THREAD_REQUEST:
-        
+        ThreadRequestMessage threadMsg = (ThreadRequestMessage)message;
+        this.threadRequest(threadMsg.getRequest());
+        break;
+      case TASK_UPDATE:
       case UNDEFINED:
       default:
         String msg = "CcdpAgent does not process events of type " + msgType;
@@ -218,10 +222,9 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
    */
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
-    this.logger.debug("Got a new Task Status for " + task.getTaskId());
-    this.connection.sendTaskUpdate(this.toMain, task);
-    
     CcdpTaskState state = task.getState();
+    this.logger.info(task.getTaskId() + " new state = " + state.toString() );
+    this.connection.sendTaskUpdate(this.toMain, task);
     
     if( state.equals(CcdpTaskState.FAILED) || 
         state.equals(CcdpTaskState.SUCCESSFUL) )
@@ -230,7 +233,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
       this.vmInfo.removeTask(task);
     }
     
-    this.logger.debug("Have " + this.tasks.size() + " tasks remaining");
+    this.logger.info("Have " + this.tasks.size() + " tasks remaining");
   }
   
   /**
@@ -282,6 +285,22 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
     }
   }
 
+  /**
+   * Handles a ThreadRequest by just getting all the CcdpTaskRequest objects 
+   * and launching them all.  It does not consider or takes into account if the
+   * thread should run sequentially or in parallel.
+   * 
+   * @param request the request with all the tasks to launch.
+   */
+  private void threadRequest( CcdpThreadRequest request )
+  {
+    this.logger.info("Got a Thread Request Message");
+    for( CcdpTaskRequest task : request.getTasks() )
+    {
+      this.launchTask(task);
+    }
+  }
+  
   /**
    * Invoked when a task has been launched on this executor (initiated via 
    * SchedulerDriver.launchTasks(OfferID, TaskInfo, Filters). Note that this 

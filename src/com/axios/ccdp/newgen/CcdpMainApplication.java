@@ -565,7 +565,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     CcdpTaskRequest delTask = null;
     CcdpThreadRequest delThread = null;
     
-    this.logger.info("Killing Task: " + tid );
+    this.logger.info("Updating Task: " + tid );
     synchronized( this.requests )
     {
       boolean found = false;

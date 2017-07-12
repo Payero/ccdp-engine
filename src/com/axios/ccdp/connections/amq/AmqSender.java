@@ -174,7 +174,7 @@ public class AmqSender extends AmqConnector
       Destination dest = this.session.createQueue(destination);
       producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
-      this.logger.info("Sent: " + message.getText());
+      this.logger.debug("Sent: " + message.getText());
   
     } 
     catch (Exception e) 

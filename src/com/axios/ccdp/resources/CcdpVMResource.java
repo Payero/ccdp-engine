@@ -952,11 +952,17 @@ public class CcdpVMResource implements Serializable
   {
     boolean first = true;
     CcdpVMResource least = null;
-    
           
     // comparing all the resources
     for( CcdpVMResource res : resources )
     {
+
+
+      //if (res != null) {
+        //least = res;
+       // System.out.println("TEMP HACK: REMOVE LATER, LEAST = RES");
+      //}
+
       // consider only running VMs
       if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()) )
         continue;
@@ -990,6 +996,10 @@ public class CcdpVMResource implements Serializable
           least = res;
         }
       }
+    }
+    if (least == null)
+    {
+      System.out.println("ERROR:::: NO RESOURCES, RESOURCES SIZE IS : " + resources.size());
     }
     
     return least;

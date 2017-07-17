@@ -335,6 +335,8 @@ public class AmqCcdpConnectionImpl
   {
     TaskUpdateMessage msg = new TaskUpdateMessage();
     msg.setTask(task);
+    this.logger.info("SENDINg TASK UPDATE: CHANNEL:  " + channel + " MESSAGE: " + msg);
     this.sendCcdpMessage(channel, msg);
+    
   }
 }

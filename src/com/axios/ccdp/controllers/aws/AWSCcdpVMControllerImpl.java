@@ -335,7 +335,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     List<String> launched = null;
     boolean launch = true;
-    System.out.println("NOT STARTING A NEW VM!");
+    System.out.println("VERIFY THAT I'M NOT STARTING A NEW VM!");
     if (launch)
     {
       return launched;

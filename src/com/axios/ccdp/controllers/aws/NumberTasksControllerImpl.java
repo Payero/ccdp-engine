@@ -110,6 +110,10 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
         this.logger.warn(msg);
       }
     }
+    else
+    {
+      this.logger.warn("The field " + field + " was not found");
+    }
   }
   
   /**

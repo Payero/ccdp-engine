@@ -26,6 +26,7 @@ import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.fmwk.CcdpEngine;
 import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.EndSessionMessage;
@@ -54,6 +55,11 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
+  /**
+   * The number of cycles to wait before declaring an agent missing.  A cycle
+   * is the time to wait between checking for allocation/deallocation
+   */
+  public static int NUMBER_OF_CYCLES = 4;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -119,6 +125,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Continuously monitors the state of the system
    */
   private ThreadedTimerTask timer = null;
+  /**
+   * How many seconds before an agent is considered missing or no longer 
+   * reachable 
+   */
+  private int agent_time_limit = 20;
   
   /**
    * Instantiates a new object and if the 'jobs' argument is not null then
@@ -208,6 +219,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     cycle *= 1000;
+    this.agent_time_limit = cycle * CcdpEngine.NUMBER_OF_CYCLES;
+    
     // wait twice the cycle time to allow time to the nodes to offer resources
     this.timer = new ThreadedTimerTask(this, 2*cycle, cycle);
     
@@ -259,6 +272,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       
       for( String sid : this.resources.keySet() )
       {
+        // removes all resources that have failed to update
+        this.removeUnresponsiveResources(sid);
+        
         // don't need to check allocation or deallocation for free agents
         // as this is taken cared in the checkFreeVMRequirements() method
         if( !this.nodeTypes.contains(sid) )
@@ -272,6 +288,34 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.allocateTasks();
   }
   
+  /**
+   * Removes all the resources that have not been updated for a while.
+   * 
+   * @param sid the session id to check
+   */
+  private void removeUnresponsiveResources(String sid)
+  {
+    this.logger.debug("Checking for unresponsive VMs for session " + sid);
+    
+    List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
+    List<CcdpVMResource> remove = new ArrayList<>();
+    // check the last time each VM was updated
+    for( CcdpVMResource vm : list )
+    {
+      long now = System.currentTimeMillis();
+      long resTime = vm.getLastUpdatedTime();
+      long diff = now - resTime;
+      if( diff >= this.agent_time_limit )
+      {
+        String txt = "The Agent " + vm.getAgentId() + 
+                     " has not sent updates since " + resTime;
+        this.logger.warn(txt);
+        remove.add(vm);
+      }
+    }
+    // now we remove all the resources that are not responding
+    list.removeAll(remove);    
+  }
   
   /**
    * Gets a message from an external entity
@@ -541,8 +585,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setCPULoad(vm.getCPULoad());
           // resetting all the tasks by first removing them all and then 
           // adding them
+
           res.removeAllTasks();
-          res.getTasks().addAll(vm.getTasks());  
+          res.getTasks().addAll(vm.getTasks());
+          res.setLastUpdatedTime(System.currentTimeMillis());
+          
           return;
         }
       }

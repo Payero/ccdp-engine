@@ -8,6 +8,7 @@ import boto3, botocore
 import os, sys, traceback
 import tarfile, json
 from subprocess import call
+import boto3
 
 class Test:
   
@@ -38,54 +39,25 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    
-    path ="/tmp/config"
-    cfg = os.path.join(path, 'ccdp-config.properties')
-    log = os.path.join(path, 'log4j.properties')
-    
-    self.__logger.info("Modifying the Configuration file")
-    if os.path.exists(cfg):
-      src = os.path.join(path, 'ccdp-config.ORIG')
-      os.rename(cfg, src)
-      tgt = open(cfg, 'w')
-      with open(src, 'r') as infile:
-        for line in infile:
-          new_line = "%s\n" % line.strip()
-          key_val = line.split('=')
-          if len(key_val) == 2:
-            key = key_val[0]
-            if key == 'log4j.config.file':
-              self.__logger.debug("Found the config file")
-              new_line = "%s=%s\n" % (key,log)
-            elif key == 'executor.src.jar.file':
-              self.__logger.debug("Found the jar file")
-              new_line = "%s=%s\n" % (key,os.path.join(path, 'mesos-ccdp-exec.jar') )
-          
-          tgt.write(new_line)    
-      
-      tgt.close()
-      infile.close()
-      
+    '''
+    $ aws apigateway test-invoke-method \
+    --rest-api-id cx62aa0x70 \
+    --resource-id 3jpl8x \
+    --http-method POST \
+    --path-with-query-string "" \
+    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}"
 
-    self.__logger.info("Modifying the Log4J file")
-    if os.path.exists(log):
-      src = os.path.join(path, 'log4j.properties.ORIG')
-      os.rename(log, src)
-      tgt = open(log, 'w')
-      with open(src, 'r') as infile:
-        for line in infile:
-          new_line = "%s\n" % line.strip()
-          key_val = line.split('=')
-          if len(key_val) == 2:
-            key = key_val[0]
-            if key == 'log4j.appender.logfile.file':
-              self.__logger.debug("Found the log file")
-              new_line = "%s=%s\n" % (key,os.path.join(path, 'logs/framework.log'))
-          
-          tgt.write(new_line)    
-      
-      tgt.close()
-      infile.close()
+    '''
+    client = boto3.client('apigateway')
+    response = client.test_invoke_method(
+    restApiId='cx62aa0x70',
+    resourceId='3jpl8x',
+    httpMethod='POST',
+    pathWithQueryString='string',
+    body='{"arguments": "10000","bkt_name": "ccdp-tasks","keep_files": "False","mod_name": "simple_pi","verb_level": "debug","res_file": "pi_out","zip_file": "simple_pi.zip"}',
+    )
+    
+    self.__logger.info("Status: %d ==> Result: %s" % (response['status'], response['body']))
 
 
         

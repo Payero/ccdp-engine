@@ -64,6 +64,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
 {
   /**
+   * The number of cycles to wait before declaring an agent missing.  A cycle
+   * is the time to wait between checking for allocation/deallocation
+   */
+  public static int NUMBER_OF_CYCLES = 4;
+  
+  /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CcdpEngine.class.getName());
@@ -124,6 +130,12 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * The main object that starts this engine
    */
   private CcdpMessageConsumerIntf main = null;
+  
+  /**
+   * How many seconds before an agent is considered missing or no longer 
+   * reachable 
+   */
+  private int agent_time_limit = 20;
   
   /**
    * Instantiates a new executors and starts the jobs assigned as the jobs
@@ -188,7 +200,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     
 
     // Let's check what is out there....
-    int cycle = 5;;
+    int cycle = 5;
     try
     {
       cycle = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_CHECK_CYCLE);
@@ -199,6 +211,8 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     }
     
     cycle *= 1000;
+    this.agent_time_limit = cycle * CcdpEngine.NUMBER_OF_CYCLES;
+    
     // wait twice the cycle time to allow time to the nodes to offer resources
     this.timer = new ThreadedTimerTask(this, cycle);
     
@@ -1339,7 +1353,9 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     if( ResourceStatus.LAUNCHED.equals(stat ) || 
         ResourceStatus.REASSIGNED.equals(stat ))
       to.setStatus(ResourceStatus.RUNNING);
-      
+    
+    to.setLastUpdatedTime(System.currentTimeMillis());
+    
     return to;
   }
   
@@ -1353,12 +1369,27 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     synchronized( this.resources )
     {
       this.checkMinVMRequirements();
-      
+      List<String> remove = new ArrayList<>();
       for( String key : this.resources.keySet() )
       {
         CcdpVMResource res = this.resources.get(key);
         this.checkDeallocation(res.getAssignedSession());
+        long now = System.currentTimeMillis();
+        long resTime = res.getLastUpdatedTime();
+        long diff = now - resTime;
+        if( diff >= this.agent_time_limit )
+        {
+          String txt = "The Agent " + res.getAgentId() + 
+                       " has not sent updates since " + resTime;
+          this.logger.warn(txt);
+          remove.add(key);
+        }
       }
+      
+      // now actually remove it from the list
+      for( String key: remove )
+        this.resources.remove(key);
+      
     }
   }
   
@@ -1579,6 +1610,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         res.setTotalMemory(resource.getTotalMemory());
         res.setMemLoad(resource.getMemLoad());
         res.setCPULoad(resource.getCPULoad());
+        res.setLastUpdatedTime(System.currentTimeMillis());
       }
     }
   }

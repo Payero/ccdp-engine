@@ -165,6 +165,11 @@ public class CcdpVMResource implements Serializable
    * Stores all the tags assigned to this resource
    */
   private Map<String, String> tags = new HashMap<>();
+  /**
+   * The last time this resource was updated either by allocating a task or
+   * by a heartbeat.
+   */
+  private long lastUpdated = System.currentTimeMillis();
   
   public CcdpVMResource()
   {
@@ -744,6 +749,31 @@ public class CcdpVMResource implements Serializable
     this.last_assignment = assignmentTime;
   }
   
+  /**
+   * Gets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @return the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonGetter("last-updated")
+  public long getLastUpdatedTime()
+  {
+    return this.lastUpdated;
+  }
+  
+  /**
+   * Sets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @param time the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonSetter("last-updated")
+  public void setLastUpdatedTime(long time)
+  {
+    this.lastUpdated = time;
+  }
   
   /**
    * Compares this object with the one provided as argument. The result is as

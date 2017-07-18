@@ -958,11 +958,6 @@ public class CcdpVMResource implements Serializable
     for( CcdpVMResource res : resources )
     {
 
-      //if (res != null) {
-        //least = res;
-       // System.out.println("TEMP HACK: REMOVE LATER, LEAST = RES");
-      //}
-
       // consider only running VMs
       if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()) )
         continue;
@@ -999,7 +994,7 @@ public class CcdpVMResource implements Serializable
     }
     if (least == null)
     {
-      System.out.println("ERROR:::: NO RESOURCES, RESOURCES SIZE IS : " + resources.size());
+      System.out.println("ERROR:::: TRYING TO RETURN A NULL TARGET IN LEASTUSED ");
     }
     
     return least;

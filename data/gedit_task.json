@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"test-1", "command": ["/usr/bin/gedit"]}
+      {"session-id":"DEFAULT", "command": ["/usr/bin/gedit"]}
     ]
 }

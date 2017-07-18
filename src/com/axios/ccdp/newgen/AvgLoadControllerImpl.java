@@ -143,8 +143,8 @@ public class AvgLoadControllerImpl
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
     int tasks = alloc.get("max-tasks").asInt();
-    
     int sz = resources.size();
+    this.logger.info("RESOURCE SIZE IS: " + sz);
     double[] assignedCPU = new double[sz];
     double[] assignedMEM = new double[sz];
     double[] availableCPU = new double[sz];
@@ -185,13 +185,14 @@ public class AvgLoadControllerImpl
         {
           String txt = "Need Resources: the Average Load " + avgLoad + 
               " is greater than allowed " + tasks;
+          
           this.logger.info(txt);
           return imgCfg;
         }
         else
         {
           String txt = "Does not need Resources: the Average Load " + avgLoad + 
-              " is greater than allowed " + tasks;
+              " is less than allowed " + tasks;
           this.logger.info(txt);
           return null;
         }
@@ -368,6 +369,10 @@ public class AvgLoadControllerImpl
       if(task.getMEM() < CcdpTaskRequest.MIN_MEM_REQ )
         task.setMEM(CcdpTaskRequest.MIN_MEM_REQ);
       
+      // don't send the same task twice
+      if (task.isSubmitted())
+         continue;
+      
       // CPU = 0 means use any logic
       // 0 > CPU < 100 means assign it where it fits
       // CPU > 100 means run this task by itself on a node
@@ -376,13 +381,17 @@ public class AvgLoadControllerImpl
       {
         this.logger.info("CPU = " + cpu + " Assigning Task based on session");
         CcdpVMResource target = CcdpVMResource.leastUsed(resources);
+        if (target == null) {
+          this.logger.error("The target is null!");
+        }
+   
         String iid = target.getInstanceId();
         task.assigned();
-        target.addTask(task);
         task.setHostId(iid);
         if( !tasked.containsKey( target ) )
           tasked.put(target, new ArrayList<CcdpTaskRequest>());
         tasked.get(target).add( task );
+        
       }
       else if( cpu >= 100 )
       {
@@ -393,7 +402,8 @@ public class AvgLoadControllerImpl
           String iid = target.getInstanceId();
           task.assigned();
           task.setHostId( iid );
-          target.addTask(task);
+          //removed::  task is added in sendTaskRequest
+          //target.addTask(task);
           if( !tasked.containsKey( target ) )
             tasked.put(target, new ArrayList<CcdpTaskRequest>());
           tasked.get(target).add( task );
@@ -408,7 +418,6 @@ public class AvgLoadControllerImpl
           String iid = target.getInstanceId();
           task.assigned();
           task.setHostId( iid );
-          target.addTask(task);
           if( !tasked.containsKey( target ) )
             tasked.put(target, new ArrayList<CcdpTaskRequest>());
           tasked.get(target).add( task );

@@ -57,7 +57,7 @@ public class AmqSender extends AmqConnector
     }
     catch( JMSException e)
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("send con Message: " + e.getMessage(), e);
       return false;
     }
   }
@@ -76,7 +76,7 @@ public class AmqSender extends AmqConnector
     }
     catch ( JMSException e)
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("send discon Message: " + e.getMessage(), e);
     }
   }
   
@@ -124,7 +124,7 @@ public class AmqSender extends AmqConnector
     } 
     catch (Exception e) 
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("send sendMessage: 1 " + e.getMessage(), e);
     }
   }
   
@@ -179,7 +179,7 @@ public class AmqSender extends AmqConnector
     } 
     catch (Exception e) 
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("send sendMessage: 2 " + e.getMessage(), e);
     }
   }
 

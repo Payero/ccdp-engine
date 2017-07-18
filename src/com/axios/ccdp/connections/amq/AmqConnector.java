@@ -67,7 +67,7 @@ public class AmqConnector
     }
     catch( JMSException e)
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("amq connect Message: " + e.getMessage(), e);
       return false;
     }
   }
@@ -87,7 +87,7 @@ public class AmqConnector
     }
     catch ( JMSException e)
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      this.logger.error("amd disconnect Message: " + e.getMessage(), e);
     }
   }
 }

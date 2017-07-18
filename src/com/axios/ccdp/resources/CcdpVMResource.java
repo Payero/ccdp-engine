@@ -662,6 +662,7 @@ public class CcdpVMResource implements Serializable
    */
   public void addTask(CcdpTaskRequest task)
   {
+
     this.last_assignment = System.currentTimeMillis();
     this.tasks.add(task);
   }
@@ -982,11 +983,11 @@ public class CcdpVMResource implements Serializable
   {
     boolean first = true;
     CcdpVMResource least = null;
-    
           
     // comparing all the resources
     for( CcdpVMResource res : resources )
     {
+
       // consider only running VMs
       if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()) )
         continue;
@@ -1020,6 +1021,10 @@ public class CcdpVMResource implements Serializable
           least = res;
         }
       }
+    }
+    if (least == null)
+    {
+      System.out.println("ERROR:::: TRYING TO RETURN A NULL TARGET IN LEASTUSED ");
     }
     
     return least;

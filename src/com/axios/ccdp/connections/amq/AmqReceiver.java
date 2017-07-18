@@ -246,7 +246,6 @@ public class AmqReceiver extends AmqConnector implements MessageListener
             default:
               this.logger.error("Message Type not found");
           }
-          
           ccdpMsg.setReplyTo(replyTo);
           // passing the message to the consumer
           this.consumer.onCcdpMessage(ccdpMsg);

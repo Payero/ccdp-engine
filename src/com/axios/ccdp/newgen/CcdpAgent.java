@@ -223,7 +223,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
     CcdpTaskState state = task.getState();
-    this.logger.info(task.getTaskId() + " new state = " + state.toString() );
     this.connection.sendTaskUpdate(this.toMain, task);
     
     if( state.equals(CcdpTaskState.FAILED) || 

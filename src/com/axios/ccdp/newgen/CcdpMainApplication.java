@@ -536,6 +536,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
+    
+    
     if( sid == null )
     {
       String type = vm.getNodeTypeAsString();
@@ -575,15 +577,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                          " and " + vm.getInstanceId() );
         if( res.getInstanceId().equals(vm.getInstanceId()) )
         {
-          this.logger.debug("Found Resource");
+          this.logger.info("Found Resource");
+ 
           res.setFreeDiskSpace(vm.getFreeDiskspace());
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
-          
           // resetting all the tasks by first removing them all and then 
           // adding them
-          res.removeTasks(vm.getTasks());
+
+          res.removeAllTasks();
           res.getTasks().addAll(vm.getTasks());
           res.setLastUpdatedTime(System.currentTimeMillis());
           
@@ -605,12 +608,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void updateTaskStatus( CcdpTaskRequest task )
   {
+    
     String tid = task.getTaskId();   
     CcdpTaskState state = task.getState();
     CcdpTaskRequest delTask = null;
     CcdpThreadRequest delThread = null;
     
-    this.logger.info("Updating Task: " + tid );
+    this.logger.info("Updating Task: " + tid + " Current State: " + state);
     synchronized( this.requests )
     {
       boolean found = false;
@@ -637,7 +641,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               delTask = task;
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
-              this.logger.debug("Job (" + task.getTaskId() + ") Finished");
+              this.requests.remove();
+              this.logger.info("Job (" + task.getTaskId() + ") Finished");
               break;
             case FAILED:
               task.fail();
@@ -645,17 +650,20 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( task.getState().equals(CcdpTaskState.FAILED))
               {
                 this.logger.info("Task Failed after enough tries, removing");
+                this.requests.remove();
                 this.resetDedicatedHost(task);
                 this.sendUpdateMessage(task);
               }
               else
               {
-                this.logger.debug("Status changed to " + task.getState());
+                this.logger.info("Status changed to " + task.getState());
               }
               
               delTask = task;
               if( req.isDone() )
+              {
                 delThread = req;
+              }
               
               break;
             default:
@@ -691,7 +699,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void sendUpdateMessage(CcdpTaskRequest task)
   {
     String reply = task.getReplyTo();
-    if( reply != null )
+    if( reply != null && reply.length() > 0)
     {
       this.logger.info("Sending Status Update to " + reply);
       this.connection.registerProducer(reply);
@@ -753,7 +761,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     // do we need to assign a new resource to this session?
-    this.logger.info("Got a new Request: " + request.toString() );
+    this.logger.debug("Got a new Request: " + request.toString() );
     
     // adding the request
     synchronized( this.requests )
@@ -770,7 +778,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           String tid = task.getTaskId();
           double cpu = task.getCPU();
           this.logger.info("Checking Task " + tid + " CPU " + cpu );
-          
+
           if( cpu >= 100 )
           {
             this.logger.info("Allocating whole VM to Task " + tid);
@@ -796,7 +804,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             }
           }// the CPU is >= 100
         }// for each task
-        
         this.requests.add( request );
       }
     }// end of the synchronization block
@@ -821,7 +828,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection.sendCcdpMessage(iid, msg);
     this.logger.info("Launching Task " + tid + " on " + iid);
     task.setSubmitted(true);
-    resource.getTasks().add(task);
+    if (!resource.getTasks().contains(task)) {
+      resource.getTasks().add(task);
+    }
   }
   
 //  /**
@@ -861,7 +870,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           this.logger.info("Tasking " + tasks.size() + 
                            " tasks to " + resource.getInstanceId());
           for( CcdpTaskRequest task : tasks )
-            this.sendTaskRequest(task, resource);
+          {
+            if (task.isSubmitted())
+              this.logger.warn("Task " + task.getTaskId() + " has already been submitted.");
+            else
+              this.sendTaskRequest(task, resource);
+          }
         }
       }
     }
@@ -1103,7 +1117,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           ResourceStatus.RUNNING.equals(stat))
       {
         res.setAssignedSession(sid);
-        res.setStatus(ResourceStatus.REASSIGNED);
+        //temporarily commented out since we're not using REASSIGNED for much
+        //res.setStatus(ResourceStatus.REASSIGNED);
         synchronized( this.resources )
         {
           this.resources.get(sid).add(res);

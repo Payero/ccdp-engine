@@ -492,6 +492,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
+    
+    
     if( sid == null )
     {
       String type = vm.getNodeTypeAsString();
@@ -531,17 +533,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                          " and " + vm.getInstanceId() );
         if( res.getInstanceId().equals(vm.getInstanceId()) )
         {
-          this.logger.debug("Found Resource");
+          this.logger.info("Found Resource");
+ 
           res.setFreeDiskSpace(vm.getFreeDiskspace());
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
-          
           // resetting all the tasks by first removing them all and then 
           // adding them
-          res.removeTasks(vm.getTasks());
-          res.getTasks().addAll(vm.getTasks());
-          
+          res.removeAllTasks();
+          res.getTasks().addAll(vm.getTasks());  
           return;
         }
       }
@@ -560,6 +561,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void updateTaskStatus( CcdpTaskRequest task )
   {
+    
     String tid = task.getTaskId();   
     CcdpTaskState state = task.getState();
     CcdpTaskRequest delTask = null;
@@ -712,7 +714,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     // do we need to assign a new resource to this session?
-    this.logger.info("Got a new Request: " + request.toString() );
+    this.logger.debug("Got a new Request: " + request.toString() );
     
     // adding the request
     synchronized( this.requests )
@@ -729,7 +731,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           String tid = task.getTaskId();
           double cpu = task.getCPU();
           this.logger.info("Checking Task " + tid + " CPU " + cpu );
-          
+
           if( cpu >= 100 )
           {
             this.logger.info("Allocating whole VM to Task " + tid);
@@ -755,7 +757,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             }
           }// the CPU is >= 100
         }// for each task
-        
         this.requests.add( request );
       }
     }// end of the synchronization block
@@ -780,7 +781,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection.sendCcdpMessage(iid, msg);
     this.logger.info("Launching Task " + tid + " on " + iid);
     task.setSubmitted(true);
-    resource.getTasks().add(task);
+    if (!resource.getTasks().contains(task)) {
+      resource.getTasks().add(task);
+    }
   }
   
 //  /**

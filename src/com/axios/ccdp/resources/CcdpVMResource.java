@@ -657,6 +657,7 @@ public class CcdpVMResource implements Serializable
    */
   public void addTask(CcdpTaskRequest task)
   {
+
     this.last_assignment = System.currentTimeMillis();
     this.tasks.add(task);
   }
@@ -956,7 +957,6 @@ public class CcdpVMResource implements Serializable
     // comparing all the resources
     for( CcdpVMResource res : resources )
     {
-
 
       //if (res != null) {
         //least = res;

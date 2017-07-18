@@ -114,8 +114,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       }
       if( rem != null )
         this.vmInfo.removeTask(rem);
-//      if( this.tasks.isEmpty() )
-//        this.driver.abort();
+      if( this.tasks.isEmpty() )
+        this.driver.stop();
     }
   }
   
@@ -200,7 +200,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void error(ExecutorDriver driver, String errorMsg)
   {
     this.logger.error("Driver no longer running, got an error: " + errorMsg);
-//    this.driver.abort();
+    this.driver.abort();
   }
 
   /**
@@ -252,8 +252,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
       }
     }
     
-//    if( this.tasks.isEmpty() )
-//      driver.abort();
+    if( this.tasks.isEmpty() )
+      driver.stop();
   }
 
   /**
@@ -316,6 +316,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   {
     String msg = "Executor Registered: " + exec.toString() + " in " + 
                  slave.toString();
+    this.driver = driver;
     this.logger.info(msg);
     this.agentInfo = slave;
     this.setResourceParameters();
@@ -338,6 +339,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   public void reregistered(ExecutorDriver driver, SlaveInfo slave)
   {
     this.logger.info("Executor Re-registered: " + slave.toString() );
+    this.driver = driver;
     this.agentInfo = slave;
     this.setResourceParameters();
   }
@@ -357,7 +359,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.info("Shuting Down Executor");
     if( this.timer != null )
       this.timer.stop();
-    driver.abort();
+    driver.stop();
   }
 
   /**
@@ -376,7 +378,7 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     ExecutorDriver driver = new MesosExecutorDriver(executor);
     int exitCode = driver.run() == Status.DRIVER_STOPPED ? 0 : 1;
     System.out.println("Executor ended with exit code: " + exitCode);
-    driver.abort();
+    driver.stop();
     System.exit(exitCode);
   }
 }

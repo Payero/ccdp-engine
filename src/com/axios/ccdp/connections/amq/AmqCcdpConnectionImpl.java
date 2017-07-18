@@ -2,6 +2,7 @@ package com.axios.ccdp.connections.amq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 
@@ -255,6 +256,30 @@ public class AmqCcdpConnectionImpl
   }
   
   /**
+   * Disconnects the object responsible for sending data to a particular 
+   * channel.
+   * 
+   * @param channel the channel to unsubscribe
+   */
+  @Override
+  public void unregisterProducer(String channel)
+  {
+    this.logger.info("Disconnecting sender to "  + channel);
+    synchronized( this.senders )
+    {
+      if( this.senders.containsKey(channel) )
+      {
+        AmqSender sender = this.senders.remove(channel);
+        sender.disconnect();
+      }
+      else
+      {
+        this.logger.error("Could not find a registered sender for " + channel );
+      }
+    }
+  }
+  
+  /**
    * Unregisters the UUID from receiving incoming events from the given channel
    * 
    * @param uuid the unique identifier to remove from receiving events
@@ -291,6 +316,27 @@ public class AmqCcdpConnectionImpl
       }
     }
   }
+
+  /**
+   * Disconnects all the objects; senders and receivers.  This is normally 
+   * called when an object is terminating execution
+   * 
+   */
+  @Override
+  public void disconnect()
+  {
+    this.logger.info("Disconnecting all sender ");
+    synchronized( this.senders )
+    {
+      for( AmqSender sender : this.senders.values() )
+        sender.disconnect();
+      this.senders.clear();
+    }
+    
+    this.receiver.disconnect();
+    this.registrations.clear();
+  }
+
   
   /**
    * Gets the events from the AMQ Receiver as a String.  The string contains the

@@ -130,4 +130,20 @@ public interface CcdpConnectionIntf
    * @param channel the channel to unsubscribe
    */
   public void unregisterConsumer(String uuid, String channel);
+  
+  /**
+   * Disconnects the object responsible for sending data to a particular 
+   * channel.
+   * 
+   * @param channel the channel to unsubscribe
+   */
+  public void unregisterProducer(String channel);
+  
+  /**
+   * Disconnects all the objects; senders and receivers.  This is normally 
+   * called when an object is terminating execution
+   * 
+   */
+  public void disconnect();
+  
 }

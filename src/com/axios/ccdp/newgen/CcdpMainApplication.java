@@ -595,6 +595,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
           res.removeAllTasks();
           res.getTasks().addAll(vm.getTasks());
+          
+          //TODO: Clean up any tasks that are successful or failed here
+    
           res.setLastUpdatedTime(System.currentTimeMillis());
           
           return;
@@ -620,6 +623,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     CcdpTaskState state = task.getState();
     CcdpTaskRequest delTask = null;
     CcdpThreadRequest delThread = null;
+    boolean updateRes = false;
     
     this.logger.info("Updating Task: " + tid + " Current State: " + state);
     synchronized( this.requests )
@@ -644,11 +648,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               this.sendUpdateMessage(task);
               break;
             case SUCCESSFUL:
+              updateRes = true;
               task.succeed();
               delTask = task;
+              
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
-              this.requests.remove();
+              this.requests.remove(req);
               this.logger.info("Job (" + task.getTaskId() + ") Finished");
               break;
             case FAILED:
@@ -657,9 +663,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( task.getState().equals(CcdpTaskState.FAILED))
               {
                 this.logger.info("Task Failed after enough tries, removing");
-                this.requests.remove();
+                this.requests.remove(req);
                 this.resetDedicatedHost(task);
                 this.sendUpdateMessage(task);
+                updateRes = true;
               }
               else
               {
@@ -690,7 +697,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             {
               vm.removeTask(delTask);
             }
-          }// end of sync block
+          }// end of sync block 
         }// deleting task
       }// for request loop
       
@@ -701,6 +708,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.requests.remove(delThread);
       }
     }// end of the sync request
+    
+    
   }
   
   private void sendUpdateMessage(CcdpTaskRequest task)
@@ -869,6 +878,26 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       {
         List<CcdpVMResource> resources = 
             this.getResourcesBySessionId(req.getSessionId());
+        if (resources.size() == 0)
+        {
+          this.logger.info("No resources available for Session:: " + req.getSessionId() + " . Checking DEFAULT VMs");
+          //Check if there are any available resources in default
+          List<CcdpVMResource> def = this.getResourcesBySessionId(CcdpNodeType.DEFAULT.toString());
+          if (def.size() > 0)
+          { 
+            // Get the first free DEFAULT resource and let him use it
+            for (CcdpVMResource res : def)
+            {
+              //if (res.isFree()) { //Found a free resource
+                res.setAssignedSession(req.getSessionId());
+                //removing it from default resources
+                //def.remove(res);
+                resources.add(res); // Assigning the default resource to the session);
+              //}
+            }
+            
+          }
+        }
         Map<CcdpVMResource, List<CcdpTaskRequest>> map = 
             this.tasker.assignTasks(req.getTasks(), resources);
         for( CcdpVMResource resource : map.keySet() )

@@ -98,8 +98,9 @@ public class CcdpUtils
   public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
   /** Class used to interact with the storage solution */
   public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
-
   
+  /** Stores the property to determine if an agent should send HB or not **/
+  public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";
   /** The JSON key used to store the user's session id **/
   public static final String KEY_SESSION_ID = "session-id";
   /** The JSON key used to store the resource's instance id **/

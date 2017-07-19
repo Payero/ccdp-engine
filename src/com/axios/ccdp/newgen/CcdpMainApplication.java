@@ -509,7 +509,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         {
           CcdpVMResource vm = list.get(0);
           vm.setAssignedSession(sid);
-          vm.setStatus(ResourceStatus.REASSIGNED);
+         // vm.setStatus(ResourceStatus.REASSIGNED);
           String iid = vm.getInstanceId();
           List<CcdpVMResource> sidList = new ArrayList<>();
           sidList.add(vm);

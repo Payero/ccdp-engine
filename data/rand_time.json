@@ -1,6 +1,6 @@
 {
   "jobs": 
     [
-      {"session-id":"DEFAULT", "command": ["/nishome/mlseto/eclipse-workspace/engine/python/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=10,max=30"]}
+      {"session-id":"DEFAULT", "command": ["//home/oeg/dev/oeg/ccdp-engine/python/ccdp_mod_test.py", "-a", "testRandomTime" , "-p", "min=10,max=30"]}
     ]
 }

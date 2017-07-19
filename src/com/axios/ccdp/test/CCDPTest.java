@@ -2,9 +2,11 @@ package com.axios.ccdp.test;
 
 
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
@@ -39,47 +41,18 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-   String id = "i-test-bff4b6a0c8c5";
-   String cp = "i-test-bff4b6a0c8c5";
-   
-   this.logger.info("Test 1 = " + id.equals(cp));
-   this.logger.info("Test 2 = " + (id ==  cp));
-    
-    for( int i = 1; i < 4; i++ )
+    Properties props = System.getProperties();
+    Enumeration<Object> keys = props.keys();
+    while( keys.hasMoreElements() )
     {
-      List<Integer> list = new ArrayList<>();
-      for( int x=0; x<10; x++)
-      {
-        list.add(new Integer(x));
-      }
-      this.map.put(Integer.toString(i), list);
+      String key = (String)keys.nextElement();
+      this.logger.info("Property[" + key + " = " + props.getProperty(key));
     }
     
-    this.logger.debug("The Map: " + this.map.toString());
-    this.onEvent();
-    this.logger.debug("The Map: " + this.map.toString());
-    
-  
-  public void onEvent()
-  {
-    synchronized( this.map )
-    {
-      for( String sid : this.map.keySet() )
-      {
-        List<Integer> list = this.map.get(sid);
-        List<Integer> remove = new ArrayList<>();
-        for( Integer vm : list )
-        {
-          if( vm % 2 == 0 )
-          {
-            this.logger.warn( sid + "-" + vm + " Is an even number, removing it");
-            remove.add(vm);
-          }
-        }
-        list.removeAll(remove);
-      }// end of the map checking
-    }
+    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+    this.logger.info("Skipping Sending HB " + skip );
   }
+  
   
   public static void main( String[] args ) throws Exception
   {

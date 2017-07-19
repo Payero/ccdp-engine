@@ -136,7 +136,7 @@ public class AvgLoadControllerImpl
   public CcdpImageInfo needResourceAllocation(List<CcdpVMResource> resources)
   {
     CcdpImageInfo imgCfg = null;
-    if( resources == null )
+    if( resources == null || resources.size() == 0 )
       return imgCfg;
     
     JsonNode alloc = this.config.get("allocate");

@@ -712,7 +712,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             }// end of updating resource blocks
           }// end of sync block 
       }// for request loop
-      
       // removing the thread request
       if( delThread != null )
       {
@@ -720,7 +719,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.requests.remove(delThread);
       }
     }// end of the sync request
-    
     
   }
   
@@ -888,23 +886,32 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       for( CcdpThreadRequest req : this.requests )
       {
+        String sid = req.getSessionId();
         List<CcdpVMResource> resources = 
             this.getResourcesBySessionId(req.getSessionId());
         if (resources.size() == 0)
         {
-          this.logger.warn("No resources available for Session:: " + req.getSessionId() + " . Checking DEFAULT VMs");
+          this.logger.warn("No resources available for Session:: " + req.getSessionId() + ". Assigning one from available resources.");
           //Check if there are any available resources in default
           List<CcdpVMResource> def = this.getResourcesBySessionId(CcdpNodeType.DEFAULT.toString());
           if (def.size() > 0)
           {     
-            // Get the first free DEFAULT resource and let him use it
+            // Get the first available DEFAULT resource and give it to the session
             for (CcdpVMResource res : def)
             {
               if (res.isFree()) { //Found a free resource
-                res.setAssignedSession(req.getSessionId());
-                //removing it from default resources
-                //def.remove(res);
-                resources.add(res); // Assigning the default resource to the session);
+                //removing from default resource and assigning to the new session
+                res.setAssignedSession(sid);
+                this.resources.get(sid).add(res);
+                this.resources.get(CcdpNodeType.DEFAULT.toString()).remove(res);
+                
+                //Update the agent of the change
+                String iid = res.getInstanceId();
+                this.logger.info(iid + " -> Assign VM to available as " + sid);
+                AssignSessionMessage msg = new AssignSessionMessage();
+                msg.setSessionId(sid);
+                this.connection.sendCcdpMessage(iid, msg);
+                break;
               }
             }
             
@@ -995,7 +1002,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       imgCfg.setSessionId(sid);
       list = this.allocateResource(imgCfg);
     }
-    this.logger.debug("Returning a list of resources size " + list.size());
+    this.logger.info("Returning a list of resources size " + list.size());
     // Getting all the resources for this session
     return list;
   }
@@ -1045,7 +1052,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           // Now checking to make sure there are no more free agents than needed        
           this.logger.debug("Making sure we deallocate free nodes as well");
           int over = available - free_vms;
-          
           int done = 0;
           List<String> terminate = new ArrayList<>();
           List<String> remove = new ArrayList<>();
@@ -1256,7 +1262,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       if( this.resources.containsKey( sid ) )
       {
-        this.logger.debug("Found them, checking status");
+        this.logger.debug("Found them, number of resources available is: " + this.resources.get(sid).size());
         List<CcdpVMResource> assigned = this.resources.get(sid);
         for( CcdpVMResource res : assigned )
         {
@@ -1267,7 +1273,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           }
           else
           {
-            this.logger.debug("Status was " + res.getStatus());
+            this.logger.info("Status was " + res.getStatus());
           }
         }
       }// found a list of sessions

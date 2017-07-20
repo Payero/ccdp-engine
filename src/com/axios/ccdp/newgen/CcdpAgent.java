@@ -338,6 +338,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
         ccdpTask.start();
         
         task.setState(CcdpTaskState.RUNNING);
+        this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
         this.statusUpdate(task, null);
       }
       catch( Exception e )

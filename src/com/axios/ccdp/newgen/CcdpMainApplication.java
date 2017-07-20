@@ -621,11 +621,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     
     String tid = task.getTaskId();   
     CcdpTaskState state = task.getState();
-    CcdpTaskRequest delTask = null;
+    //CcdpTaskRequest delTask = null;
+    boolean delTask = false;
     CcdpThreadRequest delThread = null;
-    boolean updateRes = false;
-    
     this.logger.info("Updating Task: " + tid + " Current State: " + state);
+
     synchronized( this.requests )
     {
       boolean found = false;
@@ -648,9 +648,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               this.sendUpdateMessage(task);
               break;
             case SUCCESSFUL:
-              updateRes = true;
               task.succeed();
-              delTask = task;
+              delTask = true;
               
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
@@ -666,14 +665,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.requests.remove(req);
                 this.resetDedicatedHost(task);
                 this.sendUpdateMessage(task);
-                updateRes = true;
               }
               else
               {
                 this.logger.info("Status changed to " + task.getState());
               }
               
-              delTask = task;
+              delTask = true;
               if( req.isDone() )
               {
                 delThread = req;
@@ -685,20 +683,34 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           }// end of switch statement
         }// found the task
         
-        // removing the task from the thread request
-        if( delTask != null )
-        {
-          this.logger.info("Removing Task " + delTask.getTaskId() );
-          req.removeTask(delTask);
-          String sid = delTask.getSessionId();
+        // updating task state and removing the task from the thread request
           synchronized( this.resources )
           {
-            for( CcdpVMResource vm : this.resources.get(sid) )
+            boolean resfound = false;
+            for( CcdpVMResource vm : this.resources.get(task.getSessionId()) )
             {
-              vm.removeTask(delTask);
+              resfound = true;
+              vm.updateTaskState(task);
+              if (delTask) {
+                this.logger.info("Removing Task " + task.getTaskId() );
+                req.removeTask(task);
+                vm.removeTask(task);
+              }
             }
+            //Otherwise we need to check DEFAULT resources if the session id didn't have a res
+            if (!resfound)
+            {
+              for( CcdpVMResource vm : this.resources.get("DEFAULT") )
+              {
+                vm.updateTaskState(task);
+                if (delTask) {
+                  this.logger.info("Removing Task " + task.getTaskId() );
+                  req.removeTask(task);
+                  vm.removeTask(task);
+                }
+              }
+            }// end of updating resource blocks
           }// end of sync block 
-        }// deleting task
       }// for request loop
       
       // removing the thread request
@@ -880,20 +892,20 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             this.getResourcesBySessionId(req.getSessionId());
         if (resources.size() == 0)
         {
-          this.logger.info("No resources available for Session:: " + req.getSessionId() + " . Checking DEFAULT VMs");
+          this.logger.warn("No resources available for Session:: " + req.getSessionId() + " . Checking DEFAULT VMs");
           //Check if there are any available resources in default
           List<CcdpVMResource> def = this.getResourcesBySessionId(CcdpNodeType.DEFAULT.toString());
           if (def.size() > 0)
-          { 
+          {     
             // Get the first free DEFAULT resource and let him use it
             for (CcdpVMResource res : def)
             {
-              //if (res.isFree()) { //Found a free resource
+              if (res.isFree()) { //Found a free resource
                 res.setAssignedSession(req.getSessionId());
                 //removing it from default resources
                 //def.remove(res);
                 resources.add(res); // Assigning the default resource to the session);
-              //}
+              }
             }
             
           }

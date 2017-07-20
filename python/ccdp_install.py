@@ -70,6 +70,11 @@ class CcdpInstaller:
     self.__logger.debug("Downloading distribution file ")
     fpath = os.path.join(tgt_dir, self.__CCDP_DIST)
     self.__logger.debug("Saving file in %s" % fpath)
+    if not os.path.isdir(fpath):
+      os.makedirs(fpath)
+      os.chmod(fpath, 0750)
+
+
     bkt.download_file(self.__CCDP_DIST, fpath)
  
 
@@ -272,7 +277,7 @@ class CcdpInstaller:
     fpath = os.path.join(ccdp_root, "config/mesos", self.__MESOS_CFG)
     self.__logger.debug("Saving file in %s" % fpath)
     bkt.download_file(self.__MESOS_CFG, fpath)
-
+    os.chmod(fpath, 0777)
 
     if not os.path.isfile(fpath):
       self.__logger.error("The JSON mesos settings file was not found ")

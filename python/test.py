@@ -9,6 +9,7 @@ import os, sys, traceback
 import tarfile, json
 from subprocess import call
 import boto3
+import urllib
 
 class Test:
   
@@ -37,6 +38,7 @@ class Test:
     
     self.__runTest(cli_args)
 
+
   def __runTest(self, args):
     self.__logger.info("Running the test")
     '''
@@ -49,13 +51,38 @@ class Test:
 
     '''
     client = boto3.client('apigateway')
-    response = client.test_invoke_method(
-    restApiId='cx62aa0x70',
-    resourceId='3jpl8x',
-    httpMethod='POST',
-    pathWithQueryString='string',
-    body='{"arguments": "10000","bkt_name": "ccdp-tasks","keep_files": "False","mod_name": "simple_pi","verb_level": "debug","res_file": "pi_out","zip_file": "simple_pi.zip"}',
-    )
+    is_pi = True
+
+    if is_pi:
+      args = urllib.base64.standard_b64encode("10000")
+      data = {'arguments': 1000000, 'bkt_name':'ccdp-tasks', 'keep_files':False, 'mod_name':'simple_pi', 'verb_level':'debug', 'zip_file':'simple_pi.zip'}
+
+      self.__logger.debug("The body of the message: %s" % pformat(data) )
+      
+      body = urllib.base64.standard_b64encode( str(data) )
+
+      self.__logger.debug("The body of the message encoded: %s" % body )
+
+      response = client.test_invoke_method(
+      restApiId='cx62aa0x70',
+      resourceId='3jpl8x',
+      httpMethod='POST',
+      pathWithQueryString='string',
+      body="\"%s\"" % str(body),
+      )
+    else:
+      args = {"column-number":8, "operator": "GE", "value":1, "record":"1,1929,1 - Junior,50,Systems,Issue,2 - Normal,0 - Unassigned,3,1 - Unsatisfied"}
+      data = {'arguments': args, 'bkt_name':'ccdp-tasks', 'keep_files':False, 'mod_name':'csv_selector_lambda', 'verb_level':'debug', 'zip_file':'csv_selector_lambda.py'}
+
+      body = urllib.base64.standard_b64encode( str(data) )
+      
+      response = client.test_invoke_method(
+      restApiId='cx62aa0x70',
+      resourceId='3jpl8x',
+      httpMethod='POST',
+      pathWithQueryString='string',
+      body="\"%s\"" % str(body),
+      )
     
     self.__logger.info("Status: %d ==> Result: %s" % (response['status'], response['body']))
 

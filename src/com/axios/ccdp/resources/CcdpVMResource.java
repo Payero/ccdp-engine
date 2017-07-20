@@ -699,6 +699,14 @@ public class CcdpVMResource implements Serializable
    */
   public boolean removeTask( CcdpTaskRequest task )
   {
+    // Needs to compare host ID's in order to remove it
+    for (CcdpTaskRequest reTask : this.tasks)
+    {
+      if (task.getTaskId().equals(reTask.getTaskId()))
+      {
+        return this.tasks.remove(reTask);
+      }
+    }
     return this.tasks.remove(task);
   }
   
@@ -722,6 +730,26 @@ public class CcdpVMResource implements Serializable
   public void removeAllTasks()
   {
     this.tasks = new ArrayList<CcdpTaskRequest>();
+  }
+  
+  
+  /**
+   * Updates the state of the task stored in this resource
+   * 
+   * @param task the resource's task to be updated
+   * 
+   */
+  public void updateTaskState(CcdpTaskRequest task)
+  {
+    // Needs to compare host ID's in order to update it
+    for (CcdpTaskRequest reTask : this.tasks)
+    {
+      if (task.getTaskId().equals(reTask.getTaskId()))
+      {
+        reTask.setState(task.getState());
+      }
+    }
+       
   }
   
   /**

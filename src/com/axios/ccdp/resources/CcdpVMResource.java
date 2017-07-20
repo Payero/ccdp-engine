@@ -749,7 +749,6 @@ public class CcdpVMResource implements Serializable
         reTask.setState(task.getState());
       }
     }
-       
   }
   
   /**

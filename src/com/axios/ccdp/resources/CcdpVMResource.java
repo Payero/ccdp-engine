@@ -699,14 +699,6 @@ public class CcdpVMResource implements Serializable
    */
   public boolean removeTask( CcdpTaskRequest task )
   {
-    // Needs to compare host ID's in order to remove it
-    for (CcdpTaskRequest reTask : this.tasks)
-    {
-      if (task.getTaskId().equals(reTask.getTaskId()))
-      {
-        return this.tasks.remove(reTask);
-      }
-    }
     return this.tasks.remove(task);
   }
   

@@ -10,6 +10,8 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.newgen.CcdpTaskRunner;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
 public class CCDPTest 
@@ -41,16 +43,7 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    Properties props = System.getProperties();
-    Enumeration<Object> keys = props.keys();
-    while( keys.hasMoreElements() )
-    {
-      String key = (String)keys.nextElement();
-      this.logger.info("Property[" + key + " = " + props.getProperty(key));
-    }
-    
-    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
-    this.logger.info("Skipping Sending HB " + skip );
+
   }
   
   

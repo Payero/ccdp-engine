@@ -106,6 +106,7 @@ public class CcdpTaskRunner extends Thread
         }
         else
         {
+          System.out.println("STATE NON ZERO VALUE? FAILED");
           this.task.setState(CcdpTaskState.FAILED);
           String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
@@ -115,6 +116,7 @@ public class CcdpTaskRunner extends Thread
     }
     catch( Exception e )
     {
+      System.out.println("STATE WAS SET TO FAILEEEEEED :oooooooo");
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
       this.agent.statusUpdate(this.task, e.getMessage());

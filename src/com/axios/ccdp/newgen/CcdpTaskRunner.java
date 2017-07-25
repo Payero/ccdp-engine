@@ -100,21 +100,22 @@ public class CcdpTaskRunner extends Thread
         this.process = null;
         if( exitCode == 0 )
         {
-          this.logger.info("Task Finished properly");
           this.task.setState(CcdpTaskState.SUCCESSFUL);
+          this.logger.info("Task Finished properly, State: " + this.task.getState());
           this.agent.statusUpdate(this.task, null);
         }
         else
         {
-          String msg = "Task finished with a non-zero value (" + exitCode + ")";
-          this.logger.info(msg);
           this.task.setState(CcdpTaskState.FAILED);
+          String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
+          this.logger.info(msg);
           this.agent.statusUpdate(this.task, msg);
         }
       }
     }
     catch( Exception e )
     {
+      System.out.println("STATE WAS SET TO FAILEEEEEED :oooooooo");
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
       this.agent.statusUpdate(this.task, e.getMessage());

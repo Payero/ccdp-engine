@@ -10,6 +10,8 @@ import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.newgen.CcdpTaskRunner;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
 public class CCDPTest 
@@ -41,16 +43,33 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    Properties props = System.getProperties();
-    Enumeration<Object> keys = props.keys();
-    while( keys.hasMoreElements() )
-    {
-      String key = (String)keys.nextElement();
-      this.logger.info("Property[" + key + " = " + props.getProperty(key));
-    }
+
+   String id = "i-test-bff4b6a0c8c5";
+   String cp = "i-test-bff4b6a0c8c5";
+   
+   this.logger.info("Test 1 = " + id.equals(cp));
+   this.logger.info("Test 2 = " + (id ==  cp));
+
     
-    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
-    this.logger.info("Skipping Sending HB " + skip );
+//    for( int i = 1; i < 4; i++ )
+//
+//    Properties props = System.getProperties();
+//    Enumeration<Object> keys = props.keys();
+//    while( keys.hasMoreElements() )
+//
+//    {
+//      String key = (String)keys.nextElement();
+//      this.logger.info("Property[" + key + " = " + props.getProperty(key));
+//    }
+//    
+//
+//    this.logger.debug("The Map: " + this.map.toString());
+//    this.onEvent();
+//    this.logger.debug("The Map: " + this.map.toString());
+//    
+//
+//    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+//    this.logger.info("Skipping Sending HB " + skip );
   }
   
   

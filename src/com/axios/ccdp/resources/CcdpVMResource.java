@@ -724,6 +724,25 @@ public class CcdpVMResource implements Serializable
     this.tasks = new ArrayList<CcdpTaskRequest>();
   }
   
+  
+  /**
+   * Updates the state of the task stored in this resource
+   * 
+   * @param task the resource's task to be updated
+   * 
+   */
+  public void updateTaskState(CcdpTaskRequest task)
+  {
+    // Needs to compare host ID's in order to update it
+    for (CcdpTaskRequest reTask : this.tasks)
+    {
+      if (task.getTaskId().equals(reTask.getTaskId()))
+      {
+        reTask.setState(task.getState());
+      }
+    }
+  }
+  
   /**
    * Gets the last time a task was added to this resource.  If no task has 
    * been assigned then the time represents when this object was created.

@@ -144,7 +144,6 @@ public class AvgLoadControllerImpl
     double mem = alloc.get("mem").asDouble();
     int tasks = alloc.get("max-tasks").asInt();
     int sz = resources.size();
-    this.logger.info("RESOURCE SIZE IS: " + sz);
     double[] assignedCPU = new double[sz];
     double[] assignedMEM = new double[sz];
     double[] availableCPU = new double[sz];

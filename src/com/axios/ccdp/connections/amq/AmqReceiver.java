@@ -202,9 +202,9 @@ public class AmqReceiver extends AmqConnector implements MessageListener
           if( txtMsg.getJMSReplyTo() != null )
             replyTo = txtMsg.getJMSReplyTo().toString();
           
-          this.logger.debug("The Message Type (" + msgTypeNum +")");
+          this.logger.info("The Message Type (" + msgTypeNum +")");
           CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
-          this.logger.debug("Got a " + msgType + " Message");
+          this.logger.info("Got a " + msgType + " Message");
           CcdpMessage ccdpMsg = null;
           switch( msgType )
           {

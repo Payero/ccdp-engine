@@ -10,6 +10,8 @@ import tarfile, json
 from subprocess import call
 import boto3
 import urllib
+import ast
+
 
 class Test:
   
@@ -51,7 +53,7 @@ class Test:
 
     '''
     client = boto3.client('apigateway')
-    is_pi = True
+    is_pi = False
 
     if is_pi:
       args = urllib.base64.standard_b64encode("10000")
@@ -71,7 +73,7 @@ class Test:
       body="\"%s\"" % str(body),
       )
     else:
-      args = {"column-number":8, "operator": "GE", "value":1, "record":"1,1929,1 - Junior,50,Systems,Issue,2 - Normal,0 - Unassigned,3,1 - Unsatisfied"}
+      args = {"column-number":1, "operator": "GE", "value":5, "entries":["1,1929,1 - Junior,50,Systems,Issue,2 - Normal,0 - Unassigned,3,1 - Unsatisfied"]}
       data = {'arguments': args, 'bkt_name':'ccdp-tasks', 'keep_files':False, 'mod_name':'csv_selector_lambda', 'verb_level':'debug', 'zip_file':'csv_selector_lambda.py'}
 
       body = urllib.base64.standard_b64encode( str(data) )
@@ -84,7 +86,13 @@ class Test:
       body="\"%s\"" % str(body),
       )
     
-    self.__logger.info("Status: %d ==> Result: %s" % (response['status'], response['body']))
+    res = ast.literal_eval(response['body'])
+    print("Type: %s" % type(res))
+    self.__logger.info("Status: %d ==> Result: %s" % (response['status'], res))
+    if res == 'None':
+      print("Not a good entry")
+    else:
+      print("We got some valid results: %s" % res)
 
 
         

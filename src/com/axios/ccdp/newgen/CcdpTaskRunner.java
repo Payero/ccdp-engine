@@ -106,7 +106,6 @@ public class CcdpTaskRunner extends Thread
         }
         else
         {
-          System.out.println("STATE NON ZERO VALUE? FAILED");
           this.task.setState(CcdpTaskState.FAILED);
           String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);

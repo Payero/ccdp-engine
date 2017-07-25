@@ -4,7 +4,7 @@
 from optparse import OptionParser
 import logging
 from pprint import pformat
-import boto3, botocore
+import boto3, botocore, requests
 import os, sys, traceback
 import tarfile, json
 from subprocess import call
@@ -43,57 +43,33 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    '''
-    $ aws apigateway test-invoke-method \
-    --rest-api-id cx62aa0x70 \
-    --resource-id 3jpl8x \
-    --http-method POST \
-    --path-with-query-string "" \
-    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}"
+    self.get_data()
+   
 
-    '''
-    client = boto3.client('apigateway')
-    is_pi = False
+  def get_instance_name(self, fid):
+      """
+          When given an instance ID as str e.g. 'i-1234567', return the instance 'Name' from the name tag.
+          :param fid:
+          :return:
+      """
+      ec2 = boto3.resource('ec2')
+      ec2instance = ec2.Instance(fid)
+      instancename = ''
+      for tags in ec2instance.tags:
+          if tags["Key"] == 'Name':
+              instancename = tags["Value"]
+      return instancename
 
-    if is_pi:
-      args = urllib.base64.standard_b64encode("10000")
-      data = {'arguments': 1000000, 'bkt_name':'ccdp-tasks', 'keep_files':False, 'mod_name':'simple_pi', 'verb_level':'debug', 'zip_file':'simple_pi.zip'}
 
-      self.__logger.debug("The body of the message: %s" % pformat(data) )
-      
-      body = urllib.base64.standard_b64encode( str(data) )
-
-      self.__logger.debug("The body of the message encoded: %s" % body )
-
-      response = client.test_invoke_method(
-      restApiId='cx62aa0x70',
-      resourceId='3jpl8x',
-      httpMethod='POST',
-      pathWithQueryString='string',
-      body="\"%s\"" % str(body),
-      )
-    else:
-      args = {"column-number":1, "operator": "GE", "value":5, "entries":["1,1929,1 - Junior,50,Systems,Issue,2 - Normal,0 - Unassigned,3,1 - Unsatisfied"]}
-      data = {'arguments': args, 'bkt_name':'ccdp-tasks', 'keep_files':False, 'mod_name':'csv_selector_lambda', 'verb_level':'debug', 'zip_file':'csv_selector_lambda.py'}
-
-      body = urllib.base64.standard_b64encode( str(data) )
-      
-      response = client.test_invoke_method(
-      restApiId='cx62aa0x70',
-      resourceId='3jpl8x',
-      httpMethod='POST',
-      pathWithQueryString='string',
-      body="\"%s\"" % str(body),
-      )
-    
-    res = ast.literal_eval(response['body'])
-    print("Type: %s" % type(res))
-    self.__logger.info("Status: %d ==> Result: %s" % (response['status'], res))
-    if res == 'None':
-      print("Not a good entry")
-    else:
-      print("We got some valid results: %s" % res)
-
+  def get_data(self):
+    #meta = boto.utils.get_instance_metadata()
+    #id = meta['instance-id']
+    try:
+      response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=2)
+      id = response.text
+      print "Getting Data: %s " % get_instance_name(id)
+    except:
+      print "Timed out, now what?"
 
         
 """

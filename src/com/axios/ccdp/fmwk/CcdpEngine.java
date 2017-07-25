@@ -244,7 +244,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     List<CcdpTaskRequest> tasks = new ArrayList<>();
     String id = resource.getInstanceId();
     String sid = resource.getAssignedSession();
-    
     this.logger.info("Allocating Tasks to " + id );
     this.logger.debug(this.getSummarizedRequests());
     
@@ -253,7 +252,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     {
       if( this.resources.containsKey(id) )
       {
-        this.logger.info("Found Resource, updating assigned Values");
+        this.logger.trace("Found Resource, updating assigned Values");
         CcdpVMResource stored = this.resources.get(id);
         resource = this.updateAssignedValues( resource, stored );
       }
@@ -262,13 +261,13 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         if( sid == null )
         {
           sid = resource.getNodeTypeAsString();
-          this.logger.info("Resource does not have SID, adding it to " +
+          this.logger.debug("Resource does not have SID, adding it to " +
                            "free pool: " + sid);
           resource.setAssignedSession(sid);
         }
         else
         {
-          this.logger.info("Resource not found, adding it to resources");
+          this.logger.debug("Resource not found, adding it to resources");
         }
       }
       
@@ -305,13 +304,13 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     {
       for( CcdpThreadRequest req : this.requests )
       {
-        this.logger.info("Checking Request " + req.getThreadId() );
+        this.logger.trace("Checking Request " + req.getThreadId() );
         if( req.getSessionId().equals( sid ) && 
             req.getNodeType().equals( type ) )
         {
-          this.logger.info("Request has the same session-id: " + sid);
+          this.logger.trace("Request has the same session-id: " + sid);
           List<CcdpTaskRequest> tmp = this.assignTasks( resource, req);
-          this.logger.debug("Adding " + tmp.size() + 
+          this.logger.trace("Adding " + tmp.size() + 
                             " for Request " + req.getThreadId());
           tasks.addAll( tmp );
         }
@@ -348,8 +347,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    */
   public void taskUpdate( String taskId, CcdpTaskState state )
   {
-    this.logger.info("Updating TaskStatus for: " + taskId );
-    this.logger.info("State: " + state.toString() );
+    this.logger.debug("Task Update: " + taskId + " State: " + state.toString());
     
     synchronized( this.requests )
     {
@@ -360,10 +358,10 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         for( CcdpTaskRequest task : req.getTasks() )
         {
           String jid = task.getTaskId();
-          this.logger.debug("Comparing Task: " + taskId + " against " + jid);
+          this.logger.trace("Comparing Task: " + taskId + " against " + jid);
           if( jid.equals( taskId ) )
           {
-            this.logger.debug("Found Task I was looking for");
+            this.logger.trace("Found Task I was looking for");
             
             boolean changed = false;
             switch ( state )
@@ -386,13 +384,9 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
                 // if tried enough times, then remove it
                 if( task.getState().equals(CcdpTaskState.FAILED))
                 {
-                  this.logger.info("Task Failed after enough tries, removing");
+                  this.logger.warn("Task Failed after enough tries, removing");
                   this.resetDedicatedHost(task);
                   changed = true;
-                }
-                else
-                {
-                  this.logger.debug("Status changed to " + task.getState());
                 }
                 
                 toRemove.add(task);
@@ -433,7 +427,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       }// end of the thread request loop
       
       // now need to delete all the threads that are done
-      this.logger.info("Removing " + doneThreads.size() + " done Threads");
+      this.logger.trace("Removing " + doneThreads.size() + " done Threads");
       this.requests.removeAll(doneThreads);
     }// end of synch block
   }    
@@ -501,7 +495,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         CcdpVMResource res = this.resources.get(hid);
         if( res.isSingleTasked() && tid.equals(res.getSingleTask()))
         {
-          this.logger.info("Resetting Dedicated Host " + hid);
+          this.logger.trace("Resetting Dedicated Host " + hid);
           res.isSingleTasked(false);
           res.setSingleTask(null);
         }
@@ -534,7 +528,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     if( channel != null && channel.length() > 0 )
     {
       this.connection.registerProducer(channel);
-      this.logger.debug("Status change, sending message to " + channel);
+      this.logger.trace("Status change, sending message to " + channel);
       TaskUpdateMessage taskMsg = new TaskUpdateMessage();
       taskMsg.setTask(task);
 //      this.taskingInf.sendCcdpMessage(channel, null, taskMsg);
@@ -542,7 +536,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     }
     else
     {
-      this.logger.debug("Task did not have a channel set!");
+      this.logger.trace("Task did not have a channel set!");
     }
     
     CcdpTaskState state = task.getState();
@@ -572,9 +566,9 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       if( task.getCPU() >= 100 )
         resource.setSingleTask(null);
       
-      this.logger.info("Found task in " + id + " removing it");
+      this.logger.trace("Found task in " + id + " removing it");
       boolean was_removed = resource.removeTask(task);
-      this.logger.debug("The Task was removed " + was_removed );
+      this.logger.trace("The Task was removed " + was_removed );
       this.checkDeallocation( sid );
     }
   }
@@ -639,16 +633,15 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     for( CcdpTaskRequest task : request.getTasks() )
     {
       String tid = task.getTaskId();
-      this.logger.info("Checking Task: " + tid );
+      this.logger.debug("Checking Task: " + tid );
       double cpu = task.getCPU();
       if( cpu >= 100 )
       {
-        this.logger.info("Working on deddicated VM task");
+        this.logger.debug("Working on deddicated VM task");
         CcdpVMResource res = this.getSingleResource(task);
         if( res != null )
         {
           task.setHostId(res.getInstanceId());
-//          task.setSubmitted(true);
           res.setSingleTask(tid);
           synchronized(this.resources)
           {
@@ -669,11 +662,11 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       String sid = request.getSessionId(); 
       if( sid != null && sid.length() > 0 )
       {
-        this.logger.info("Checking for resources assigned to " + sid);
+        this.logger.trace("Checking for resources assigned to " + sid);
         List<CcdpVMResource> list = this.getResources(request);
         
         int sz = list.size();
-        this.logger.info("Session " + sid + " has " + sz + " VMs assigned");
+        this.logger.debug("Session " + sid + " has " + sz + " VMs assigned");
         if( sz == 0 )
         {
           CcdpNodeType type = request.getNodeType();
@@ -694,7 +687,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
             vm.setAssignedSession(sid);
             synchronized( this.resources )
             {
-              this.logger.info("Adding new VM " + id);
+              this.logger.debug("Adding new VM " + id);
               this.resources.put(id, vm);
             }
           }
@@ -804,7 +797,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   private List<CcdpTaskRequest> assignTasks( CcdpVMResource target, 
                                           CcdpThreadRequest req )
   {
-    this.logger.debug("Assinging Tasks from Request " + req.getThreadId() );
+    this.logger.trace("Assinging Tasks from Request " + req.getThreadId() );
     
     String thid = req.getThreadId();
     List<CcdpTaskRequest> assignedTasks = new ArrayList<>();
@@ -818,7 +811,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     
     // is this VM tasked to one of the tasks?
     String tasked = target.getSingleTask();
-    this.logger.debug("Was VM Single Tasked? " + tasked);
+    this.logger.trace("Was VM Single Tasked? " + tasked);
     
     List<CcdpTaskRequest> tasks = new ArrayList<>();
     // if we have resources to run the task
@@ -836,20 +829,20 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
           
           String txt = "Comparing Vm tasked (" + tasked +") and host id "+ hid +
               " and cpu " + cpu + " on Instance " + iid + " and Task " + tid;
-          this.logger.info(txt);
-          this.logger.info("Task Submitted? " + task.isSubmitted());
+          this.logger.trace(txt);
+          this.logger.trace("Task Submitted? " + task.isSubmitted());
           
           if( !task.isSubmitted() )
           {
             // if this VM is ST
             if( tasked != null && iid.equals( hid ) )
             {
-              this.logger.info("Adding Task (VM is ST) " + tid);
+              this.logger.trace("Adding Task (VM is ST) " + tid);
               tasks.add(task);
             }
             else if( hid == null  && cpu < 100 )
             {
-              this.logger.info("Adding Task (VM is NOT ST) " + tid);
+              this.logger.trace("Adding Task (VM is NOT ST) " + tid);
               tasks.add(task);
             }
           }
@@ -871,16 +864,16 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
           
           String txt = "Comparing Vm tasked (" + tasked +") and task "+ hid +
               " and cpu " + cpu + " on Instance " + iid + " and Task " + tid;
-          this.logger.info(txt);
+          this.logger.trace(txt);
           // if this VM is ST
           if( tasked != null && iid.equals( hid ) )
           {
-            this.logger.info("Adding Task (VM is ST) " + tid);
+            this.logger.debug("Adding Task (VM is ST) " + tid);
             tasks.add(task);
           }
           else if( hid == null && cpu < 100 )
           {
-            this.logger.info("Adding Task (VM is NOT ST) " + tid);
+            this.logger.debug("Adding Task (VM is NOT ST) " + tid);
             tasks.add(task);
           }
         }
@@ -950,16 +943,15 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       return null;
     }
     
-    this.logger.info("Assigning Resources to Request " + id + " Session " + sid);
+    this.logger.debug("Assigning Resources to Request " + id + " Session " + sid);
     list = this.getResourcesBySessionId(sid);
-    
     
     if ( this.tasker.needResourceAllocation(list) || list.size() == 0 )
     {
-      this.logger.info("The session id " + sid + 
+      this.logger.debug("The session id " + sid + 
                        " does not have resources, checking free");
       String typeStr = req.getNodeTypeAsString();
-      this.logger.info("Looking for VM of type " + typeStr);
+      this.logger.debug("Looking for VM of type " + typeStr);
       List<CcdpVMResource> free_vms = this.getResourcesBySessionId(typeStr);
       
       if( free_vms.size() > 0 )
@@ -1037,7 +1029,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       String id = res.getInstanceId();
       if( res.isFree() )
       {
-        this.logger.info("Adding " + id + " for termination");
+        this.logger.trace("Adding " + id + " for termination");
         terminate.add(res.getInstanceId());
       }
       else
@@ -1058,7 +1050,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    */
   private void checkMinVMRequirements()
   {
-    this.logger.debug("Checking minimum VM requirements");
+    this.logger.trace("Checking minimum VM requirements");
     
     // Starting the minimum number of free resources needed to run
     try
@@ -1115,7 +1107,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
                 // it is not in the 'do not terminate' list
                 if( !this.skipTermination.contains(id) )
                 {
-                  this.logger.info("Flagging VM " + id + " for termination");
+                  this.logger.trace("Flagging VM " + id + " for termination");
                   if( !id.startsWith("i-test-") )
                   {
                     res.setStatus(ResourceStatus.SHUTTING_DOWN);
@@ -1124,12 +1116,12 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
                   }
                   else
                   {
-                    this.logger.info("VM " + id + " is a test node, skipping termination");
+                    this.logger.trace("VM " + id + " is a test node, skipping termination");
                   }
                 }
                 else
                 {
-                  this.logger.info("Skipping termination " + id);
+                  this.logger.trace("Skipping termination " + id);
                 }
                 
               }// done searching for running VMs
@@ -1187,19 +1179,19 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     {
       if( res.isFree() )
       {
-        this.logger.info("Found a suitable empty VM " + res.getInstanceId());
+        this.logger.debug("Found a suitable empty VM " + res.getInstanceId());
         return res;
       }
     }
     
-    this.logger.info("Could not find an empty VM, checking available");
+    this.logger.debug("Could not find an empty VM, checking available");
     CcdpNodeType type = task.getNodeType();
     list = this.getResourcesBySessionId( type.toString() );
     this.logger.debug("Got " + list.size() + " VMs for " + type );
     for( CcdpVMResource res : list )
     {
       ResourceStatus status = res.getStatus();
-      this.logger.debug("Checking VM Status " + status);
+      this.logger.trace("Checking VM Status " + status);
       if( ( status.equals(ResourceStatus.LAUNCHED) ||  
             status.equals(ResourceStatus.RUNNING) ) && res.isFree() )
       {
@@ -1241,26 +1233,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     
     return null;
   }
-  
-  
-//  private boolean isSingleTaskedAssigned( CcdpThreadRequest req )
-//  {
-//    this.logger.info("Checking Single Tasking for Request " + req.getThreadId());
-//    
-//    for( CcdpTaskRequest task: req.getTasks() )
-//    {
-//      double cpu = task.getCPU();
-//      String hid = task.getHostId();
-//      String tid = task.getTaskId();
-//      this.logger.debug("Task " + tid + " ==> CPU " + cpu + " Host " + hid);
-//      if( cpu >= 100 && hid == null )
-//        return false;
-//    }
-//    
-//    this.logger.info("checkSingleTasked is returning true");
-//    return true;
-//  }
-  
   
   /**
    * Gets a list of all the tasks assigned to this engine matching the given
@@ -1307,7 +1279,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       if( sid.equals(asid) && 
           !ResourceStatus.SHUTTING_DOWN.equals(res.getStatus() ) )
       {
-        this.logger.debug("Found Resource based on SID, adding it to list");
+        this.logger.trace("Found Resource based on SID, adding it to list");
         list.add(res);
       }
     }
@@ -1346,7 +1318,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     // resetting all the tasks by first removing them all and then adding them
     to.removeTasks(from.getTasks());
     to.getTasks().addAll(from.getTasks());
-    
     
     ResourceStatus stat = to.getStatus();
     // only update if it was LAUNCHED
@@ -1396,7 +1367,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   public void onCcdpMessage(CcdpMessage message)
   {
     CcdpMessageType msgType = CcdpMessageType.get(message.getMessageType());
-    this.logger.debug("Got a " + msgType + " Message");
+    this.logger.trace("Got a " + msgType + " Message");
     switch( msgType )
     {
       case START_SESSION:
@@ -1468,7 +1439,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       }
       
       int number = killMsg.getHowMany();
-      this.logger.info("Killing " + number + " " + name + " tasks");
+      this.logger.debug("Killing " + number + " " + name + " tasks");
       String sid = task.getSessionId();
       List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
       if( resources != null && !resources.isEmpty() )
@@ -1485,7 +1456,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         {
           if( done )
           {
-            this.logger.info("Done killing tasks");
+            this.logger.trace("Done killing tasks");
             break;
           }
           // Get the matching tasks and send a request to kill it
@@ -1494,7 +1465,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
             // if it matches the name, send a kill message to the scheduler
             if( name.equals(toKill.getName() ) )
             {
-              this.logger.info("Found a matching task in " + vm.getAgentId());
+              this.logger.debug("Found a matching task in " + vm.getAgentId());
               KillTaskMessage msg = new KillTaskMessage();
               msg.setTask(toKill);
               this.main.onCcdpMessage(msg);
@@ -1566,7 +1537,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       Set<String> keys = this.resources.keySet();
       if( keys.contains(id) )
       {
-        this.logger.info("Removing " + id + " from resource list");
+        this.logger.debug("Removing " + id + " from resource list");
         return this.resources.remove(id);
       }
       
@@ -1604,7 +1575,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       String iid = resource.getInstanceId();
       if( this.resources.containsKey( iid ) )
       {
-        this.logger.debug("Received a heartbeat from " + iid );
+        this.logger.trace("Received a heartbeat from " + iid );
         CcdpVMResource res = this.resources.get(iid);
         res.setFreeDiskSpace(resource.getFreeDiskspace());
         res.setTotalMemory(resource.getTotalMemory());

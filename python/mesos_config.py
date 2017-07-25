@@ -29,9 +29,9 @@ class MesosConfig:
       if os.path.isdir("/data/ccdp-engine"):
         self.__logger.info("Using '/data/ccdp-engine' as CCDP_HOME")
         self.__root = '/data/ccdp-engine'
-      elif os.path.isdir("/share/ccdp/ccdp-engine"):
-        self.__logger.info("Using '/share/ccdp/ccdp-engine' as CCDP_HOME")
-        self.__root = '/share/ccdp/ccdp-engine'
+      elif os.path.isdir("/data/ccdp/ccdp-engine"):
+        self.__logger.info("Using '/data/ccdp/ccdp-engine' as CCDP_HOME")
+        self.__root = '/data/ccdp/ccdp-engine'
       else:
         self.__logger.error("CCDP_HOME is not set and is not in default location")
 

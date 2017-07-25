@@ -727,7 +727,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public static AWSCredentials getAWSCredentials( ObjectNode config )
   {
-    logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
     if( config == null )
       throw new IllegalArgumentException("The config cannot be null");

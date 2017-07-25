@@ -32,12 +32,8 @@ import org.apache.mesos.Protos.Attribute;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.fmwk.CcdpEngine;
 import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.EndSessionMessage;
 import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ResourceUpdateMessage;
-import com.axios.ccdp.message.StartSessionMessage;
-import com.axios.ccdp.message.ThreadRequestMessage;
-import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -173,7 +169,7 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
   public void resourceOffers(SchedulerDriver driver, List<Offer> offers)
   {
 
-    this.logger.info("resourceOffers: Got some resource Offers" );
+    this.logger.debug("resourceOffers: Got some resource Offers" );
     
     // generates a list of resources using the offers
     for( Offer offer : offers )
@@ -225,8 +221,9 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
         sid = this.engine.getSessionIdFromAgentId(aid);
         if( sid != null )
         {
-          this.logger.info("Found a SID, sending it to the agent");
-          this.driver.sendFrameworkMessage(this.executor.getExecutorId(), offer.getSlaveId(), sid.getBytes());
+          this.logger.trace("Found a SID, sending it to the agent");
+          this.driver.sendFrameworkMessage(this.executor.getExecutorId(), 
+                                           offer.getSlaveId(), sid.getBytes());
         }
       }
       
@@ -310,9 +307,8 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
    */
   public void statusUpdate(SchedulerDriver driver, TaskStatus status)
   {
-    String taskId = status.getTaskId().getValue();
-    this.logger.info("statusUpdate TaskStatus: " + taskId );
-    this.logger.info("Status: " + status.getState());
+    String tid = status.getTaskId().getValue();
+    this.logger.debug("Task Update: " + tid + " Status: " + status.getState());
     
     CcdpTaskState state = null;
     
@@ -335,7 +331,7 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
         break;
     }// end of switch statement
 
-    this.engine.taskUpdate(taskId, state);
+    this.engine.taskUpdate(tid, state);
   }
   
   /**
@@ -437,7 +433,7 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
    */
   private TaskInfo makeTask(String targetSlave, CcdpTaskRequest task)
   {
-    this.logger.info("Making Task at Slave " + targetSlave);
+    this.logger.trace("Making Task at Slave " + targetSlave);
     TaskID id = TaskID.newBuilder().setValue(task.getTaskId()).build();
     
     Protos.TaskInfo.Builder bldr = TaskInfo.newBuilder();
@@ -533,12 +529,12 @@ public class CcdpMesosScheduler implements Scheduler, CcdpMessageConsumerIntf
     * 
     */
    @Override
-   public void executorLost(SchedulerDriver driver, ExecutorID execId, SlaveID slvId,
-       int status)
+   public void executorLost(SchedulerDriver driver, ExecutorID execId, 
+                            SlaveID slvId, int status)
    {
-     this.logger.error("executorLost: " + " Driver: " + driver.toString() + 
-                 " ExecId " + execId + " SlaveId: " + slvId + " Int? " + status) ;
-     
+     String msg = "Executor " + execId.getValue() + " (Slave Id: " + 
+                  slvId.getValue() + ") exited with a value of " + status;
+     this.logger.info(msg);
      this.engine.removeResource( slvId.getValue() );
    }
 

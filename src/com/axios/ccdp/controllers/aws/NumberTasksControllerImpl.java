@@ -183,7 +183,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
     long now = System.currentTimeMillis();
-    this.logger.info("Using last allocation time only");
     List<CcdpVMResource> terminate = new ArrayList<>();
     for( CcdpVMResource vm : resources )
     {
@@ -236,7 +235,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       //
       if( cpu == 0 )
       {
-        this.logger.info("CPU = " + cpu + " Assigning Task based on session");
+        this.logger.debug("CPU = " + cpu + " Assigning Task based on session");
         if( this.hasCapacity( task, target ) )
         {
           // cannot have a CPU less than the minimum required (mesos-master dies)
@@ -251,11 +250,11 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       }
       else if( cpu >= 100 )
       {
-        this.logger.info("CPU = " + cpu + " Assigning a Resource just for this task");
+        this.logger.debug("CPU = " + cpu + " Assigning a Resource just for this task");
         if( this.canAssignResource(task, target) )
         {
           //TODO Changing the task's cpu to make sure "it will fit"
-          this.logger.info("Setting the Task's CPU to max amount for this resource");
+          this.logger.debug("Setting the Task's CPU to max amount for this resource");
           task.setCPU(CcdpTaskRequest.MIN_CPU_REQ);
           task.setSubmitted(true);
           task.assigned();
@@ -267,7 +266,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       }
       else
       {
-        this.logger.info("CPU = " + cpu + " Assigning Task using First Fit");
+        this.logger.debug("CPU = " + cpu + " Assigning Task using First Fit");
         if( this.canRunTask(task, target) )
         {
           task.setSubmitted(true);

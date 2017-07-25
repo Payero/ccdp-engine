@@ -2,7 +2,6 @@ package com.axios.ccdp.connections.amq;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 
@@ -78,7 +77,7 @@ public class AmqCcdpConnectionImpl
     }
     catch( Exception e )
     {
-      this.logger.warn("The heartbeat frequency was not set using 3 seconds");
+      this.logger.info("The heartbeat frequency was not set using 3 seconds");
     }
   }
 

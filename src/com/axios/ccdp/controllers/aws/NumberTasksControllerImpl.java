@@ -81,10 +81,12 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     {
       throw new RuntimeException("The configuration cannot be null");
     }
-    
-    this.setParam(config, "allocate.no.more.than", this.max_tasks);
-    this.setParam(config, "deallocate.avg.load.time", this.max_time);
-    
+    int tmp = this.getParam(config, "allocate.no.more.than");
+    if( tmp > 0 )
+      this.max_tasks = tmp;
+    tmp = this.getParam(config, "allocate.no.more.than");
+    if( tmp > 0 )
+      this.max_time = tmp;
   }
 
   /**
@@ -95,14 +97,14 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
    * @param field the name of the field to extract
    * @param param the parameter to set
    */
-  private void setParam(ObjectNode config, String field, int param)
+  private int getParam(ObjectNode config, String field)
   {
     if( config.has(field) )
     {
       int tmp = config.get(field).asInt();
       if( tmp > 0 )
       {
-        param = tmp;
+        return tmp;
       }
       else
       {
@@ -114,6 +116,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     {
       this.logger.warn("The field " + field + " was not found");
     }
+    return -1;
   }
   
   /**
@@ -156,7 +159,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       else
       {
         String txt = "Does not need Resources: the Average Load " + avgLoad + 
-            " is greater than allowed " + this.max_tasks;
+            " is lower than allowed " + this.max_tasks;
         this.logger.info(txt);
         return false;
       }

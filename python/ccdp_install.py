@@ -48,10 +48,12 @@ class CcdpInstaller:
     
     if cli_args.action == 'download':
       self.__perform_download( cli_args )
-      self.__set_nickname()
 
-    else:
+    elif cli_args.action == 'upload':
       self.__perform_upload( cli_args )
+
+    elif cli_args.action == 'nickname':
+      self.__set_nickname()
 
 
 
@@ -73,9 +75,9 @@ class CcdpInstaller:
     self.__logger.debug("Downloading distribution file ")
     fpath = os.path.join(tgt_dir, self.__CCDP_DIST)
     self.__logger.debug("Saving file in %s" % fpath)
-    if not os.path.isdir(fpath):
-      os.makedirs(fpath)
-      os.chmod(fpath, 0750)
+    # if not os.path.isdir(fpath):
+    #   os.makedirs(fpath)
+    #   os.chmod(fpath, 0750)
 
 
     bkt.download_file(self.__CCDP_DIST, fpath)
@@ -88,58 +90,6 @@ class CcdpInstaller:
     # Do I need to set mesos?
     if params.set_mesos:
       self.__set_mesos( ccdp_root, params )
-
-
-
-  def __set_nickname(self):
-    self.__logger.debug("Setting Nickname")
-    name = socket.gethostname()
-
-    try:
-      response = requests.get(self.__METADATA_URL, timeout=2)
-      iid = response.text
-      ec2 = boto3.resource('ec2')
-      ec2instance = ec2.Instance(iid)
-      for tags in ec2instance.tags:
-          if tags["Key"] == 'Name':
-              name = tags["Value"]
-              break
-
-      fname = '/etc/profile.d/prompt.sh'
-      if os.path.isfile(fname):
-        if os.getuid() != 0:
-          self.__logger.warn("")
-          self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
-          self.__logger.warn("")
-          cmd = ["sudo", "mv", fname, "/etc/profile.d/prompt.BACKUP"]
-        else:
-          cmd = ["mv", fname, "/etc/profile.d/prompt.BACKUP"]
-          
-        self.__logger.debug("Running: %s " % ' '.join( cmd ) )
-        n = call( cmd )
-
-      src_file = '/tmp/prompt.sh'
-      with file(src_file , 'w') as out:
-        out.write("export NICKNAME=%s" % name)
-        out.write("\n")
-        out.close()
-        os.chmod(src_file, 0644)
-        
-        if os.getuid() != 0:
-          self.__logger.warn("")
-          self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
-          self.__logger.warn("")
-          cmd = ["sudo", "mv", src_file, fname]
-        else:
-          cmd = ["mv", src_file, fname]
-          
-        self.__logger.debug("Running: %s " % ' '.join( cmd ) )
-        n = call( cmd )
-
-
-    except:
-      self.__logger.debug("Is not an EC2 Instance, skipping nickname")
-
 
 
 
@@ -367,19 +317,70 @@ class CcdpInstaller:
     cmd = []
     os.environ['CCDP_HOME'] = ccdp_root
 
-    if os.getuid() != 0:
-      self.__logger.warn("")
-      self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
-      self.__logger.warn("")
-      cmd = ["sudo", "./mesos_config.py", fpath]
-    else:
-      cmd = ["./mesos_config.py", fpath]
+    self.__run_sudo_cmd( ["./mesos_config.py", fpath] )
 
       
     self.__logger.debug("Running: %s " % ' '.join( cmd ) )
     n = call( cmd )
     self.__logger.debug("The Exit Code: %d" % n)
 
+
+
+  def __set_nickname(self):
+    """
+    Queries AWS for the Tag set as the 'Name' for this EC2 instance.  If found
+    then it sets the /etc/profile.d/prompt.sh file to export the NICKNAME 
+    environment variable which is later on used to set the command prompt.
+    """
+    self.__logger.debug("Setting Nickname")
+    name = socket.gethostname()
+
+    try:
+      response = requests.get(self.__METADATA_URL, timeout=2)
+      iid = response.text
+      ec2 = boto3.resource('ec2')
+      ec2instance = ec2.Instance(iid)
+      for tags in ec2instance.tags:
+          if tags["Key"] == 'Name':
+              name = tags["Value"]
+              break
+
+      fname = '/etc/profile.d/prompt.sh'
+      if os.path.isfile(fname):
+        self.__run_sudo_cmd(["mv", fname, "/etc/profile.d/prompt.BACKUP"])
+
+
+      src_file = '/tmp/prompt.sh'
+      with file(src_file , 'w') as out:
+        out.write("export NICKNAME=%s" % name)
+        out.write("\n")
+        out.close()
+        os.chmod(src_file, 0644)
+        
+        self.__run_sudo_cmd( ["mv", src_file, fname] )
+
+
+    except:
+      self.__logger.debug("Is not an EC2 Instance, skipping nickname")
+      traceback.print_exc()
+
+
+  def __run_sudo_cmd(self, cmd):
+    """
+    Tests the user running this script, if not root then it inserts the 'sudo'
+    command at the beggining of the given command.  Once the command is set
+    properly, it is executed and returns the value of its execution
+
+    cmd: a list of commands to execute
+    return: the exit value of the command execution
+    """
+    self.__logger.debug("Generating sudo command if requrired")
+    if os.getuid() != 0:
+      self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
+      cmd.insert(0, "sudo")
+
+    self.__logger.debug("Running: %s " % ' '.join( cmd ) )
+    return call(cmd)
 
 """
   Runs the application by instantiating a new Test object and passing all the
@@ -407,7 +408,7 @@ if __name__ == '__main__':
         type='choice',
         action='store',
         dest='action',
-        choices=['download', 'upload'],
+        choices=['download', 'upload', 'nickname'],
         default='download',                      
         help='To either download or upload files to set the env',)
   

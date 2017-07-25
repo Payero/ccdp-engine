@@ -78,9 +78,8 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   public void configure(ObjectNode config)
   {
     if( config == null )
-    {
       throw new RuntimeException("The configuration cannot be null");
-    }
+    
     int tmp = this.getParam(config, "allocate.no.more.than");
     if( tmp > 0 )
       this.max_tasks = tmp;

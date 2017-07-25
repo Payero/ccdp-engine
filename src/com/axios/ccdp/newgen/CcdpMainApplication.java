@@ -50,6 +50,7 @@ import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.protobuf.TextFormat.Parser.SingularOverwritePolicy;
 
 public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
@@ -716,6 +717,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 req.removeTask(task);
                 vm.removeTask(task);
                 //If there are no more tasks, mark the resource as available again
+                //TODO: remove this if I found a better place to put it (mseto)
                 if (vm.getNumberTasks() == 0)
                 {
                   update.add(vm);
@@ -724,11 +726,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             }// end of updating resource blocks
           }// end of sync block 
           // Mark any resources with 0 tasks as available
-          for (CcdpVMResource res : update)
-          {
-            this.logger.debug("Marking vm " + res.getInstanceId() + " available as DEFAULT");
-            this.changeSession(res, CcdpNodeType.DEFAULT.toString());
-          }
+//          for (CcdpVMResource res : update)
+//          {
+//            this.logger.debug("Marking vm " + res.getInstanceId() + " available as: " + res.getNodeTypeAsString());
+//            this.changeSession(res, res.getNodeTypeAsString());
+//          }
           
       }// for request loop
       
@@ -877,6 +879,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     if (!resource.getTasks().contains(task)) {
       resource.getTasks().add(task);
     }
+    //TODO: Figure out ideal time and location to revert a resource back to its
+    //original node type
+    resource.setLastAssignmentTime(System.currentTimeMillis());
   }
   
 //  /**
@@ -1037,7 +1042,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           
           CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
           int free_vms = imgCfg.getMinReq();
+          this.logger.debug("Getting resources for [" + typeStr +"]");
           List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
+          this.logger.debug("Number of resources available is: " + this.resources.get(typeStr).size());
 
           int available = avails.size();
           if( free_vms > 0 )
@@ -1064,7 +1071,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           int over = available - free_vms;
           int done = 0;
           List<String> terminate = new ArrayList<>();
-          List<String> remove = new ArrayList<>();
+          List<CcdpVMResource> remove = new ArrayList<>();
           // Do it only if we have more available VMs than needed
           if( over > 0 )
           {
@@ -1075,7 +1082,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               
               // making sure we do not shutdown the framework node
               String id = res.getInstanceId();
-              if( ResourceStatus.RUNNING.equals( res.getStatus() ) )
+              if( ResourceStatus.RUNNING.equals( res.getStatus() )  || 
+                  ResourceStatus.LAUNCHED.equals(res.getStatus()))
               {
                 this.logger.info("Flagging VM " + id + " for termination");          
                 // it is not in the 'do not terminate' list
@@ -1099,14 +1107,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 
               }// done searching for running VMs
               
-              
               // Remove the ones 'SHUTTING_DOWN'
               if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
               {
                 long now = System.currentTimeMillis();
                 if( now - res.getLastAssignmentTime() >= 18000 )
                 {
-                  remove.add(id);
+                  remove.add(res);
                 }
               }// is it shutting down?
             }// done with the VMs
@@ -1120,10 +1127,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           }
           
           // remove old pending 'SHUTTING_DOWN' nodes from map
-          for( String iid : remove )
+          for( CcdpVMResource res : remove )
           {
-            this.logger.debug("Removing " + iid + " from resources map");
-            this.resources.remove(iid);
+            this.logger.debug("Removing " + typeStr + " from resources map");
+            this.resources.get(typeStr).remove(res);
           }
           
         }// end of the NodeType for loop
@@ -1259,7 +1266,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private List<CcdpVMResource> getResourcesBySessionId( String sid )
   {
-    this.logger.debug("Getting resources for [" + sid +"]");
     if( sid == null )
     {
       this.logger.error("The Session ID cannot be null");
@@ -1267,11 +1273,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     List<CcdpVMResource> list = new ArrayList<>();
+    List<CcdpVMResource> delete = new ArrayList<>();
     synchronized( this.resources )
     {
       if( this.resources.containsKey( sid ) )
       {
-        this.logger.debug("Number of resources available is: " + this.resources.get(sid).size());
         List<CcdpVMResource> assigned = this.resources.get(sid);
         for( CcdpVMResource res : assigned )
         {
@@ -1282,7 +1288,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           }
           else
           {
-            this.logger.info("Status was " + res.getStatus());
+            this.logger.info(res.getInstanceId() + " :::: Status was " + res.getStatus());
+            // Remove the ones 'SHUTTING_DOWN'
+              long now = System.currentTimeMillis();
+              if( now - res.getLastAssignmentTime() >= 18000 )
+              {
+                delete.add(res);;
+              }
           }
         }
       }// found a list of sessions
@@ -1291,6 +1303,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.logger.info("Can't find session-id in resources, adding it");
         this.resources.put(sid,  list);
       }
+      
+      //removing resources with SHUTTING_DOWN status
+      for (CcdpVMResource res : delete)
+      {
+        this.resources.get(sid).remove(res);
+      }
+      
     }// end of synch list
     
     return list;

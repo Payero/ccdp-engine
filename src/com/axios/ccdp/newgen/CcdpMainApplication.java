@@ -614,7 +614,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setCPULoad(vm.getCPULoad());
           // resetting all the tasks by first removing them all and then 
           // adding them
-
           res.removeAllTasks();
           res.getTasks().addAll(vm.getTasks());
           

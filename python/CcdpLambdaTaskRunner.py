@@ -11,7 +11,7 @@ from pprint import pformat, pprint
 import os, sys, traceback
 import tarfile
 from subprocess import call
-import shutil, ast
+import shutil, ast, urllib
 
 class TaskRunner:
   """
@@ -194,7 +194,7 @@ class TaskRunner:
             "warning": logging.WARN,
             "error": logging.ERROR}
   
-  def __init__(self, cli_args):
+  def __init__(self, verb_level):
     self.__logger = logging.getLogger('TaskRunner')
     handler = logging.StreamHandler()
     filelog = logging.FileHandler('/tmp/task_runner.log')
@@ -209,7 +209,7 @@ class TaskRunner:
     
     # Setting root level to warning and THEN set the level for this module
     self.__logger.setLevel(self.__LEVELS['warning'])
-    logging.getLogger('TaskRunner').setLevel(self.__LEVELS[cli_args['verb_level']])
+    logging.getLogger('TaskRunner').setLevel(self.__LEVELS[verb_level])
     
     self.__logger.debug("Logging Done")
 
@@ -252,14 +252,16 @@ class TaskRunner:
     self.__files.append(fpath)
 
     self.__logger.info("Running the Task from %s" % mod_name)
+    # need to add both the directory and the file to support either a 
+    # zip file and/or a python module
     sys.path.append(fpath)
+    sys.path.append(_root)
     exec("from %s import runTask" % mod_name)
 
     res = None
     args = ""
     if params.has_key('arguments'):
       args = params['arguments']
-    
     
     self.__logger.info("Using Arguments: %s" % args)
 
@@ -288,7 +290,7 @@ class TaskRunner:
           res = runTask(args)
                 
     res_file = None
-    if params.has_key('res_file'):
+    if params.has_key('res_file') and params['res_file'] != None:
       res_file = os.path.join(_root, params['res_file'])
     
     
@@ -305,7 +307,6 @@ class TaskRunner:
 
     # returning the results in case is from the lambda function
     return res
-
 
   def __load_file(self, path, fname):
     '''
@@ -395,9 +396,11 @@ def handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
     #print("Context: %s" % str(type(context)))
     #pprint(dir(context))
-    runner = TaskRunner(event)
-    return "%f" % runner.runTask(event)
-    
+    args = urllib.base64.standard_b64decode( event )
+    args = ast.literal_eval(args)
+
+    runner = TaskRunner(args['verb_level'])
+    return "%s" % runner.runTask(args)
 
 
 
@@ -455,6 +458,7 @@ if __name__ == '__main__':
   (options, args) = parser.parse_args()
   # it expects a dictionary 
   opts = vars(options)
-  runner = TaskRunner(opts)
+  print("Running using %s" % pformat(opts))
+  runner = TaskRunner( opts['verb_level'] )
   print( "The Results: %s" % runner.runTask(opts) ) 
 

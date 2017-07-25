@@ -141,7 +141,7 @@
 		<tstamp />
 		<!-- Create the build directory structure used by compile -->
 		<mkdir dir="${main.dir}" />
-		<mkdir dir="${classes.dir}" />
+		<!-- <mkdir dir="${classes.dir}" /> -->
 	</target>
 
 	<target name="compile" depends="init" description="compiles the source ">
@@ -247,7 +247,7 @@
 		<delete dir="${base.dist.dir}" />
     	<delete dir="${doc.dir}" />
 		<delete dir="${report.dir}" />
-		<delete dir="${classes.dir}" />
+		<!-- <delete dir="${classes.dir}" /> -->
 	</target>
 	
   <!-- Creates a README file explaining that is is just an install directory -->

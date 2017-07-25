@@ -4,10 +4,14 @@
 from optparse import OptionParser
 import logging
 from pprint import pformat
-import boto3, botocore
+import boto3, botocore, requests
 import os, sys, traceback
 import tarfile, json
 from subprocess import call
+import boto3
+import urllib
+import ast
+
 
 class Test:
   
@@ -36,57 +40,36 @@ class Test:
     
     self.__runTest(cli_args)
 
+
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    
-    path ="/tmp/config"
-    cfg = os.path.join(path, 'ccdp-config.properties')
-    log = os.path.join(path, 'log4j.properties')
-    
-    self.__logger.info("Modifying the Configuration file")
-    if os.path.exists(cfg):
-      src = os.path.join(path, 'ccdp-config.ORIG')
-      os.rename(cfg, src)
-      tgt = open(cfg, 'w')
-      with open(src, 'r') as infile:
-        for line in infile:
-          new_line = "%s\n" % line.strip()
-          key_val = line.split('=')
-          if len(key_val) == 2:
-            key = key_val[0]
-            if key == 'log4j.config.file':
-              self.__logger.debug("Found the config file")
-              new_line = "%s=%s\n" % (key,log)
-            elif key == 'executor.src.jar.file':
-              self.__logger.debug("Found the jar file")
-              new_line = "%s=%s\n" % (key,os.path.join(path, 'mesos-ccdp-exec.jar') )
-          
-          tgt.write(new_line)    
-      
-      tgt.close()
-      infile.close()
-      
+    self.get_data()
+   
 
-    self.__logger.info("Modifying the Log4J file")
-    if os.path.exists(log):
-      src = os.path.join(path, 'log4j.properties.ORIG')
-      os.rename(log, src)
-      tgt = open(log, 'w')
-      with open(src, 'r') as infile:
-        for line in infile:
-          new_line = "%s\n" % line.strip()
-          key_val = line.split('=')
-          if len(key_val) == 2:
-            key = key_val[0]
-            if key == 'log4j.appender.logfile.file':
-              self.__logger.debug("Found the log file")
-              new_line = "%s=%s\n" % (key,os.path.join(path, 'logs/framework.log'))
-          
-          tgt.write(new_line)    
-      
-      tgt.close()
-      infile.close()
+  def get_instance_name(self, fid):
+      """
+          When given an instance ID as str e.g. 'i-1234567', return the instance 'Name' from the name tag.
+          :param fid:
+          :return:
+      """
+      ec2 = boto3.resource('ec2')
+      ec2instance = ec2.Instance(fid)
+      instancename = ''
+      for tags in ec2instance.tags:
+          if tags["Key"] == 'Name':
+              instancename = tags["Value"]
+      return instancename
 
+
+  def get_data(self):
+    #meta = boto.utils.get_instance_metadata()
+    #id = meta['instance-id']
+    try:
+      response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=2)
+      id = response.text
+      print "Getting Data: %s " % get_instance_name(id)
+    except:
+      print "Timed out, now what?"
 
         
 """

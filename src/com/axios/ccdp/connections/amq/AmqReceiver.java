@@ -190,6 +190,7 @@ public class AmqReceiver extends AmqConnector implements MessageListener
           else
           {
             this.logger.error("The Message does not have message type field " + keyFld);
+            this.logger.error("Payload: " + txtMsg.getText());
           }
         }
         

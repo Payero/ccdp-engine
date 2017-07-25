@@ -81,10 +81,12 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     {
       throw new RuntimeException("The configuration cannot be null");
     }
-    
-    this.setParam(config, "allocate.no.more.than", this.max_tasks);
-    this.setParam(config, "deallocate.avg.load.time", this.max_time);
-    
+    int tmp = this.getParam(config, "allocate.no.more.than");
+    if( tmp > 0 )
+      this.max_tasks = tmp;
+    tmp = this.getParam(config, "allocate.no.more.than");
+    if( tmp > 0 )
+      this.max_time = tmp;
   }
 
   /**
@@ -95,14 +97,14 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
    * @param field the name of the field to extract
    * @param param the parameter to set
    */
-  private void setParam(ObjectNode config, String field, int param)
+  private int getParam(ObjectNode config, String field)
   {
     if( config.has(field) )
     {
       int tmp = config.get(field).asInt();
       if( tmp > 0 )
       {
-        param = tmp;
+        return tmp;
       }
       else
       {
@@ -114,6 +116,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     {
       this.logger.warn("The field " + field + " was not found");
     }
+    return -1;
   }
   
   /**
@@ -156,7 +159,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       else
       {
         String txt = "Does not need Resources: the Average Load " + avgLoad + 
-            " is greater than allowed " + this.max_tasks;
+            " is lower than allowed " + this.max_tasks;
         this.logger.info(txt);
         return false;
       }
@@ -180,7 +183,6 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   public List<CcdpVMResource> deallocateResource(List<CcdpVMResource> resources)
   {
     long now = System.currentTimeMillis();
-    this.logger.info("Using last allocation time only");
     List<CcdpVMResource> terminate = new ArrayList<>();
     for( CcdpVMResource vm : resources )
     {
@@ -233,7 +235,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       //
       if( cpu == 0 )
       {
-        this.logger.info("CPU = " + cpu + " Assigning Task based on session");
+        this.logger.debug("CPU = " + cpu + " Assigning Task based on session");
         if( this.hasCapacity( task, target ) )
         {
           // cannot have a CPU less than the minimum required (mesos-master dies)
@@ -248,11 +250,11 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       }
       else if( cpu >= 100 )
       {
-        this.logger.info("CPU = " + cpu + " Assigning a Resource just for this task");
+        this.logger.debug("CPU = " + cpu + " Assigning a Resource just for this task");
         if( this.canAssignResource(task, target) )
         {
           //TODO Changing the task's cpu to make sure "it will fit"
-          this.logger.info("Setting the Task's CPU to max amount for this resource");
+          this.logger.debug("Setting the Task's CPU to max amount for this resource");
           task.setCPU(CcdpTaskRequest.MIN_CPU_REQ);
           task.setSubmitted(true);
           task.assigned();
@@ -264,7 +266,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
       }
       else
       {
-        this.logger.info("CPU = " + cpu + " Assigning Task using First Fit");
+        this.logger.debug("CPU = " + cpu + " Assigning Task using First Fit");
         if( this.canRunTask(task, target) )
         {
           task.setSubmitted(true);

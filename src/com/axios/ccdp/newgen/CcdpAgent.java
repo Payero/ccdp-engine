@@ -141,8 +141,18 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
     this.connection.registerConsumer(hostId, hostId);
     this.connection.registerProducer(this.toMain);
     
-    // sends the heartbeat 
-    this.timer = new ThreadedTimerTask(this, hb, hb);
+    boolean skip_hb = 
+        CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+    if( !skip_hb )
+    {
+      // sends the heartbeat 
+      this.timer = new ThreadedTimerTask(this, hb, hb);
+    }
+    else
+    {
+      this.logger.warn("Skipping Hearbeats");
+      this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    }
     
     this.runMain();
   }

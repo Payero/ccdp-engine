@@ -4,17 +4,18 @@
 from optparse import OptionParser
 import logging
 from pprint import pformat
-import boto3, botocore
+import boto3, botocore, boto.utils
 import os, sys, traceback
 import tarfile, json
 from subprocess import call
 import shutil
-import glob
+import glob, socket
 
 class CcdpInstaller:
   
   __CCDP_DIST = 'ccdp-engine.tgz'
   __MESOS_CFG = 'ccdp_mesos_settings.json'
+  __METADATA_URL = 'http://169.254.169.254/latest/meta-data/instance-id'
   
   
   __LEVELS = {"debug":    logging.DEBUG, 
@@ -47,6 +48,8 @@ class CcdpInstaller:
     
     if cli_args.action == 'download':
       self.__perform_download( cli_args )
+      self.__set_nickname()
+
     else:
       self.__perform_upload( cli_args )
 
@@ -70,6 +73,11 @@ class CcdpInstaller:
     self.__logger.debug("Downloading distribution file ")
     fpath = os.path.join(tgt_dir, self.__CCDP_DIST)
     self.__logger.debug("Saving file in %s" % fpath)
+    if not os.path.isdir(fpath):
+      os.makedirs(fpath)
+      os.chmod(fpath, 0750)
+
+
     bkt.download_file(self.__CCDP_DIST, fpath)
  
 
@@ -81,7 +89,60 @@ class CcdpInstaller:
     if params.set_mesos:
       self.__set_mesos( ccdp_root, params )
 
-    
+
+
+  def __set_nickname(self):
+    self.__logger.debug("Setting Nickname")
+    name = socket.gethostname()
+
+    try:
+      response = requests.get(self.__METADATA_URL, timeout=2)
+      iid = response.text
+      ec2 = boto3.resource('ec2')
+      ec2instance = ec2.Instance(iid)
+      for tags in ec2instance.tags:
+          if tags["Key"] == 'Name':
+              name = tags["Value"]
+              break
+
+      fname = '/etc/profile.d/prompt.sh'
+      if os.path.isfile(fname):
+        if os.getuid() != 0:
+          self.__logger.warn("")
+          self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
+          self.__logger.warn("")
+          cmd = ["sudo", "mv", fname, "/etc/profile.d/prompt.BACKUP"]
+        else:
+          cmd = ["mv", fname, "/etc/profile.d/prompt.BACKUP"]
+          
+        self.__logger.debug("Running: %s " % ' '.join( cmd ) )
+        n = call( cmd )
+
+      src_file = '/tmp/prompt.sh'
+      with file(src_file , 'w') as out:
+        out.write("export NICKNAME=%s" % name)
+        out.write("\n")
+        out.close()
+        os.chmod(src_file, 0644)
+        
+        if os.getuid() != 0:
+          self.__logger.warn("")
+          self.__logger.warn("WARNING: This script needs to be executed by root, will try using sudo")
+          self.__logger.warn("")
+          cmd = ["sudo", "mv", src_file, fname]
+        else:
+          cmd = ["mv", src_file, fname]
+          
+        self.__logger.debug("Running: %s " % ' '.join( cmd ) )
+        n = call( cmd )
+
+
+    except:
+      self.__logger.debug("Is not an EC2 Instance, skipping nickname")
+
+
+
+
   def __perform_upload(self, params):
     """
     First it attempt to create the ccdp-dist bucket in case this is the 
@@ -272,7 +333,7 @@ class CcdpInstaller:
     fpath = os.path.join(ccdp_root, "config/mesos", self.__MESOS_CFG)
     self.__logger.debug("Saving file in %s" % fpath)
     bkt.download_file(self.__MESOS_CFG, fpath)
-
+    os.chmod(fpath, 0777)
 
     if not os.path.isfile(fpath):
       self.__logger.error("The JSON mesos settings file was not found ")

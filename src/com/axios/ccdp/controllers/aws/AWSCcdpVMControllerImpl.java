@@ -334,11 +334,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     
     List<String> launched = null;
-    boolean launch = true;
-    if (launch)
-    {
-      return launched;
-    }
+    
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
     int max = imgCfg.getMaxReq();
@@ -731,7 +727,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public static AWSCredentials getAWSCredentials( ObjectNode config )
   {
-    logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
     if( config == null )
       throw new IllegalArgumentException("The config cannot be null");

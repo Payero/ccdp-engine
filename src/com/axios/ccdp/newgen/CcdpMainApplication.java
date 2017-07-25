@@ -5,7 +5,6 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +35,6 @@ import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.message.StartSessionMessage;
 import com.axios.ccdp.message.TaskUpdateMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
-import com.axios.ccdp.message.UndefinedMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -132,6 +130,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private int agent_time_limit = 20;
   
   /**
+   * Flag indicating whether or not heartbeats are being ignored
+   */
+  private boolean skip_hb = false;
+  
+  /**
    * Instantiates a new object and if the 'jobs' argument is not null then
    * it executes all the tasks specified in the given file
    * 
@@ -205,7 +208,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }
     }// end of the do not terminate section
     
-    
+    this.skip_hb = 
+        CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
 
     // Let's check what is out there....
     int cycle = 5;;
@@ -272,8 +276,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       
       for( String sid : this.resources.keySet() )
       {
-        // removes all resources that have failed to update
-        this.removeUnresponsiveResources(sid);
+        if( !this.skip_hb )
+        {
+          // removes all resources that have failed to update
+          this.removeUnresponsiveResources(sid);
+        }
         
         // don't need to check allocation or deallocation for free agents
         // as this is taken cared in the checkFreeVMRequirements() method
@@ -585,7 +592,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setCPULoad(vm.getCPULoad());
           // resetting all the tasks by first removing them all and then 
           // adding them
-          
           res.removeAllTasks();
           res.getTasks().addAll(vm.getTasks());
           res.setLastUpdatedTime(System.currentTimeMillis());

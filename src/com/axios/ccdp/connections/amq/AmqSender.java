@@ -117,6 +117,8 @@ public class AmqSender extends AmqConnector
           message.setStringProperty(key, val);
         }
       }
+      this.logger.info("````````````````MESSAGE BODY IS: " + body.toString());
+      this.logger.info("--------------------  MESSSSSSSAGEEEEEEEEEEEEEEEEEEEEEEE IS:::: " + message);
       CcdpMessage.buildMessage(body, message);
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
       
@@ -169,11 +171,11 @@ public class AmqSender extends AmqConnector
           message.setStringProperty(key, val);
         }
       }
-      
       CcdpMessage.buildMessage(body, message);
       Destination dest = this.session.createQueue(destination);
       producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
+      this.logger.info("Sent: " + message.getText());
       this.logger.debug("Sent: " + message.getText());
   
     } 

@@ -359,7 +359,12 @@ public class AvgLoadControllerImpl
     Map<CcdpVMResource, List<CcdpTaskRequest>> tasked = new HashMap<>();
     
     if( resources == null || resources.isEmpty() )
+    {
+      System.out.println("SOMETHING WAS NULL OR EMPTY");
       return tasked;
+    }
+    
+    System.out.println("NUMBER OF TASKS WE HAVE IS: " + tasks.size());
     
     for( CcdpTaskRequest task: tasks )
     {
@@ -394,18 +399,21 @@ public class AvgLoadControllerImpl
       }
       else if( cpu >= 100 )
       {
-        this.logger.info("CPU = " + cpu + " Assigning a Resource just for this task");
+        this.logger.info("CPU = " + cpu + " Assigning a Resource just for task " + task.getName());
         CcdpVMResource target = this.getAssignedResource(task, resources);
         if( target != null  )
         {
+          this.logger.info("FOUND A NOT NULL TARGET. ACTUALLY ASSIGNED");
           String iid = target.getInstanceId();
           task.assigned();
           task.setHostId( iid );
-          //removed::  task is added in sendTaskRequest
-          //target.addTask(task);
           if( !tasked.containsKey( target ) )
             tasked.put(target, new ArrayList<CcdpTaskRequest>());
           tasked.get(target).add( task );
+        }
+        else
+        {
+          this.logger.warn("FAILED TO FIND AN ASSIGNED RESOURCE FOR THE TASK " + task.getName());
         }
       }
       else
@@ -488,13 +496,13 @@ public class AvgLoadControllerImpl
    /**
     * Finds the VM that is assigned to this task.  This method is invoked when 
     * a task requires to be executed alone on a VM.  If the VM is found and its
-    * ResourceStatus is set to RUNNING then it returns true otherwise it returns
-    * false
+    * ResourceStatus is set to RUNNING then it returns the resource otherwise returns
+    * null
     * 
     * @param task the task to assign to the VM 
     * @param resource the VM to test for assignment
     * 
-    * @return true if the VM is found and is RUNNING
+    * @return the VM if found and is RUNNING
     */
    private CcdpVMResource getAssignedResource(CcdpTaskRequest task, 
        List<CcdpVMResource> resources )
@@ -505,18 +513,28 @@ public class AvgLoadControllerImpl
      {
        String id = resource.getInstanceId();
        this.logger.debug("Comparing Host " + id + " and task's Host Id " + hid);
-       if( hid != null && hid.equals( id ) )
+       if( (hid != null && hid.equals( id )) || resource.isFree() )
        {
          this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
-         if( resource.getStatus().equals(ResourceStatus.RUNNING) )
-         {
-           String tid = task.getTaskId();
-           this.logger.info("VM " + id + " was assigned to task " + tid);
-           return resource;
-         }
-         else
-         {
-           this.logger.info("Found assigned resource but is not RUNNING");
+         if (!resource.isSingleTasked()) {
+           if( resource.getStatus().equals(ResourceStatus.RUNNING)  ||
+               resource.getStatus().equals(ResourceStatus.LAUNCHED))
+           {
+             String tid = task.getTaskId();
+             this.logger.info("VM " + id + " was assigned to task " + tid);
+             //Since this method is only called when the task needs to be executed alone we set
+             //the vm as single tasked
+             resource.setSingleTask(task.getTaskId());
+             return resource;
+           }
+           else
+           {
+             this.logger.info("Found assigned resource but is not RUNNING");
+           }
+         } else {
+           //delete this else statement laster
+           this.logger.info("FOUND RESOURCE :; " + resource.getInstanceId() +
+               " BUT IT'S ALREADY BEEN TASKED TO : :: " + resource.getSingleTask());
          }
        }
      }

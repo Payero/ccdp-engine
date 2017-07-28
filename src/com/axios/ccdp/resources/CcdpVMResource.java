@@ -1008,9 +1008,10 @@ public class CcdpVMResource implements Serializable
     {
 
       // consider only running VMs
-      if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()) )
-        continue;
-      
+//      if( (onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()) )
+//          || ResourceStatus.LAUNCHED.equals(res.getStatus())) //TODO: CHANGE THIS IF WE FIX RESOURCES
+//        continue;
+//      
       // if is just the first one, then just set it as the least one
       if( first )
       {
@@ -1043,7 +1044,8 @@ public class CcdpVMResource implements Serializable
     }
     if (least == null)
     {
-      System.out.println("ERROR:::: TRYING TO RETURN A NULL TARGET IN LEASTUSED ");
+        System.out.println("ERROR:::: TRYING TO RETURN A NULL TARGET IN LEASTUSED(), "
+            + " NO RUNNING RESOURCES");
     }
     
     return least;

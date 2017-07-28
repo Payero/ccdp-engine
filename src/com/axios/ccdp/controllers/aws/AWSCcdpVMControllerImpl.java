@@ -64,6 +64,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   public static final String FLD_PROFILE_NAME = "profile.name";
   /** The type of instance to deploy (default t2.micro) */
   public static final String FLD_INST_TYPE    = "instance.type";
+  /** The arguments to pass to the ccdp_install.py script */
+  public static final String FLD_INSTALL_ARGS    = "install.args";
   
   /** The region to use, if other than default */
   public static final String FLD_REGION    = "region";
@@ -89,7 +91,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * Stores the command to execute at startup
    */
   public static final String USER_DATA =  "#!/bin/bash\n\n "
-      + "/data/ccdp_install.py -a download -i ";
+      + "/data/ccdp_install.py -a download ";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -357,6 +359,13 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     // Do we need to add session id?
     String user_data = USER_DATA;
+    if( this.config.has(FLD_INSTALL_ARGS) )
+    {
+      String args = this.config.get(FLD_INSTALL_ARGS).asText();
+      logger.debug("Setting install arguments " + args);
+      user_data += " " + args;
+    }
+    
     if ( session_id != null )
       user_data += "-s " + session_id;
     

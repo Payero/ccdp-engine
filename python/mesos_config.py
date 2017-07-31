@@ -4,6 +4,8 @@ import os, sys, json, time, math, socket, uuid
 from pprint import pprint, pformat
 from string import Template
 import logging
+import requests 
+
 
 class MesosConfig:
 
@@ -58,22 +60,19 @@ class MesosConfig:
       self.__logger.error("ERROR: The mesos-type (MASTER or SLAVE) is required ")
       sys.exit(-1)
   
-    is_aws = True
+    is_aws = False
     try:
-      skt = socket.create_connection(("169.254.169.254", 80), 1)
+      url = 'http://169.254.169.254/latest/dynamic/instance-identity/document'
+      response = requests.get(url, timeout=2)
+      data = response.text
+      config = json.loads(data)
+      url = 'http://169.254.169.254/latest/meta-data/hostname'
+      response = requests.get(url, timeout=2)
+      config['hostname'] = response.text
       is_aws = True
+
     except:
       self.__logger.info("Could not connect to 169.254.169.254:80, not running on AWS")
-      is_aws =  False
-  
-    if is_aws:
-      cmd = "wget -O /tmp/document http://169.254.169.254/latest/dynamic/instance-identity/document"
-      os.system(cmd)
-      obj = file('/tmp/document', 'r')
-      data = obj.read()
-      config = json.loads(data)
-    else:
-      self.__logger.debug("Running outside of AWS")
       # generates a uuid and takes only the last 2 parts to generate 
       # i-aaaa-bbbbbcccc
       #iid = "i-%s" % "-".join(str(uuid.uuid1()).split('-')[3:])
@@ -84,12 +83,13 @@ class MesosConfig:
   
       config = {"instanceId": iid,
                 "imageId": "ami-417e6156",
-                "privateIp": ip}
+                "hostname": ip,
+                "hostname": ip}
   
   
     cli_data['instance-id'] = config.get('instanceId')
     cli_data['image-id']    = config.get('imageId')
-    cli_data['ip-address']  = config.get('privateIp')
+    cli_data['ip-address']  = config.get('hostname')
   
     self.__logger.debug("Testing Config: %s" % str(config) )
     if cli_data.has_key('clean-work-dir'):

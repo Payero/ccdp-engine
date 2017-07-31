@@ -10,7 +10,7 @@ import tarfile, json
 from subprocess import call
 import boto3
 import urllib
-import ast
+import ast, socket
 
 
 class Test:
@@ -43,20 +43,9 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    args ='broker_host=localhost,task_id=csv-reader,broker_port=61616'
-    d = {'broker-host':'localhost', 'task-id':'csv-display', 'broker-port':61616}
-    try:
-      s = urllib.base64.standard_b64decode( args )
-    except:
-      self.__logger.warn("Could not decode")
+    ip = str([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
 
-    enc = urllib.base64.standard_b64encode( str(d) )
-    self.__logger.debug('The Encoded value: %s' % enc)
-    s = urllib.base64.standard_b64decode( enc )
-    self.__logger.debug('The Decoded value as string: %s' % s)
-    dec = ast.literal_eval(s)
-    self.__logger.debug('The Decoded value: %s' % dec)
-        
+    self.__logger.debug("IP %s" % ip)    
 """
   Runs the application by instantiating a new Test object and passing all the
   command line arguments

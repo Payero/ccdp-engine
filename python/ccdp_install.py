@@ -124,8 +124,15 @@ class CcdpInstaller:
       self.__perform_download( cli_args )
 
     elif cli_args.action == 'upload':
-      if loc == None or not os.path.isdir(loc):
-        self.__logger.error("The target location %s is invalid" % loc)
+      msg = None
+      if loc == None:
+        msg = "The target location cannot be None so it needs to be provided"
+      elif not loc.startswith(self.__S3_PROT):
+        if not os.path.isdir(loc):
+          msg = "The target directory %s does not exists" % loc
+
+      if msg is not None:
+        self.logger.error(msg)
         sys.exit(-1)
 
       self.__perform_upload( cli_args )

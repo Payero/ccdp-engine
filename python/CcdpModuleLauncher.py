@@ -27,6 +27,12 @@ def check_ccdp_args(option, opt, value):
     - else it throws an error
   '''
   try:
+      dec_str = urllib.base64.standard_b64decode( value )
+      return ast.literal_eval( dec_str )
+    except:
+      self.__logger.warn("Arguments were not base64 encoded, using custom")
+
+  try:
     
     vals = value.split(',')
     # if is a single value, return it
@@ -335,8 +341,8 @@ if __name__ == '__main__':
   desc += "that module is one of the required arguments."
   parser = OptionParser(usage="usage: %prog [options] args",
             version="%prog 1.0",
-            description=desc,
-            option_class=CcdpArgOption)
+            description=desc)
+            #option_class=CcdpArgOption)
   
   parser.add_option('-v', '--verbosity-level',
             type='choice',

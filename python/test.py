@@ -43,34 +43,19 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    self.get_data()
-   
-
-  def get_instance_name(self, fid):
-      """
-          When given an instance ID as str e.g. 'i-1234567', return the instance 'Name' from the name tag.
-          :param fid:
-          :return:
-      """
-      ec2 = boto3.resource('ec2')
-      ec2instance = ec2.Instance(fid)
-      instancename = ''
-      for tags in ec2instance.tags:
-          if tags["Key"] == 'Name':
-              instancename = tags["Value"]
-      return instancename
-
-
-  def get_data(self):
-    #meta = boto.utils.get_instance_metadata()
-    #id = meta['instance-id']
+    args ='broker_host=localhost,task_id=csv-reader,broker_port=61616'
+    d = {'broker-host':'localhost', 'task-id':'csv-display', 'broker-port':61616}
     try:
-      response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=2)
-      id = response.text
-      print "Getting Data: %s " % get_instance_name(id)
+      s = urllib.base64.standard_b64decode( args )
     except:
-      print "Timed out, now what?"
+      self.__logger.warn("Could not decode")
 
+    enc = urllib.base64.standard_b64encode( str(d) )
+    self.__logger.debug('The Encoded value: %s' % enc)
+    s = urllib.base64.standard_b64decode( enc )
+    self.__logger.debug('The Decoded value as string: %s' % s)
+    dec = ast.literal_eval(s)
+    self.__logger.debug('The Decoded value: %s' % dec)
         
 """
   Runs the application by instantiating a new Test object and passing all the

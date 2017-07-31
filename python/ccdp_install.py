@@ -393,6 +393,18 @@ class CcdpInstaller:
       self.__logger.debug("Changing permission to %s" % name)
       os.chmod(name, 0777)
 
+    cfg_dir = os.path.join(inst_path, "config")
+    os.chmod(cfg_dir, 0777)
+    for name in glob.glob("%s/*" % cfg_dir):
+      self.__logger.debug("Changing permission to %s" % name)
+      os.chmod(name, 0666)
+
+    log_dir = os.path.join(inst_path, "logs")
+    os.chmod(log_dir, 0777)
+    for name in glob.glob("%s/*" % log_dir):
+      self.__logger.debug("Changing permission to %s" % name)
+      os.chmod(name, 0666)
+
 
     self.__logger.info("Modifying the Configuration file")
     if os.path.exists(cfg):

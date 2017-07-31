@@ -64,8 +64,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   public static final String FLD_PROFILE_NAME = "profile.name";
   /** The type of instance to deploy (default t2.micro) */
   public static final String FLD_INST_TYPE    = "instance.type";
-  /** The arguments to pass to the ccdp_install.py script */
-  public static final String FLD_INSTALL_ARGS    = "install.args";
+  /** The command to run under a bash script */
+  public static final String FLD_INSTALL_COMMAND    = "install.command";
   
   /** The region to use, if other than default */
   public static final String FLD_REGION    = "region";
@@ -90,8 +90,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Stores the command to execute at startup
    */
-  public static final String USER_DATA =  "#!/bin/bash\n\n "
-      + "/data/ccdp_install.py -a download ";
+  public static final String USER_DATA =  "#!/bin/bash\n\n ";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -220,105 +219,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
   }
   
-//  /**
-//   * Starts one or more VM instances using the defined Image ID as given by the
-//   * imageId argument.  The number of instances are determined by the min and 
-//   * max arguments.  If the tags is not null then they are set and the new 
-//   * Virtual Machine will contain them.
-//   * 
-//   * @param min the minimum number of Virtual Machines to create
-//   * @param max the maximum number of Virtual Machines to create
-//   * 
-//   * @return a list of unique Virtual Machine identifiers
-//   */
-//  @Override
-//  public List<String> startInstances(int min, int max )
-//  {
-//    String imgId = this.config.get(FLD_IMAGE_ID).asText();
-//    HashMap<String, String> map = null;
-//    
-//    if(this.config.has(FLD_TAGS))
-//    {
-//      JsonNode tags = this.config.get(FLD_TAGS);
-//      
-//      try
-//      {
-//        if( tags != null )
-//        {
-//          map = this.mapper.readValue(tags.asText(),
-//              new TypeReference<HashMap<String, String>>() {
-//              });
-//        }
-//      }
-//      catch( IOException e )
-//      {
-//        logger.error("Message: " + e.getMessage(), e);
-//      }  
-//    }
-//    
-//    return this.startInstances(imgId, min, max, null);
-//  }
-//
-//  /**
-//   * Starts one or more VM instances using the defined Image ID as given by the
-//   * imageId argument.  The number of instances are determined by the min and 
-//   * max arguments.  If the tags is not null then they are set and the new 
-//   * Virtual Machine will contain them.
-//   * 
-//   * @param min the minimum number of Virtual Machines to create
-//   * @param max the maximum number of Virtual Machines to create
-//   * 
-//   * @return a list of unique Virtual Machine identifiers
-//   */
-//  @Override
-//  public List<String> startInstances(int min, int max, String session_id )
-//  {
-//    String imgId = this.config.get(FLD_IMAGE_ID).asText();
-//    HashMap<String, String> map = null;
-//    
-//    if(this.config.has(FLD_TAGS))
-//    {
-//      JsonNode tags = this.config.get(FLD_TAGS);
-//      
-//      try
-//      {
-//        if( tags != null )
-//        {
-//          map = this.mapper.readValue(tags.asText(),
-//              new TypeReference<HashMap<String, String>>() {
-//              });
-//        }
-//      }
-//      catch( IOException e )
-//      {
-//        logger.error("Message: " + e.getMessage(), e);
-//      }  
-//    }
-//    
-//    return this.startInstances(imgId, min, max, session_id, map);
-//  }
-//  
-//
-//  /**
-//   * Starts one or more VM instances using the defined Image ID as given by the
-//   * imageId argument.  The number of instances are determined by the min and 
-//   * max arguments.  If the tags is not null then they are set and the new 
-//   * Virtual Machine will contain them.
-//   * 
-//   * @param imgId the image to use to create new Virtual Machines
-//   * @param min the minimum number of Virtual Machines to create
-//   * @param max the maximum number of Virtual Machines to create
-//   * @param tags optional map containing key-value pairs to set
-//   * 
-//   * @return a list of unique Virtual Machine identifiers
-//   */
-//  @Override
-//  public List<String> startInstances(String imgId, int min, int max, 
-//                                  Map<String, String> tags)
-//  {
-//    return this.startInstances(imgId, min, max, null, tags);
-//  }
-
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
    * imageId argument.  The number of instances are determined by the min and 
@@ -359,11 +259,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     // Do we need to add session id?
     String user_data = USER_DATA;
-    if( this.config.has(FLD_INSTALL_ARGS) )
+    if( this.config.has(FLD_INSTALL_COMMAND) )
     {
-      String args = this.config.get(FLD_INSTALL_ARGS).asText();
-      logger.debug("Setting install arguments " + args);
-      user_data += " " + args;
+      String command = this.config.get(FLD_INSTALL_COMMAND).asText();
+      logger.debug("Using install command " + command);
+      user_data += " " + command;
     }
     
     if ( session_id != null )

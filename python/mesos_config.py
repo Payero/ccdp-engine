@@ -83,7 +83,7 @@ class MesosConfig:
   
       config = {"instanceId": iid,
                 "imageId": "ami-417e6156",
-                "hostname": ip,
+                "privateIp": ip,
                 "hostname": ip}
   
   

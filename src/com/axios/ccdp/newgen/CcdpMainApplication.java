@@ -270,6 +270,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public void onEvent()
   {
+    this.logger.debug("Checking Resources");
     synchronized( this.resources )
     {
       this.checkFreeVMRequirements();
@@ -302,7 +303,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void removeUnresponsiveResources(String sid)
   {
-    this.logger.debug("Checking for unresponsive VMs for session " + sid);
+    this.logger.trace("Checking for unresponsive VMs for session " + sid);
     
     List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
     List<CcdpVMResource> remove = new ArrayList<>();
@@ -600,6 +601,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     else  // found a session-id
     {
+      this.logger.debug("Updating Agent " + sid);
       for( CcdpVMResource res : this.getResourcesBySessionId(sid) )
       {
         this.logger.debug("Comparing " + res.getInstanceId() + 
@@ -1060,7 +1062,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           }// I do need free agents
         
           // Now checking to make sure there are no more free agents than needed        
-          this.logger.debug("Making sure we deallocate free nodes as well");
+          this.logger.trace("Making sure we deallocate free nodes as well");
           int over = available - free_vms;
           int done = 0;
           List<String> terminate = new ArrayList<>();
@@ -1259,7 +1261,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private List<CcdpVMResource> getResourcesBySessionId( String sid )
   {
-    this.logger.debug("Getting resources for [" + sid +"]");
+    this.logger.trace("Getting resources for [" + sid +"]");
     if( sid == null )
     {
       this.logger.error("The Session ID cannot be null");
@@ -1271,13 +1273,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       if( this.resources.containsKey( sid ) )
       {
-        this.logger.debug("Number of resources available is: " + this.resources.get(sid).size());
+        this.logger.trace("Number of resources available is: " + this.resources.get(sid).size());
         List<CcdpVMResource> assigned = this.resources.get(sid);
         for( CcdpVMResource res : assigned )
         {
           if( !ResourceStatus.SHUTTING_DOWN.equals(res.getStatus() ) )
           {
-            this.logger.debug("Found Resource based on SID, adding it to list");
+            this.logger.trace("Found Resource based on SID, adding it to list");
             list.add(res);
           }
           else

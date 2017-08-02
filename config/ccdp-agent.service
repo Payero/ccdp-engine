@@ -1,0 +1,22 @@
+# After making changes and to install do the following:
+#
+#   systemctl daemon-reload
+#   systemctl enable ccdp-agent.service
+#   systemctl start ccdp-agent
+#
+
+
+[Unit]
+Description=Ccdp Agent
+After=network.target
+
+[Service]
+User=root
+Restart=always
+Type=forking
+ExecStart=/data/ccdp/ccdp-engine/bin/ccdp_agent.sh start
+ExecStop=/data/ccdp/ccdp-engine/bin/ccdp_agent.sh stop
+
+[Install]
+WantedBy=multi-user.target
+

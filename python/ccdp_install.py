@@ -332,6 +332,12 @@ class CcdpInstaller:
         self.__set_mesos( mesos_file, params.tgt_location, params.session_id )
 
 
+    # Runs an agent 
+    if params.worker_agent:
+      self.__logger.info("Starting a ccdp-agent worker")
+      os.system("systemctl start ccdp-agent")
+
+
   def __perform_upload(self, params):
     """
     First it attempt to create the ccdp-dist bucket in case this is the 
@@ -618,7 +624,9 @@ if __name__ == '__main__':
         default=None,
         help="The session id this VM is assigned to ")
 
-  
+  parser.add_option("-w", "--worker-agent",
+        action="store_true", dest="worker_agent", default=False,
+        help="Starts a ccdp-agent if this option is present")  
 
 
   (options, args) = parser.parse_args()

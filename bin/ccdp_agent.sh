@@ -12,7 +12,7 @@
 export JAVA_APP="com.axios.ccdp.newgen.CcdpAgent"
 export BASE_NAME="CcdpAgent"
 export CCDP_JAR_NAME="ccdp-engine.jar"
-export CCDP_SKIP_REDIRECTION=1
+#export CCDP_SKIP_REDIRECTION=1
 echo "Running from $CCDP_HOME"
 
 if [ -z "$CCDP_HOME" ]; then

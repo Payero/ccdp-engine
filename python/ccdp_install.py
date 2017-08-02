@@ -124,8 +124,15 @@ class CcdpInstaller:
       self.__perform_download( cli_args )
 
     elif cli_args.action == 'upload':
-      if loc == None or not os.path.isdir(loc):
-        self.__logger.error("The target location %s is invalid" % loc)
+      msg = None
+      if loc == None:
+        msg = "The target location cannot be None so it needs to be provided"
+      elif not loc.startswith(self.__S3_PROT):
+        if not os.path.isdir(loc):
+          msg = "The target directory %s does not exists" % loc
+
+      if msg is not None:
+        self.logger.error(msg)
         sys.exit(-1)
 
       self.__perform_upload( cli_args )
@@ -323,6 +330,19 @@ class CcdpInstaller:
 
       if os.path.isfile(mesos_file):
         self.__set_mesos( mesos_file, params.tgt_location, params.session_id )
+    else:
+      self.__logger.info("No mesos file provided, skipping mesos")
+
+
+    # Runs an agent 
+    if params.worker_agent:
+      self.__logger.info("Starting a ccdp-agent worker")
+      cfg_file = "ccdp-engine/config/ccdp-agent.service"
+      src = os.path.join(params.tgt_location, cfg_file)
+      shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
+      os.system("systemctl daemon-reload")
+      os.system("systemctl enable ccdp-agent.service")      
+      os.system("systemctl start ccdp-agent")
 
 
   def __perform_upload(self, params):
@@ -611,7 +631,9 @@ if __name__ == '__main__':
         default=None,
         help="The session id this VM is assigned to ")
 
-  
+  parser.add_option("-w", "--worker-agent",
+        action="store_true", dest="worker_agent", default=False,
+        help="Starts a ccdp-agent if this option is present")  
 
 
   (options, args) = parser.parse_args()

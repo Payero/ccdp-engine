@@ -10,7 +10,7 @@ import tarfile, json
 from subprocess import call
 import boto3
 import urllib
-import ast
+import ast, socket
 
 
 class Test:
@@ -43,35 +43,9 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    self.get_data()
-   
+    ip = str([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
 
-  def get_instance_name(self, fid):
-      """
-          When given an instance ID as str e.g. 'i-1234567', return the instance 'Name' from the name tag.
-          :param fid:
-          :return:
-      """
-      ec2 = boto3.resource('ec2')
-      ec2instance = ec2.Instance(fid)
-      instancename = ''
-      for tags in ec2instance.tags:
-          if tags["Key"] == 'Name':
-              instancename = tags["Value"]
-      return instancename
-
-
-  def get_data(self):
-    #meta = boto.utils.get_instance_metadata()
-    #id = meta['instance-id']
-    try:
-      response = requests.get('http://169.254.169.254/latest/meta-data/instance-id', timeout=2)
-      id = response.text
-      print "Getting Data: %s " % get_instance_name(id)
-    except:
-      print "Timed out, now what?"
-
-        
+    self.__logger.debug("IP %s" % ip)    
 """
   Runs the application by instantiating a new Test object and passing all the
   command line arguments

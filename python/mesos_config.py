@@ -89,7 +89,8 @@ class MesosConfig:
   
     cli_data['instance-id'] = config.get('instanceId')
     cli_data['image-id']    = config.get('imageId')
-    cli_data['ip-address']  = config.get('hostname')
+    cli_data['hostname']  = config.get('hostname')
+    cli_data['ip-address']  = config.get('privateIp')
   
     self.__logger.debug("Testing Config: %s" % str(config) )
     if cli_data.has_key('clean-work-dir'):
@@ -101,7 +102,7 @@ class MesosConfig:
   
   
     # Replaces the hostname and hosts file using the private IP Address
-    self.__set_network( cli_data['ip-address'], is_aws )
+    self.__set_network( cli_data['hostname'], is_aws )
     cli_data['zk'] = self.__set_zookeeper( cli_data, is_aws )
   
   

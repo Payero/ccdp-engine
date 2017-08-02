@@ -330,11 +330,18 @@ class CcdpInstaller:
 
       if os.path.isfile(mesos_file):
         self.__set_mesos( mesos_file, params.tgt_location, params.session_id )
+    else:
+      self.__logger.info("No mesos file provided, skipping mesos")
 
 
     # Runs an agent 
     if params.worker_agent:
       self.__logger.info("Starting a ccdp-agent worker")
+      cfg_file = "ccdp-engine/config/ccdp-agent.service"
+      src = os.path.join(params.tgt_location, cfg_file)
+      shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
+      os.system("systemctl daemon-reload")
+      os.system("systemctl enable ccdp-agent.service")      
       os.system("systemctl start ccdp-agent")
 
 

@@ -342,7 +342,8 @@ public class AmqReceiver extends AmqConnector implements MessageListener
     this.logger.info("Disconnecting");
     try
     {
-      this.receiver.close();
+      if( this.receiver != null )
+        this.receiver.close();
       super.disconnect();
     }
     catch ( JMSException e)

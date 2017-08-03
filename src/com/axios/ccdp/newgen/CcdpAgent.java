@@ -22,6 +22,7 @@ import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.message.KillTaskMessage;
+import com.axios.ccdp.message.ResourceUpdateMessage;
 import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
@@ -100,7 +101,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
-    this.logger.debug("Done with the connections");
+    this.logger.debug("Done with the connections: " + task_msg_node.toString());
 
     
     String hostId = null;
@@ -250,7 +251,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
    */
   public void onEvent()
   {
-    this.logger.debug("Sending Heartbeat");
+    this.logger.debug("Sending Heartbeat to " + this.toMain);
     this.updateResourceInfo();
     this.connection.sendHeartbeat(this.toMain, this.vmInfo);
   }

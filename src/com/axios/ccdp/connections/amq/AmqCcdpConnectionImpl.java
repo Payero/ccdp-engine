@@ -244,15 +244,12 @@ public class AmqCcdpConnectionImpl
   {
     synchronized( this.senders )
     {
-      if( this.senders.containsKey(channel) )
-      {
-        AmqSender sender = this.senders.get(channel);
-        sender.sendMessage(channel, props,  msg, ttl);
-      }
-      else
-      {
-        this.logger.error("Could not find a registered sender for " + channel );
-      }
+      if( !this.senders.containsKey(channel) )
+        this.registerProducer(channel);
+
+      AmqSender sender = this.senders.get(channel);
+      sender.sendMessage(channel, props,  msg, ttl);
+
     }
   }
   
@@ -334,7 +331,8 @@ public class AmqCcdpConnectionImpl
       this.senders.clear();
     }
     
-    this.receiver.disconnect();
+    if( this.receiver != null )
+      this.receiver.disconnect();
     this.registrations.clear();
   }
 
@@ -366,7 +364,7 @@ public class AmqCcdpConnectionImpl
   {
     ResourceUpdateMessage msg = new ResourceUpdateMessage();
     msg.setCcdpVMResource(resource);
-    this.sendCcdpMessage(channel, msg, this.hbTTLMills );
+    this.sendCcdpMessage(channel, msg);
   }
   
   /**

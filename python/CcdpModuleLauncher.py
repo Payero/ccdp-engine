@@ -13,7 +13,7 @@ from pprint import pformat, pprint
 import os, sys, traceback
 import tarfile
 from subprocess import call
-import shutil, ast
+import shutil, ast, urllib
 
 
 def check_ccdp_args(option, opt, value):
@@ -27,10 +27,10 @@ def check_ccdp_args(option, opt, value):
     - else it throws an error
   '''
   try:
-      dec_str = urllib.base64.standard_b64decode( value )
-      return ast.literal_eval( dec_str )
-    except:
-      self.__logger.warn("Arguments were not base64 encoded, using custom")
+    dec_str = urllib.base64.standard_b64decode( value )
+    return ast.literal_eval( dec_str )
+  except:
+    print("Argument %s is not base64 encoded, using custom" % value)
 
   try:
     
@@ -124,10 +124,10 @@ class ModuleRunner:
 
     if cli_args['file_name'] is None:
       self.__logger.debug('Using a bucket rather than a file')
-      self.__runS3Task(cli_args)
+      #self.__runS3Task(cli_args)
     else:
       self.__logger.debug('Using a file rather than an S3 bucket')
-      self.__runFileTask(cli_args)
+      #self.__runFileTask(cli_args)
 
 
   def __runFileTask(self, params):
@@ -341,8 +341,8 @@ if __name__ == '__main__':
   desc += "that module is one of the required arguments."
   parser = OptionParser(usage="usage: %prog [options] args",
             version="%prog 1.0",
-            description=desc)
-            #option_class=CcdpArgOption)
+            description=desc,
+            option_class=CcdpArgOption)
   
   parser.add_option('-v', '--verbosity-level',
             type='choice',

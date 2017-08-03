@@ -3,11 +3,13 @@ package com.axios.ccdp.connections.amq;
 import java.util.Iterator;
 import java.util.Map;
 
+import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageProducer;
 import javax.jms.TextMessage;
 
+import org.apache.activemq.Message;
 import org.apache.log4j.Logger;
 import com.axios.ccdp.message.CcdpMessage;
 
@@ -30,9 +32,9 @@ public class AmqSender extends AmqConnector
    */
   private MessageProducer producer = null;
   
-  private int defDelivMode = 0;
-  private int defPriority = 0;
-  private int defTTL = 0;
+  private int defDelivMode = DeliveryMode.PERSISTENT;       // 1 or 2, P = 2
+  private int defPriority  = Message.DEFAULT_PRIORITY;      // 0 - 9, Def = 4
+  private long defTTL      = Message.DEFAULT_TIME_TO_LIVE;  // Def 0
   
   /**
    * Default constructor, it does not do anything 
@@ -172,6 +174,12 @@ public class AmqSender extends AmqConnector
       
       CcdpMessage.buildMessage(body, message);
       Destination dest = this.session.createQueue(destination);
+      
+      // ********************  IMPORTANTE NOTE!! IMPORTANTE NOTE!!  **********
+      //
+      //     seems to be a problem if ttl is set to a non-zero value
+      //
+      //********************  IMPORTANTE NOTE!! IMPORTANTE NOTE!!  **********
       producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
       this.logger.debug("Sent: " + message.getText());

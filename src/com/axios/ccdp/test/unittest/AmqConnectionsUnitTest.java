@@ -118,7 +118,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     }
   }
   
-  @Test
+  //@Test
   public void testMessageWithOptions()
   {
     this.logger.debug("Testing Message with Options");

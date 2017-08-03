@@ -536,6 +536,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
+<<<<<<< HEAD
    * Checks if there are any available default resources and assigns it
    * to the session that needs it if possible
    * 
@@ -564,11 +565,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
+=======
+>>>>>>> 72c0351199c07a71fd9a8edd9f0f9ce93e9244cb
    * Changes a resource's session to who is using it. Updates the resource
    * list to reflect what is available.
    * 
    * @param vm the resource that is changing its assigned session
+<<<<<<< HEAD
    * @param sid the session id to be changed to
+=======
+   * @param sid the session id to be changed to, DEFAULT if task list is 0
+>>>>>>> 72c0351199c07a71fd9a8edd9f0f9ce93e9244cb
    */
   private void changeSession(CcdpVMResource vm, String sid)
   {
@@ -712,6 +719,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
+              //TODO: POSSIBLY UNCOMMMENT THIS OUT
               //this.requests.remove(req);
               this.logger.info("Job (" + task.getTaskId() + ") Finished");
               break;
@@ -983,7 +991,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         String sid = req.getSessionId();
         List<CcdpVMResource> resources = 
             this.getResourcesBySessionId(req.getSessionId());
-        
         if (resources.size() == 0)
         {
           this.logger.info("No resources available for Session:: " + req.getSessionId() + ". Request::: " +
@@ -996,6 +1003,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         
         
         System.out.println("TRYING TO ASSIGN TASKS NOW, size is: " + resources.size());
+
         Map<CcdpVMResource, List<CcdpTaskRequest>> map = 
             this.tasker.assignTasks(req.getTasks(), resources);
         for( CcdpVMResource resource : map.keySet() )

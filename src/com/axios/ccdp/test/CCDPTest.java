@@ -43,7 +43,6 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-
    String id = "i-test-bff4b6a0c8c5";
    String cp = "i-test-bff4b6a0c8c5";
    
@@ -70,6 +69,7 @@ public class CCDPTest
 //
 //    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
 //    this.logger.info("Skipping Sending HB " + skip );
+
   }
   
   

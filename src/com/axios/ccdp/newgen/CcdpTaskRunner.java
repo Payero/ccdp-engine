@@ -115,7 +115,6 @@ public class CcdpTaskRunner extends Thread
     }
     catch( Exception e )
     {
-      System.out.println("STATE WAS SET TO FAILEEEEEED :oooooooo");
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
       this.agent.statusUpdate(this.task, e.getMessage());

@@ -120,7 +120,6 @@ public class AmqSender extends AmqConnector
         }
       }
       this.logger.info("````````````````MESSAGE BODY IS: " + body.toString());
-      this.logger.info("--------------------  MESSSSSSSAGEEEEEEEEEEEEEEEEEEEEEEE IS:::: " + message);
       CcdpMessage.buildMessage(body, message);
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
       
@@ -184,7 +183,6 @@ public class AmqSender extends AmqConnector
       producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
       this.logger.info("Sent: " + message.getText());
-      this.logger.debug("Sent: " + message.getText());
   
     } 
     catch (Exception e) 

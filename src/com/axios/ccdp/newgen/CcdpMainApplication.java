@@ -316,7 +316,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       long diff = now - resTime;
       if( diff >= this.agent_time_limit )
       {
-        String txt = "The Agent " + vm.getAgentId() + 
+        String txt = "The Agent " + vm.getInstanceId() + 
                      " has not sent updates since " + resTime;
         this.logger.warn(txt);
         remove.add(vm);
@@ -682,26 +682,19 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     
     String tid = task.getTaskId();   
     CcdpTaskState state = task.getState();
-    //CcdpTaskRequest delTask = null;
     boolean delTask = false;
     CcdpThreadRequest delThread = null;
     this.logger.info("Updating Task: " + tid + " Current State: " + state);
-
-    this.logger.info("RIGHT BEFORE THE SYNC REQUESTS");
     synchronized( this.requests )
     {
       boolean found = false;
-      this.logger.info("INSIDE OF THE SYNCRHONIZED REQUESTS, NUMBER OF REQUESTS IS " + this.requests.size());
       for( CcdpThreadRequest req : this.requests )
       {
-        this.logger.info("INSIDE OF THE UPDATE TASK STATUS SYNC REQUESTS");
         if( found ) {
-          this.logger.info("FOUND THE THREAD REQUEST");
           break;
         }
         
         CcdpTaskRequest current = req.getTask(tid);
-        this.logger.info("FOUND CURRENT TASK REQ " + current.getName());
         if( current != null )
         {
           found = true;
@@ -719,8 +712,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
-              //TODO: POSSIBLY UNCOMMMENT THIS OUT
-              //this.requests.remove(req);
+              req.removeTask(task);
+              if (req.threadRequestCompleted())
+              {
+                this.requests.remove(req);
+              }
               this.logger.info("Job (" + task.getTaskId() + ") Finished");
               break;
             case FAILED:
@@ -820,15 +816,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       String sid = task.getSessionId();
       String hid = task.getHostId();
       String tid = task.getTaskId();
-      this.logger.info("IN RESET DEDICATED HSOT");
       if( this.resources.containsKey(sid) )
       {
-        this.logger.info("RESOURCES CONTAINS KEY: " + sid);
         for( CcdpVMResource res : this.resources.get(sid) )
         {
           if( res.getInstanceId().equals(hid))
           {
-            this.logger.info("RESOURCES EQUAL TO THE OTHER");
             if( res.isSingleTasked() && tid.equals(res.getSingleTask()))
             {
               this.logger.info("Resetting Dedicated Host " + hid);
@@ -924,8 +917,37 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               list = this.allocateResource(imgCfg); //updated list
               if (list.size() > 0)
               {
-                this.logger.info("FOUND A RESROUCE NOW: SIZE IS: " + list.size());
-                //get the new resouce we created
+                this.logger.info("FOUND A RESOURCE NOW: SIZE IS: " + list.size());
+                //get the new resource we created
+                for( CcdpVMResource vm : list )
+                {
+                  // need to make sure we are running on the appropriate node
+                  if( !vm.getNodeType().equals(task.getNodeType() ) )
+                    continue;
+                  this.logger.info("TRYING TO FIND A RESOURCE ");
+                  // It has not been assigned yet and there is nothing running
+                  if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+                  {
+                    String iid = vm.getInstanceId();
+                    vm.setSingleTask(tid);
+                    task.setHostId( iid );
+                    if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                        vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                    {
+                      this.logger.info("SUCCESSFULLY ASSIGNED A VM TO TASK: " + task.getTaskId());
+                      this.sendTaskRequest(task, vm );
+                      continue;
+                    }
+                    else
+                      this.logger.info("7-08-03 16:05:21.138] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721083},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
+                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@1e2d273a\n" + 
+                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:688 [INFO  ] => Updating Task: 95 Current State: RUNNING\n" + 
+                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:798 [INFO  ] => Sending Status Update to fcd59de6-4d01-4ace-9bee-2212659e271d\n" + 
+                          "17-08-03 16:05:21.140] connections.amq.AmqCcdpConnectionImpl:141 [DEBUG ] => fcd59de6-4d01-4ace-9bee-2212659e271d already has a Sender\n" + 
+                          "17-08-03 16:05:21.158] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721140},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
+                          "17-08-03 16:05:22.686] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@3e7b8b5dResource wasn't running :(  the resource was " + vm.getStatus());
+                  }
+                }
               }
               
             }
@@ -949,14 +971,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public void sendTaskRequest( CcdpTaskRequest task, CcdpVMResource resource )
   {
     String tid = task.getTaskId();
-    String iid = resource.getInstanceId();
+    String iid = resource.getInstanceId(); 
     RunTaskMessage msg = new RunTaskMessage();
     msg.setTask(task);
     this.connection.sendCcdpMessage(iid, msg);
     this.logger.info("Launching Task " + tid + " on " + iid);
     task.setSubmitted(true);
     if (!resource.getTasks().contains(task)) {
-      System.out.println("ADDED TO THE LIST OF TASKS");
       resource.getTasks().add(task);
     }
   }
@@ -1002,7 +1023,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         resources = this.getResourcesBySessionId(req.getSessionId());
         
         
-        System.out.println("TRYING TO ASSIGN TASKS NOW, size is: " + resources.size());
+        this.logger.info("Trying to assign tasks, the total num of resources (including in use) is: " + resources.size());
 
         Map<CcdpVMResource, List<CcdpTaskRequest>> map = 
             this.tasker.assignTasks(req.getTasks(), resources);
@@ -1248,11 +1269,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
     String sid = imgCfg.getSessionId();
     String typeStr = imgCfg.getNodeTypeAsString();
-    System.out.println("!_!_!_!_!_!_!__!_ IN ALLOCATE RESOURCE");
-    //Change null to DEFAULT
+    this.logger.debug("Trying to allocate a resource.");
+    //Changing sid null to DEFAULT type
     if (sid == null)
     {
-      System.out.println("IT EQUALS NULLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL CHANGING TO DA DEFAULT");
       sid = typeStr;
     }
 
@@ -1307,7 +1327,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           this.resources.get(sid).add(resource);
         }
         // had to create one, is this OK?
-        this.checkFreeVMRequirements();
+       //TODO: UNCOMMENT OUT IF IT CAUSES ISSUE, as of now it's removing a resource if minreq is 0
+        //so i can't temp have a newly created resource since it'll remove it before i can even assign it
+        // this.checkFreeVMRequirements();
       }        
     }
     

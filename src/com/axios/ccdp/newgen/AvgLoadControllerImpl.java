@@ -360,11 +360,10 @@ public class AvgLoadControllerImpl
     
     if( resources == null || resources.isEmpty() )
     {
-      System.out.println("SOMETHING WAS NULL OR EMPTY");
       return tasked;
     }
     
-    System.out.println("NUMBER OF TASKS WE HAVE IS: " + tasks.size());
+    this.logger.info("We currently have: " + tasks.size() + " number of tasks.");
     
     for( CcdpTaskRequest task: tasks )
     {

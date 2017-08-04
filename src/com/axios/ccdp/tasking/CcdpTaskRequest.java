@@ -197,12 +197,8 @@ public class CcdpTaskRequest implements Serializable
    * Checks if two tasks are equal based off of their task ID
    * 
    * @param otherTask the task being compared to
-<<<<<<< HEAD
    * @return true if the task has the same task id as the one being compared 
    *         against or false otherwise
-=======
-   * @return
->>>>>>> 72c0351199c07a71fd9a8edd9f0f9ce93e9244cb
    */
   public boolean equals(Object otherTask)
   {

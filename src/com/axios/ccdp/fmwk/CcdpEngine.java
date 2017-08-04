@@ -890,7 +890,6 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       {
         List<CcdpVMResource> vms = this.getResources(req);
         this.logger.info("Have " + sz + " Tasks to run");
-        System.out.println("USING THE OTHER ASSIGN TASKS~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
         assignedTasks = this.tasker.assignTasks(tasks, target, vms);
       }
     }// the target is not null

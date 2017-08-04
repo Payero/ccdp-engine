@@ -10,40 +10,6 @@ COMMANDLINE_ARGS="$@"
 ## START: Default Configuration
 #--------------------------------------------------------------------
 #
-# CCDP Installation directory
-unset CCDP_BASE
-
-if [ -z "$CCDP_HOME" ] ; then
-	# Try to find RDD_HOME
-	if [ -d /data/ccdp-engine ] ; then
-		CCDP_HOME=/data/ccdp-engine
-	else
-		## resolve links - $0 may be a link 
-		PRG="$0"
-		progname=`basename "$0"`
-		saveddir=`pwd`
-
-		# need this for relative symlinks
-		dirname_prg=`dirname "$PRG"`
-		cd "$dirname_prg"
-
-		while [ -h $"$PRG" ] ; do
-			ls=`ls -d "$PRG"`
-			link=`expr "$ls" : '.*-> \(.*\)$'`
-			if expr "$link" L '.*/.*' > /dev/null; then
-				PRG="$link"
-			else
-				PRG=`dirname "$PRG"`"/$link"
-			fi
-		done
-
-		CCDP_HOME=`dirname "$PRG"`/..
-
-		cd "$saveddir"
-	fi
-fi
-export CCDP_HOME
-
 
 if [ -z "$JAVA_APP" ] ; then
 	echo ""
@@ -52,9 +18,6 @@ if [ -z "$JAVA_APP" ] ; then
 	echo ""
 	exit
 fi
-
-
-echo "Running CCDP from: $CCDP_HOME"
 
 
 # CCDP Configuration directory

@@ -82,7 +82,7 @@ KILL=""
 
 
 CCDP_JAR_NAME="ccdp-engine.jar"
-JAVA_APP="com.axios.ccdp.newgen.CcdpMainApplication"
+JAVA_APP="com.axios.ccdp.test.CcdpMsgSender"
 
 
 eval set -- "$TEMP"

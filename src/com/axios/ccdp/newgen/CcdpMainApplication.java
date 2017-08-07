@@ -5,11 +5,14 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import javax.sound.midi.MidiDevice.Info;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -74,7 +77,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Provides a consolidated way to format dates
    */
   private SimpleDateFormat formatter = 
-      new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+      new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
   /**
    * Creates all the ArrayNode and ObjectNode
    */
@@ -94,7 +97,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
-  private AvgLoadControllerImpl tasker = null;
+  //private AvgLoadControllerImpl tasker = null;
+  private CcdpVMControllerAbs tasker = null;
   /**
    * Controls all the VMs
    */
@@ -128,7 +132,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * reachable 
    */
   private int agent_time_limit = 20;
-  
   /**
    * Flag indicating whether or not heartbeats are being ignored
    */
@@ -169,8 +172,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
-    //this.tasker = factory.getCcdpTaskingController(task_ctr_node);
-    this.tasker = new AvgLoadControllerImpl();
+    
+    //TODO: I am forcing a cast so I can use the same routine as Mesos
+    this.tasker = 
+              (CcdpVMControllerAbs)factory.getCcdpTaskingController(task_ctr_node);
+    
     this.tasker.configure(task_ctr_node);
     
     this.controller = factory.getCcdpResourceController(res_ctr_node);
@@ -310,19 +316,31 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     // check the last time each VM was updated
     for( CcdpVMResource vm : list )
     {
+      // we only care for those running
+      if( !vm.getStatus().equals(ResourceStatus.RUNNING) )
+      {
+        String id = vm.getInstanceId();
+        String st = vm.getStatus().toString();
+        this.logger.debug("Ignoring unresponsive VM " + id + ", Status: " + st);
+        continue;
+      }
       long now = System.currentTimeMillis();
       long resTime = vm.getLastUpdatedTime();
       long diff = now - resTime;
       if( diff >= this.agent_time_limit )
       {
-        String txt = "The Agent " + vm.getAgentId() + 
-                     " has not sent updates since " + resTime;
+        String txt = "The Agent " + vm.getInstanceId() + 
+                     " has not sent updates since " + this.formatter.format(new Date(resTime));
         this.logger.warn(txt);
         remove.add(vm);
       }
     }
-    // now we remove all the resources that are not responding
+    
+    // now we remove all the resources that are not responding and update the 
+    // corresponding list
     list.removeAll(remove);    
+    this.resources.put(sid, list);
+    
   }
   
   /**
@@ -334,7 +352,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
     
     CcdpMessageType msgType = CcdpMessageType.get( message.getMessageType() );
-    this.logger.debug("Got a new Event: " + message.toString());
+    this.logger.trace("Got a new Event: " + message.toString());
     switch( msgType )
     {
       case START_SESSION:
@@ -453,8 +471,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   
-  
-  
   /**
    * Iterates through all the requests looking for the task to kill.  If the 
    * task is found then it sends a request to the appropriate agent to terminate
@@ -566,7 +582,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
-    
+    this.logger.trace("Updating resources from " + sid);
     
     if( sid == null )
     {
@@ -601,19 +617,25 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     else  // found a session-id
     {
-      this.logger.debug("Updating Agent " + sid);
+      String iid = vm.getInstanceId();
+      this.logger.trace("Updating Agent " + iid);
       for( CcdpVMResource res : this.getResourcesBySessionId(sid) )
       {
-        this.logger.debug("Comparing " + res.getInstanceId() + 
-                         " and " + vm.getInstanceId() );
-        if( res.getInstanceId().equals(vm.getInstanceId()) )
+        this.logger.trace("Comparing " + res.getInstanceId() + 
+                         " and " + iid );
+        if( res.getInstanceId().equals(iid) )
         {
-          this.logger.info("Found Resource");
+          this.logger.debug("Updating Agent " + iid);
  
           res.setFreeDiskSpace(vm.getFreeDiskspace());
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
+          if( res.getStatus().equals(ResourceStatus.LAUNCHED) )
+          {
+            this.logger.info("Changing Status from LAUNCHED to RUNNING");
+            res.setStatus(ResourceStatus.RUNNING);
+          }
           // resetting all the tasks by first removing them all and then 
           // adding them
           res.removeAllTasks();
@@ -645,13 +667,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     String tid = task.getTaskId();   
     CcdpTaskState state = task.getState();
     //CcdpTaskRequest delTask = null;
-    boolean delTask = false;
     CcdpThreadRequest delThread = null;
     this.logger.info("Updating Task: " + tid + " Current State: " + state);
 
     synchronized( this.requests )
     {
       boolean found = false;
+      boolean delTask = false;
       
       for( CcdpThreadRequest req : this.requests )
       {
@@ -673,10 +695,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             case SUCCESSFUL:
               task.succeed();
               delTask = true;
-              
               this.resetDedicatedHost(task);
               this.sendUpdateMessage(task);
-              this.requests.remove(req);
+              req.removeTask(task);
+              //this.requests.remove(req);
               this.logger.info("Job (" + task.getTaskId() + ") Finished");
               break;
             case FAILED:
@@ -685,7 +707,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( task.getState().equals(CcdpTaskState.FAILED))
               {
                 this.logger.info("Task Failed after enough tries, removing");
-                this.requests.remove(req);
+                delTask = true;
+                req.removeTask(task);
+                //this.requests.remove(req);
                 this.resetDedicatedHost(task);
                 this.sendUpdateMessage(task);
               }
@@ -694,43 +718,55 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.logger.info("Status changed to " + task.getState());
               }
               
-              delTask = true;
-              if( req.isDone() )
-              {
-                delThread = req;
-              }
-              
+
               break;
             default:
               break;
           }// end of switch statement
         }// found the task
         
+        String rid = req.getThreadId();
+        if( req.isDone() )
+        {
+          this.logger.info("Request " + rid + " is done");
+          delThread = req;
+        }
+        else
+        {
+          this.logger.info("Thread Request " + rid + " still has " + 
+                           req.getPendingTasks() + " tasks pending");
+        }
+        
+        
         // updating task state and removing the task from the thread request
         List<CcdpVMResource> update = new ArrayList<>();
-          synchronized( this.resources )
+        synchronized( this.resources )
+        {
+          for( CcdpVMResource vm : this.resources.get(task.getSessionId()) )
           {
-            for( CcdpVMResource vm : this.resources.get(task.getSessionId()) )
+            vm.updateTaskState(task);
+            if (delTask) 
             {
-              vm.updateTaskState(task);
-              if (delTask) {
-                this.logger.info("Removing Task " + task.getTaskId() );
-                req.removeTask(task);
-                vm.removeTask(task);
-                //If there are no more tasks, mark the resource as available again
-                if (vm.getNumberTasks() == 0)
-                {
-                  update.add(vm);
-                }
+              this.logger.info("Removing Task " + task.getTaskId() );
+              vm.removeTask(task);
+              //If there are no more tasks, mark the resource as available again
+              if (vm.getNumberTasks() == 0)
+              {
+                update.add(vm);
               }
-            }// end of updating resource blocks
-          }// end of sync block 
-          // Mark any resources with 0 tasks as available
-          for (CcdpVMResource res : update)
-          {
-            this.logger.debug("Marking vm " + res.getInstanceId() + " available as DEFAULT");
-            this.changeSession(res, CcdpNodeType.DEFAULT.toString());
-          }
+            }
+          }// end of updating resource blocks
+        }// end of sync block 
+        // Mark any resources with 0 tasks as available
+        for (CcdpVMResource res : update)
+        {
+          this.logger.debug("Marking vm " + res.getInstanceId() + " available as DEFAULT");
+          // saw a case when a VM was started for a specific SID and reassigned
+          // to default before the first HB was sent which made the status be 
+          // LAUNCHED
+          res.setStatus(ResourceStatus.RUNNING);
+          this.changeSession(res, CcdpNodeType.DEFAULT.toString());
+        }
           
       }// for request loop
       
@@ -809,7 +845,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     
     // do we need to assign a new resource to this session?
-    this.logger.debug("Got a new Request: " + request.toString() );
+    this.logger.debug("Got a new Request: " + request.toPrettyPrint() );
     
     // adding the request
     synchronized( this.requests )
@@ -876,7 +912,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection.sendCcdpMessage(iid, msg);
     this.logger.info("Launching Task " + tid + " on " + iid);
     task.setSubmitted(true);
-    if (!resource.getTasks().contains(task)) {
+    if (!resource.getTasks().contains(task)) 
+    {
       resource.getTasks().add(task);
     }
   }
@@ -909,26 +946,74 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       for( CcdpThreadRequest req : this.requests )
       {
         String sid = req.getSessionId();
-        List<CcdpVMResource> resources = 
-            this.getResourcesBySessionId(req.getSessionId());
-        if (resources.size() == 0)
+        this.logger.debug("Allocating resources to " + sid);
+        
+        List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+        // could not find any available resource
+        if ( resources.isEmpty() )
         {
-          this.logger.warn("No resources available for Session:: " + req.getSessionId() + ". Assigning one from available resources.");
-          //Check if there are any available resources in default
-          List<CcdpVMResource> def = this.getResourcesBySessionId(CcdpNodeType.DEFAULT.toString());
-          if (def.size() > 0)
-          {     
-            // Get the first available DEFAULT resource and give it to the session
-            for (CcdpVMResource res : def)
+          this.logger.warn("No resources available for Session:: " + sid + 
+                           ". Assigning one from available resources.");
+          
+          // Need to assign VMs based on the node type
+          List<CcdpNodeType> types = new ArrayList<>();
+          for(CcdpTaskRequest task: req.getTasks() )
+          {
+            CcdpNodeType type = task.getNodeType();
+            // if we have not done it before, let's check/create one
+            if( !types.contains(type) )
             {
-              if (res.isFree()) 
-              { //Found a free resource
-                  this.changeSession(res, sid);
-                break;
-              }
-            }//end check default resources
-          }
+              this.logger.debug("Checking for free node of type " + type);
+              types.add(type);
+              //Check if there are any available resources in free pool
+              List<CcdpVMResource> free = 
+                                this.getResourcesBySessionId(type.toString());
+              
+              // only launch one if there are none available
+              if( free.isEmpty() )
+              {
+                this.logger.info("No VMs Available, launching one " + type);
+                CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
+                List<String> launched = this.controller.startInstances(imgCfg);
+              
+                for( String id : launched )
+                {
+                  CcdpVMResource resource = new CcdpVMResource(id);
+                  resource.setStatus(ResourceStatus.LAUNCHED);
+                  resource.setAssignedSession(sid);
+                  // assign the session
+                  AssignSessionMessage asm = new AssignSessionMessage();
+                  asm.setSessionId(sid);
+                  this.connection.sendCcdpMessage(id, asm);
+                  
+                  this.logger.debug("Adding resource " + resource.toString());
+                  this.resources.get(sid).add(resource);
+                  // need to add to the list that is used down below
+                  resources.add(resource);
+                }
+              }// end of no free resource
+              else
+              {
+                this.logger.info("Reassigning VM to " + sid);
+                // Get the first available FREE resource and give it to the sid
+                for (CcdpVMResource res : free)
+                {
+                  if (res.isFree()) 
+                  { 
+                    //Found a free resource
+                    this.changeSession(res, sid);
+                    // need to add to the list that is used down below
+                    resources.add(res);
+                    break;
+                  }
+                }//end of for loop
+              }// have some free resources
+            }// end of the node type check
+          }// end of the task checking
         }//end reassigning resources
+        
+        this.logger.debug("Found " + resources.size() + " assigned VMs");
+        
         Map<CcdpVMResource, List<CcdpTaskRequest>> map = 
             this.tasker.assignTasks(req.getTasks(), resources);
         for( CcdpVMResource resource : map.keySet() )
@@ -1008,7 +1093,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         listByNode.add(vm);
     }
     
-    CcdpImageInfo imgCfg = this.tasker.needResourceAllocation(listByNode); 
+    CcdpImageInfo imgCfg = this.tasker.allocateResources(listByNode); 
     if ( imgCfg != null  )
     {
       imgCfg.setSessionId(sid);
@@ -1151,7 +1236,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void checkAllocation( String sid )
   {
     List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
-    CcdpImageInfo imgCfg = this.tasker.needResourceAllocation(sid_vms);
+    CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
     if( imgCfg != null )
     {
       imgCfg.setSessionId(sid);
@@ -1241,7 +1326,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
     
     // Do we need to deallocate resources?
-    List<CcdpVMResource> vms = this.tasker.deallocateResource(sid_vms);
+    List<CcdpVMResource> vms = this.tasker.deallocateResources(sid_vms);
     for( CcdpVMResource vm : vms )
     {
       vm.setSingleTask(null);

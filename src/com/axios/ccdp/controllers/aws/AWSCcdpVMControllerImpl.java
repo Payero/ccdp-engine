@@ -256,7 +256,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
-    logger.debug("encoded value is " + new String(bytesEncoded));
+    logger.trace("encoded value is " + new String(bytesEncoded));
     
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))

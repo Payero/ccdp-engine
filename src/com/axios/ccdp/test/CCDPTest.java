@@ -1,17 +1,12 @@
 package com.axios.ccdp.test;
 
 
-import java.util.ArrayList;
-import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.newgen.CcdpTaskRunner;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
 public class CCDPTest 

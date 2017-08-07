@@ -841,6 +841,22 @@ public class CcdpUtils
           img.setSubnet(map.get("subnet.id"));
         if( map.containsKey("key.file.name") )
           img.setKeyFile(map.get("key.file.name"));
+        if( map.containsKey("instance.type") )
+          img.setInstanceType(map.get("instance.type"));
+        
+        if( map.containsKey("region") )
+          img.setRegion(map.get("region"));
+        if( map.containsKey("role.name") )
+          img.setRoleName(map.get("role.name"));
+        if( map.containsKey("proxy.url") )
+          img.setProxyUrl(map.get("proxy.url"));
+        if( map.containsKey("proxy.port") )
+          img.setProxyPort( Integer.parseInt( map.get("port") ) );
+        if( map.containsKey("credentials.file") )
+          img.setCredentialsFile(map.get("credentials.file"));
+        if( map.containsKey("profile.name") )
+          img.setProfileName(map.get("profile.name"));
+        
         
         try
         {

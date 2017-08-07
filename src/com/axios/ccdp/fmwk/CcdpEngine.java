@@ -214,7 +214,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     this.agent_time_limit = cycle * CcdpEngine.NUMBER_OF_CYCLES;
     
     // wait twice the cycle time to allow time to the nodes to offer resources
-    this.timer = new ThreadedTimerTask(this, cycle);
+    this.timer = new ThreadedTimerTask(this, this.agent_time_limit, cycle);
     
     // Now that some resources has been allocated, we can add the tasks
     if( jobs != null )

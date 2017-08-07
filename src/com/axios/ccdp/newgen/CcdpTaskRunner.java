@@ -1,12 +1,15 @@
 package com.axios.ccdp.newgen;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 import java.lang.ProcessBuilder.Redirect;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -19,7 +22,7 @@ import com.axios.ccdp.utils.CcdpUtils;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpTaskRunner extends Thread
+public class CcdpTaskRunner extends Thread 
 {
   /**
    * Generates debug print statements based on the verbosity level.
@@ -28,7 +31,7 @@ public class CcdpTaskRunner extends Thread
   /**
    * Stores the object requesting the task execution
    */
-  private CcdpAgent agent = null;
+  private CcdpTaskLauncher launcher = null;
   /**
   * Stores a reference to the process we launched so that we can wait for it 
   * to complete
@@ -50,11 +53,11 @@ public class CcdpTaskRunner extends Thread
    * @param task the name of the task to run
    * @param agent the actual process to execute the task
    */
-  public CcdpTaskRunner(CcdpTaskRequest task, CcdpAgent agent)
+  public CcdpTaskRunner(CcdpTaskRequest task, CcdpTaskLauncher agent)
   {
     this.task = task;
     this.logger.info("Creating a new CCDP Task: " + this.task.getTaskId());
-    this.agent = agent;
+    this.launcher = agent;
     
     // adding the basic commands to run it on a shell
     this.cmdArgs.add("/bin/bash");
@@ -71,13 +74,94 @@ public class CcdpTaskRunner extends Thread
   /**
    * Runs the actual command.
    */
-  @Override
+  public void runMe()
+  {
+    try
+    {
+      StringBuffer buf = new StringBuffer();
+      for( String arg : this.task.getCommand() )
+      {
+        buf.append(arg);
+        buf.append(" ");
+      }
+      
+      String cmd = "/bin/bash -c /data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py -f /data/ccdp/webapp/frontend/server/src/modules/csv_reader.py -c CsvReader -a eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=";
+      cmd = "/bin/bash -c /data/ccdp/ccdp-engine/python/ccdp_mod_test.py -a testRandomTime -p min=10,max=30";
+      
+      this.logger.debug("Running " + cmd);    
+      Process runtime = Runtime.getRuntime().exec(cmd);
+      int exitCode;
+      try
+      {
+        exitCode = runtime.waitFor();
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(runtime.getInputStream()));
+
+        StringBuffer output = new StringBuffer();
+        String line = "";
+        while ((line = reader.readLine())!= null) 
+        {
+          output.append(line + "\n");
+        }
+        
+        this.logger.debug("The Output " + output);
+      }
+      catch (Exception e)
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+        exitCode = -99;
+      }
+      
+      synchronized( this )
+      {
+        if ( runtime == null )
+        {
+          this.logger.info("The process is null");
+          return;
+        }
+        
+        runtime = null;
+        if( exitCode == 0 )
+        {
+          this.task.setState(CcdpTaskState.SUCCESSFUL);
+          this.logger.info("Task Finished properly, State: " + this.task.getState());
+          this.launcher.statusUpdate(this.task, null);
+        }
+        else
+        {
+          this.task.setState(CcdpTaskState.FAILED);
+          String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
+          this.logger.info(msg);
+          this.launcher.statusUpdate(this.task, msg);
+        }
+      }
+      
+      
+    }
+    catch( Exception e )
+    {
+      e.printStackTrace();
+    }
+  }
+  
+  
+  
   public void run()
   {
     this.logger.info("Executing the Task");
     try
     {
       this.process = this.startProcess();
+      BufferedReader reader =
+          new BufferedReader(new InputStreamReader(this.process.getInputStream()));
+
+      StringBuffer output = new StringBuffer();
+      String line = "";
+      while ((line = reader.readLine())!= null) 
+      {
+        output.append(line + "\n");
+      }
+      this.logger.debug("Output " + output );
       
       int exitCode;
       try
@@ -102,14 +186,14 @@ public class CcdpTaskRunner extends Thread
         {
           this.task.setState(CcdpTaskState.SUCCESSFUL);
           this.logger.info("Task Finished properly, State: " + this.task.getState());
-          this.agent.statusUpdate(this.task, null);
+          this.launcher.statusUpdate(this.task, null);
         }
         else
         {
           this.task.setState(CcdpTaskState.FAILED);
           String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
-          this.agent.statusUpdate(this.task, msg);
+          this.launcher.statusUpdate(this.task, msg);
         }
       }
     }
@@ -118,7 +202,7 @@ public class CcdpTaskRunner extends Thread
       System.out.println("STATE WAS SET TO FAILEEEEEED :oooooooo");
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
-      this.agent.statusUpdate(this.task, e.getMessage());
+      this.launcher.statusUpdate(this.task, e.getMessage());
     }
   }
   
@@ -138,10 +222,25 @@ public class CcdpTaskRunner extends Thread
    */
   private Process startProcess( ) throws Exception
   {
-    this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
+//    this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
     
-    ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
+    List<String> cmd = new ArrayList<>();
+    cmd.add("/home/oeg/dev/oeg/ccdp-engine/bin/test.sh");
+//    cmd.add("-c");
+    cmd.add("/data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py -f /data/ccdp/webapp/frontend/server/src/modules/csv_reader.py -c CsvReader -a eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=");
     
+    if( false )
+    {
+      cmd = new ArrayList<>();
+      cmd.add("/home/oeg/dev/oeg/ccdp-engine/bin/test.sh");
+//      cmd.add("-c");
+      cmd.add("/data/ccdp/ccdp-engine/python/ccdp_mod_test.py -a testRandomTime -p min=5,max=10");
+    }    
+    
+    this.logger.info("Launching a new Process: " + cmd );
+//    ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
+    ProcessBuilder pb = new ProcessBuilder(cmd);
+    pb.redirectErrorStream(true);
     if( this.task.getConfiguration().containsKey(CcdpUtils.CFG_KEY_LOG_DIR) )
     {
       String log_dir = 
@@ -170,8 +269,10 @@ public class CcdpTaskRunner extends Thread
     {
       this.process.destroy();
       this.task.setState(CcdpTaskState.KILLED);
-      this.agent.statusUpdate( this.task, null );
+      this.launcher.statusUpdate( this.task, null );
       this.process = null;
     }
   }
+
 }
+

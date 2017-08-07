@@ -22,12 +22,12 @@ import com.axios.ccdp.utils.CcdpUtils;
  * @author Oscar E. Ganteaume
  *
  */
-public class CcdpTaskRunner extends Thread 
+public class CcdpTaskRunnerTest extends Thread 
 {
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(CcdpTaskRunner.class.getName());
+  private Logger logger = Logger.getLogger(CcdpTaskRunnerTest.class.getName());
   /**
    * Stores the object requesting the task execution
    */
@@ -53,7 +53,7 @@ public class CcdpTaskRunner extends Thread
    * @param task the name of the task to run
    * @param agent the actual process to execute the task
    */
-  public CcdpTaskRunner(CcdpTaskRequest task, CcdpTaskLauncher agent)
+  public CcdpTaskRunnerTest(CcdpTaskRequest task, CcdpTaskLauncher agent)
   {
     this.task = task;
     this.logger.info("Creating a new CCDP Task: " + this.task.getTaskId());
@@ -74,14 +74,99 @@ public class CcdpTaskRunner extends Thread
   /**
    * Runs the actual command.
    */
-  @Override
+  public void runMe()
+  {
+    try
+    {
+      StringBuffer buf = new StringBuffer();
+      for( String arg : this.task.getCommand() )
+      {
+        buf.append(arg);
+        buf.append(" ");
+      }
+      String path = System.getenv("CCDP_HOME");
+      
+      String cmd = path + "/bin/test.sh /data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py -f /data/ccdp/webapp/frontend/server/src/modules/csv_reader.py -c CsvReader -a eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=";
+      
+      boolean run_rand = false;
+      if( run_rand )
+        cmd = path + "/bin/test.sh /data/ccdp/ccdp-engine/python/ccdp_mod_test.py -a testRandomTime -p min=5,max=10";
+      
+      this.logger.debug("Running " + cmd);    
+      Process runtime = Runtime.getRuntime().exec(cmd);
+      int exitCode;
+      try
+      {
+        exitCode = runtime.waitFor();
+        BufferedReader reader =
+            new BufferedReader(new InputStreamReader(runtime.getInputStream()));
+
+        StringBuffer output = new StringBuffer();
+        String line = "";
+        while ((line = reader.readLine())!= null) 
+        {
+          output.append(line + "\n");
+        }
+        
+        this.logger.debug("The Output " + output);
+      }
+      catch (Exception e)
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+        exitCode = -99;
+      }
+      
+      synchronized( this )
+      {
+        if ( runtime == null )
+        {
+          this.logger.info("The process is null");
+          return;
+        }
+        
+        runtime = null;
+        if( exitCode == 0 )
+        {
+          this.task.setState(CcdpTaskState.SUCCESSFUL);
+          this.logger.info("Task Finished properly, State: " + this.task.getState());
+          this.launcher.statusUpdate(this.task, null);
+        }
+        else
+        {
+          this.task.setState(CcdpTaskState.FAILED);
+          String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
+          this.logger.info(msg);
+          this.launcher.statusUpdate(this.task, msg);
+        }
+      }
+      
+      
+    }
+    catch( Exception e )
+    {
+      e.printStackTrace();
+    }
+  }
+  
+  
+  
   public void run()
   {
     this.logger.info("Executing the Task");
     try
     {
       this.process = this.startProcess();
+      BufferedReader reader =
+          new BufferedReader(new InputStreamReader(this.process.getInputStream()));
 
+      StringBuffer output = new StringBuffer();
+      String line = "";
+      while ((line = reader.readLine())!= null) 
+      {
+        output.append(line + "\n");
+      }
+      this.logger.debug("Output " + output );
+      
       int exitCode;
       try
       {
@@ -104,15 +189,13 @@ public class CcdpTaskRunner extends Thread
         if( exitCode == 0 )
         {
           this.task.setState(CcdpTaskState.SUCCESSFUL);
-          this.logger.info("Task Finished properly, State: " + 
-                            this.task.getState());
+          this.logger.info("Task Finished properly, State: " + this.task.getState());
           this.launcher.statusUpdate(this.task, null);
         }
         else
         {
           this.task.setState(CcdpTaskState.FAILED);
-          String msg = "Task finished with a non-zero value (" + 
-                       exitCode + "), State: " + this.task.getState();
+          String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
           this.launcher.statusUpdate(this.task, msg);
         }
@@ -143,9 +226,25 @@ public class CcdpTaskRunner extends Thread
    */
   private Process startProcess( ) throws Exception
   {
-    this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
+//    this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
+    String path = System.getenv("CCDP_HOME");
+    List<String> cmd = new ArrayList<>();
+    cmd.add(path + "/bin/test.sh");
+//    cmd.add("-c");
+    cmd.add("/data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py -f /data/ccdp/webapp/frontend/server/src/modules/csv_reader.py -c CsvReader -a eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=");
     
-    ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
+    
+    boolean run_rand = false;
+    if( run_rand )
+    {
+      cmd = new ArrayList<>();
+      cmd.add(path + "/bin/test.sh");
+      cmd.add("/data/ccdp/ccdp-engine/python/ccdp_mod_test.py -a testRandomTime -p min=5,max=10");
+    }    
+    
+    this.logger.info("Launching a new Process: " + cmd );
+//    ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
+    ProcessBuilder pb = new ProcessBuilder(cmd);
     pb.redirectErrorStream(true);
     if( this.task.getConfiguration().containsKey(CcdpUtils.CFG_KEY_LOG_DIR) )
     {
@@ -155,8 +254,8 @@ public class CcdpTaskRunner extends Thread
       this.logger.info("The Mesos Directory is set at: " + log_dir);
       String err = this.task.getTaskId() + "-stderr";
       String out = this.task.getTaskId() + "-stdout";
-      File stdout = new File(log_dir, out);
-      File stderr = new File(log_dir, err);
+      File stdout = new File("/tmp", out);
+      File stderr = new File("/tmp", err);
       
       pb.redirectOutput(Redirect.to(stdout));
       pb.redirectError(Redirect.to(stderr));

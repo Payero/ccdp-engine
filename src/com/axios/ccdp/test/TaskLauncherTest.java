@@ -16,7 +16,7 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.message.ThreadRequestMessage;
-import com.axios.ccdp.newgen.CcdpTaskRunner;
+import com.axios.ccdp.newgen.CcdpTaskRunnerTest;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
@@ -80,7 +80,7 @@ public class TaskLauncherTest implements CcdpTaskLauncher
   {
     try
     {
-      CcdpTaskRunner ccdpTask = new CcdpTaskRunner(task, this);
+      CcdpTaskRunnerTest ccdpTask = new CcdpTaskRunnerTest(task, this);
       
       task.setState(CcdpTaskState.STAGING);
       //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());

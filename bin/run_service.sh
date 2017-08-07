@@ -105,7 +105,7 @@ case $1 in
 		exit
 	else
 		echo ""
-		echo "    Starting the CcdpAgent Service"
+		echo "    Starting the ${APP_NAME}"
 		echo ""
 	fi
 

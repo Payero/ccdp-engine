@@ -552,7 +552,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
-<<<<<<< HEAD
    * Checks if there are any available default resources and assigns it
    * to the session that needs it if possible
    * 
@@ -581,17 +580,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
-=======
->>>>>>> 72c0351199c07a71fd9a8edd9f0f9ce93e9244cb
    * Changes a resource's session to who is using it. Updates the resource
    * list to reflect what is available.
    * 
    * @param vm the resource that is changing its assigned session
-<<<<<<< HEAD
    * @param sid the session id to be changed to
-=======
-   * @param sid the session id to be changed to, DEFAULT if task list is 0
->>>>>>> 72c0351199c07a71fd9a8edd9f0f9ce93e9244cb
    */
   private void changeSession(CcdpVMResource vm, String sid)
   {
@@ -763,7 +756,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( req.isDone() )
               {
                 delThread = req;
-                this.logger.info("THREAD DELETEDDDDDD :::: " + delThread.getName());
+                this.logger.info("Deleted thread :::: " + delThread.getName());
               }
 
               break;
@@ -930,7 +923,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               // need to make sure we are running on the appropriate node
               if( !vm.getNodeType().equals(task.getNodeType() ) )
                 continue;
-              this.logger.info("TRYING TO FIND A RESOURCE ");
               // It has not been assigned yet and there is nothing running
               if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
               {
@@ -940,7 +932,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
                     vm.getStatus().equals(ResourceStatus.LAUNCHED))
                 {
-                  this.logger.info("SUCCESSFULLY ASSIGNED A VM TO TASK: " + task.getTaskId());
                   fail = false;
                   this.sendTaskRequest(task, vm );
                   continue;
@@ -955,11 +946,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             { 
               CcdpNodeType type = task.getNodeType();
               CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
-              this.logger.info("~~~~~~~~~~~~~~~~~~~~~~~``-----------ATTEMPTING TO ALLOCATE A RESOURCE");
               list = this.allocateResource(imgCfg); //updated list
               if (list.size() > 0)
               {
-                this.logger.info("FOUND A RESOURCE NOW: SIZE IS: " + list.size());
                 //get the new resource we created
                 for( CcdpVMResource vm : list )
                 {
@@ -980,14 +969,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                       this.sendTaskRequest(task, vm );
                       continue;
                     }
-                    else
-                      this.logger.info("7-08-03 16:05:21.138] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721083},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
-                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@1e2d273a\n" + 
-                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:688 [INFO  ] => Updating Task: 95 Current State: RUNNING\n" + 
-                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:798 [INFO  ] => Sending Status Update to fcd59de6-4d01-4ace-9bee-2212659e271d\n" + 
-                          "17-08-03 16:05:21.140] connections.amq.AmqCcdpConnectionImpl:141 [DEBUG ] => fcd59de6-4d01-4ace-9bee-2212659e271d already has a Sender\n" + 
-                          "17-08-03 16:05:21.158] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721140},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
-                          "17-08-03 16:05:22.686] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@3e7b8b5dResource wasn't running :(  the resource was " + vm.getStatus());
+//                    else
+//                      this.logger.info("7-08-03 16:05:21.138] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721083},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
+//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@1e2d273a\n" + 
+//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:688 [INFO  ] => Updating Task: 95 Current State: RUNNING\n" + 
+//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:798 [INFO  ] => Sending Status Update to fcd59de6-4d01-4ace-9bee-2212659e271d\n" + 
+//                          "17-08-03 16:05:21.140] connections.amq.AmqCcdpConnectionImpl:141 [DEBUG ] => fcd59de6-4d01-4ace-9bee-2212659e271d already has a Sender\n" + 
+//                          "17-08-03 16:05:21.158] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721140},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
+//                          "17-08-03 16:05:22.686] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@3e7b8b5dResource wasn't running :(  the resource was " + vm.getStatus());
                   }
                 }
               }
@@ -1054,7 +1043,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       {
         String sid = req.getSessionId();
         this.logger.debug("Allocating resources to " + sid);
-        
         List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
         // could not find any available resource
         if ( resources.isEmpty() )
@@ -1067,6 +1055,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           for(CcdpTaskRequest task: req.getTasks() )
           {
             CcdpNodeType type = task.getNodeType();
+            //Don't want to find resources for a task that already has one
+            if (task.getHostId() != null) {
+              continue;
+            }
             // if we have not done it before, let's check/create one
             if( !types.contains(type) )
             {

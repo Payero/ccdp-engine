@@ -23,7 +23,6 @@ import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
 import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.message.KillTaskMessage;
-import com.axios.ccdp.message.ResourceUpdateMessage;
 import com.axios.ccdp.message.RunTaskMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
@@ -39,7 +38,8 @@ import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
-public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf, CcdpTaskLauncher
+public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf, 
+                                  CcdpTaskLauncher
 {
   /**
    * Parses and prints all the options or arguments used by this application

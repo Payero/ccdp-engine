@@ -55,6 +55,6 @@ set_home
 export JAVA_APP="com.axios.ccdp.newgen.CcdpMainApplication"
 export BASE_NAME="CcdpMainApplication"
 export CCDP_JAR_NAME="ccdp-engine.jar"
-export CCDP_SKIP_REDIRECTION=1
+#export CCDP_SKIP_REDIRECTION=1
 
 ${CCDP_HOME}/bin/run_service.sh $@

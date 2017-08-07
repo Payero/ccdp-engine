@@ -463,7 +463,7 @@ public class CcdpImageInfo
   /**
    * Sets the profile file used to load the credentials from
    * 
-   * @param credentials-file the profile file used to load the credentials from
+   * @param credentialsFile the profile file used to load the credentials from
    */
   @JsonSetter("credentials-file")
   public void setCredentialsFile(String credentialsFile)

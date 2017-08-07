@@ -122,8 +122,21 @@ public class TaskLauncherTest implements CcdpTaskLauncher
    */
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
-    this.logger.debug("Got an Update Message: " + message);
-    //this.logger.debug(task.toPrettyPrint() );
+    StringBuffer buff = new StringBuffer("\n\nStatus Update:\n");
+    buff.append("\tTask Id: ");
+    buff.append(task.getTaskId());
+    buff.append("\n");
+    buff.append("\tStatus: ");
+    buff.append(task.getState());
+    buff.append("\n");
+    
+    if( message != null )
+    {
+      buff.append("--------------------------------------------------------\n");
+      buff.append(message);
+      buff.append("\n--------------------------------------------------------\n");
+    }
+    this.logger.debug( buff.toString() );
   }
 
   public static void main(String[] args) throws Exception

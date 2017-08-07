@@ -43,11 +43,6 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
 
-    SimpleDateFormat formatter = 
-        new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    
-    this.logger.debug("The Date " + formatter.format( new Date() ));
-    
   }
   
   

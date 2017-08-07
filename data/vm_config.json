@@ -1,13 +1,13 @@
 
 {"__comment": "required fields: image-id, sec-group, subnet, key-file",
- "image-id": "ami-224c6c59",
+ "image-id": "ami-1c9dbf67",
  "security-group": "sg-54410d2f",
  "subnet": "subnet-d7008b8f",
  "key-file": "aws_serv_server_key",
  "region": "us-east-1",
 
  "instance-type": "t2.micro",
- "role": "null",
+ "role": "EMR_EC2_DefaultRole",
  "proxy-url": "",
  "proxy-port": "",
  "tags": {"session-id": "Service-Node", "Name": "Test-Agent"},

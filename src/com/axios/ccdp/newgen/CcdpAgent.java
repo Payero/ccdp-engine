@@ -17,6 +17,7 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.message.AssignSessionMessage;
 import com.axios.ccdp.message.CcdpMessage;
@@ -38,7 +39,7 @@ import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
-public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf
+public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf, CcdpTaskLauncher
 {
   /**
    * Parses and prints all the options or arguments used by this application

@@ -226,7 +226,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public List<String> startInstances( CcdpImageInfo imgCfg )
   {
-    
     List<String> launched = null;
     
     String imgId = imgCfg.getImageId();

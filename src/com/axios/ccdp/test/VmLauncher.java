@@ -26,14 +26,13 @@ import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
+import com.amazonaws.util.Base64;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class VmLauncher 
 {
@@ -47,8 +46,6 @@ public class VmLauncher
    */
   private Logger logger = Logger.getLogger(VmLauncher.class.getName());
   
-  private JsonNode config = null;
-  
   public VmLauncher(String filename)
   {
     this.logger.debug("Using File " + filename);
@@ -56,33 +53,76 @@ public class VmLauncher
     
     try
     {
+      CcdpImageInfo image = new CcdpImageInfo();
+      
       File file = new File(filename);
       if( file != null && file.isFile() )
       {
         byte[] data = Files.readAllBytes(Paths.get( file.getAbsolutePath()));
-        this.config = this.mapper.readTree( data );
-        this.launchVM();
+        JsonNode node = this.mapper.readTree( data );
+        
+        image.setImageId(node.get("image-id").asText());
+        image.setSecGrp(node.get("security-group").asText());
+        image.setSubnet(node.get("subnet").asText());
+        image.setKeyFile(node.get("key-file").asText());
+        
+        if( node.has("instance-type") )
+        {
+          String txt = node.get("instance-type").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setInstanceType(txt);
+        }
+        if( node.has("role") )
+        {
+          String txt = node.get("role").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setRoleName(txt);
+        }
+        if( node.has("user-data") )
+        {
+          String txt = node.get("user-data").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setStartupCommand(txt);
+        }
+        if( node.has("session-id") )
+        {
+          String txt = node.get("session-id").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setSessionId(txt);
+        }
+        
+        if( node.has("tags") )
+        {
+          Map<String, String> map = new HashMap<>();
+          JsonNode tags = node.get("tags");
+          Iterator<String> keys = tags.fieldNames();
+          while( keys.hasNext() )
+          {
+            String key = keys.next();
+            map.put(key, tags.get(key).asText());
+          }
+          image.setTags(map);
+        }
       }
       else
       {
-        ObjectNode node = this.mapper.createObjectNode();
-
-        node.put("image-id", "ami-f83a1d83");
-        node.put("instance-type", "t2.micro");
-        node.put("sec-group", "sg-54410d2f");
-        node.put("subnet", "subnet-d7008b8f");
-        node.put("key-file", "aws_serv_server_key");
-        node.put("role", "");
-        node.put("user-data", "/data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -w -t /data/ccdp");
-        ObjectNode tags = this.mapper.createObjectNode();
-        tags.put("session-id", "Service-Node");
+        image.setImageId("ami-f83a1d83");
+        image.setInstanceType("t2.micro");
+        image.setSecGrp("sg-54410d2f");
+        image.setSubnet("subnet-d7008b8f");
+        image.setKeyFile("aws_serv_server_key");
+        image.setRoleName("");
+        image.setStartupCommand("/data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -w -t /data/ccdp");
+        image.setSessionId("Service-Node");
+        
+        Map<String, String> tags = new HashMap<>();
+        tags.put("session-id", "");
         tags.put( "Name", "Host-Agent");
-        node.set("tags", tags);
+        image.setTags(tags);
         
-        this.config = this.mapper.readTree(node.toString());
-        
-        this.launchVM();
       }
+      
+      this.launchVM(image);
       
     }
     catch( Exception e )
@@ -93,17 +133,16 @@ public class VmLauncher
   }
   
   
-  private void launchVM() throws Exception
+  private void launchVM(CcdpImageInfo imgCfg) throws Exception
   {
-    this.logger.debug("Launching a new VM using " + 
-                      this.mapper.writeValueAsString(this.config) );
-    String imgId = this.config.get("image-id").asText();
-    String secGrp = this.config.get("security-group").asText();
-    String subNet = this.config.get("subnet").asText();
-    String keyFile = this.config.get("key-file").asText();
+    this.logger.debug("Launching a new VM using " + imgCfg.toPrettyPrint() );
+    String imageId = imgCfg.getImageId();
+    String secGrp = imgCfg.getSecGrp();
+    String subNet = imgCfg.getSubnet();
+    String keyFile = imgCfg.getKeyFile();
     
     String instType = "t2.micro";
-    String field = this.getField("instance-type");
+    String field = imgCfg.getInstanceType();
     
     if( field != null )
     {
@@ -112,35 +151,24 @@ public class VmLauncher
     }
     
     String user_data = "";
-    field = this.getField("user-data");
+    field = imgCfg.getStartupCommand();
     if( field != null )
     {
       user_data = "#!/bin/bash\n\n" + field;
       this.logger.debug("Adding User Data " + field);
     }
     
-    Map<String, String> tags = new HashMap<>();
-    if( this.config.has("tags") )
-    {
-      this.logger.debug("Adding Tags");
-      JsonNode json = this.config.get("tags");
-      Iterator<String> fields = json.fieldNames();
-      while( fields.hasNext() )
-      {
-        String name = fields.next();
-        tags.put(name, json.get(name).asText());
-      }
-    }
+    Map<String, String> tags = imgCfg.getTags();
     
-    RunInstancesRequest request = new RunInstancesRequest(imgId, 1, 1);
+    RunInstancesRequest request = new RunInstancesRequest(imageId, 1, 1);
     
     request.withInstanceType(instType)
-           .withUserData(user_data)
+           .withUserData(new String( Base64.encode(user_data.getBytes()) ))
            .withSecurityGroupIds(secGrp)
            .withSubnetId(subNet)
            .withKeyName(keyFile);
     
-    String role = this.getField("role");
+    String role = imgCfg.getRoleName();
     if( role != null )
     {
       this.logger.debug("Adding Role " + role);
@@ -153,16 +181,16 @@ public class VmLauncher
     
     ClientConfiguration cc = new ClientConfiguration();
     
-    String url = this.getField("proxy-url");
+    String url = imgCfg.getProxyUrl();
     if( url != null )
     {
       this.logger.debug("Adding a Proxy " + url);
       cc.setProxyHost(url);
     }
-    String port_str = this.getField("proxy-port");
-    if( port_str != null )
+    
+    int port = imgCfg.getProxyPort();
+    if( port > 0 )
     {
-      int port = Integer.parseInt(port_str);
       this.logger.debug("Adding a Proxy Port " + port);
       cc.setProxyPort(port);
     }
@@ -177,7 +205,7 @@ public class VmLauncher
       ec2 = new AmazonEC2Client(cc);
     }
     
-    String region = this.getField("region");
+    String region = imgCfg.getRegion();
     if( region != null )
     {
       this.logger.debug("Setting Region " + region);
@@ -221,7 +249,6 @@ public class VmLauncher
         tagsReq.withResources(instId)
                .withTags(new_tags);
         ec2.createTags(tagsReq);
-        
       }
     }
     else
@@ -231,27 +258,6 @@ public class VmLauncher
     
   }
   
-  /**
-   * If the value of the given field exists and is not set to null or is empty
-   * it returns the value of that field otherwise it returns null
-   *  
-   * @param name the name of the field whose value is required
-   * @return the value of the field or null if either is not set, is set to 
-   *         null, or is set to an empty string.
-   */
-  private String getField( String name )
-  {
-    if( this.config.has(name) )
-    {
-      String field = this.config.get(name).asText();
-      if( field.equals("null") || field.length() == 0 )
-        return null;
-      else
-        return field;
-    }
-    return null;
-  }
-  
   
   public static void main( String[] args ) throws Exception
   {
@@ -259,14 +265,13 @@ public class VmLauncher
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     String fname = null;
-    if( args.length > 0 )
-    {
-      if( args[0].equals("-f") && args.length >= 2 )
-        fname = args[1];
-      else
-        fname = args[0];
-    }
-      
+    
+    if( args.length == 1 )
+      fname = args[0];
+    else if( args.length == 2 && args[0].equals("-f") )
+      fname = args[1];
+    else
+      System.err.println("Just provide the filename if wanted");
     
     new VmLauncher(fname);
   }

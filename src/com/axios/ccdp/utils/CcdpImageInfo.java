@@ -22,14 +22,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpImageInfo
 {
   /**
-   * The minimum number of running instances at any given time
-   */
-  private int minReq = 0;
-  /**
-   * The maximum number of running instances at any given time
-   */
-  private int maxReq = 1;
-  /**
    * The type of Node the instances of this class will be used for
    */
   private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
@@ -37,6 +29,14 @@ public class CcdpImageInfo
    * An unique id used to identify the image to use
    */
   private String imageId = null;
+  /**
+   * The minimum number of running instances at any given time
+   */
+  private int minReq = 0;
+  /**
+   * The maximum number of running instances at any given time
+   */
+  private int maxReq = 1;
   /**
    * The session id that will use an instance of this type of node
    */
@@ -63,41 +63,20 @@ public class CcdpImageInfo
    */
   private Map<String, String> tags = new HashMap<>();
   
+  
+  private String region = null;
+  private String roleName = null;
+  private String proxyUrl = null;
+  private int proxyPort = -1;
+  private String credentialsFile = null;
+  private String profileName = null;
+  private String instanceType = "t2.micro";
+  
   /**
    * Instantiates a new object, but does not perform any operation
    */
   public CcdpImageInfo()
   {
-  }
-  
-  /**
-   * Instantiates a new object and sets all the different parameters passed as
-   * arguments
-   * 
-   * @param min the minimum number of running instances at any given time
-   * @param max the maximum number of running instances at any given time
-   * @param type the type of Node the instances of this class will be used for
-   * @param imgId an unique id used to identify the image to use
-   * @param sessionId the session id associated with this instance
-   * @param secGrp the security group used for all instances of this class
-   * @param subnet the subnet used for all instances of this class
-   * @param keyFile the name of the key file used to authenticate and authorize 
-   *        the account starting/stopping the instances
-   * @param tags a map with all the tags to be added to the instance
-   */
-  public CcdpImageInfo(int min, int max, CcdpNodeType type, 
-      String imgId, String sessionId, String secGrp, String subnet, 
-      String keyFile, Map<String, String> tags)
-  {
-    this.setMinReq(min);
-    this.setMaxReq(max);
-    this.setNodeType(type);
-    this.setImageId(imgId);
-    this.setSessionId(sessionId);
-    this.setSecGrp(secGrp);
-    this.setSubnet(subnet);
-    this.setKeyFile(keyFile);
-    this.setTags(tags);
   }
 
   /**
@@ -117,6 +96,13 @@ public class CcdpImageInfo
     this.setSecGrp(source.getSecGrp());
     this.setSubnet(source.getSubnet());
     this.setKeyFile(source.getKeyFile());
+    this.setRegion(source.getRegion());
+    this.setRoleName(source.getRoleName());
+    this.setProxyUrl(source.getProxyUrl());
+    this.setProxyPort(source.getProxyPort());
+    this.setCredentialsFile(source.getCredentialsFile());
+    this.setProfileName(source.getProfileName());
+    this.setInstanceType(source.getInstanceType());
     
     Map<String, String> tags = source.getTags();
     Map<String, String> tgt = new HashMap<>();
@@ -124,6 +110,7 @@ public class CcdpImageInfo
     {
       tgt.put(key, tags.get(key));
     }
+    
     this.setTags(tgt);
   }
   
@@ -357,7 +344,7 @@ public class CcdpImageInfo
    * 
    * @return a map with all the tags to be added to the instance
    */
-  @JsonGetter("configuration")
+  @JsonGetter("tags")
   public Map<String, String> getTags()
   {
     return tags;
@@ -368,12 +355,168 @@ public class CcdpImageInfo
    * 
    * @param tags a map with all the tags to be added to the instance
    */
-  @JsonSetter("configuration")
+  @JsonSetter("tags")
   public void setTags(Map<String, String> tags)
   {
     this.tags = tags;
   }
 
+  /**
+   * Gets the region where the new instances were created
+   * 
+   * @return gets the region where the instances were created
+   */
+  @JsonGetter("region")
+  public String getRegion()
+  {
+    return region;
+  }
+
+  /**
+   * Sets the region where the new instances need to be created
+   * 
+   * @param region the region where the new instances will reside
+   */
+  @JsonSetter("region")
+  public void setRegion(String region)
+  {
+    this.region = region;
+  }
+
+  /**
+   * Gets the instance's role name
+   * 
+   * @return the instance's role name
+   */
+  @JsonGetter("role-name")
+  public String getRoleName()
+  {
+    return roleName;
+  }
+
+  /**
+   * Sets the instance's role name
+   * 
+   * @param roleName the instance's role name
+   */
+  @JsonSetter("role-name")
+  public void setRoleName(String roleName)
+  {
+    this.roleName = roleName;
+  }
+
+  /**
+   * Gets the instance's proxy-url
+   * 
+   * @return the instance's proxy url
+   */
+  @JsonGetter("proxy-url")
+  public String getProxyUrl()
+  {
+    return proxyUrl;
+  }
+
+  /**
+   * Sets the instance's proxy url
+   * 
+   * @param proxyUrl the instance's proxy url
+   */
+  @JsonSetter("proxy-url")
+  public void setProxyUrl(String proxyUrl)
+  {
+    this.proxyUrl = proxyUrl;
+  }
+  
+  /**
+   * Gets the instance's proxy port number
+   * 
+   * @return the instance's proxy port number
+   */
+  @JsonGetter("proxy-port")
+  public int getProxyPort()
+  {
+    return proxyPort;
+  }
+
+  /**
+   * Sets the instance's proxy port number
+   * 
+   * @param proxyPort the instance's proxy port number
+   */
+  @JsonSetter("proxy-url")
+  public void setProxyPort(int proxyPort)
+  {
+    this.proxyPort = proxyPort;
+  }
+  
+  /**
+   * Gets the profile file used to load the credentials from
+   * 
+   * @return the profile file used to load the credentials from
+   */
+  @JsonGetter("credentials-file")
+  public String getCredentialsFile()
+  {
+    return credentialsFile;
+  }
+
+  /**
+   * Sets the profile file used to load the credentials from
+   * 
+   * @param credentialsFile the profile file used to load the credentials from
+   */
+  @JsonSetter("credentials-file")
+  public void setCredentialsFile(String credentialsFile)
+  {
+    this.credentialsFile = credentialsFile;
+  }
+
+  /**
+   * Gets the profile name used to load the credentials from
+   * 
+   * @return the profile name used to load the credentials from
+   */
+  @JsonGetter("profile-name")
+  public String getProfileName()
+  {
+    return profileName;
+  }
+  
+  /**
+   * Sets the profile name used to load the credentials from
+   * 
+   * @param credentialsProfile the profile name used to load the credentials 
+   *        from
+   */
+  @JsonSetter("profile-name")
+  public void setProfileName(String credentialsProfile)
+  {
+    this.profileName = credentialsProfile;
+  }
+  
+  /**
+   * Gets the instance type to use when creating instances
+   * 
+   * @return the instance type to use when creating instances
+   */
+  @JsonGetter("instance-type")
+  public String getInstanceType()
+  {
+    return instanceType;
+  }
+  
+  /**
+   * Sets the instance type to use when creating instances
+   * 
+   * @param instType the instance type to use when creating instances
+   * 
+   */
+  @JsonSetter("instance-type")
+  public void setInstanceType(String instType)
+  {
+    this.instanceType = instType;
+  }
+  
   /**
    * Gets a JSON representation of this object
    * 
@@ -394,7 +537,6 @@ public class CcdpImageInfo
     
     try
     {
-      
       str = new ObjectMapper().writeValueAsString(this);
     }
     catch( Exception e )

@@ -8,12 +8,9 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.newgen.CcdpTaskRunner;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 
 public class CCDPTest 
@@ -45,12 +42,6 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-
-
-    SimpleDateFormat formatter = 
-        new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
-    
-    this.logger.debug("The Date " + formatter.format( new Date() ));
 
   }
   

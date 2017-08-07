@@ -10,40 +10,6 @@ COMMANDLINE_ARGS="$@"
 ## START: Default Configuration
 #--------------------------------------------------------------------
 #
-# CCDP Installation directory
-unset CCDP_BASE
-
-if [ -z "$CCDP_HOME" ] ; then
-	# Try to find RDD_HOME
-	if [ -d /data/ccdp-engine ] ; then
-		CCDP_HOME=/data/ccdp-engine
-	else
-		## resolve links - $0 may be a link 
-		PRG="$0"
-		progname=`basename "$0"`
-		saveddir=`pwd`
-
-		# need this for relative symlinks
-		dirname_prg=`dirname "$PRG"`
-		cd "$dirname_prg"
-
-		while [ -h $"$PRG" ] ; do
-			ls=`ls -d "$PRG"`
-			link=`expr "$ls" : '.*-> \(.*\)$'`
-			if expr "$link" L '.*/.*' > /dev/null; then
-				PRG="$link"
-			else
-				PRG=`dirname "$PRG"`"/$link"
-			fi
-		done
-
-		CCDP_HOME=`dirname "$PRG"`/..
-
-		cd "$saveddir"
-	fi
-fi
-export CCDP_HOME
-
 
 if [ -z "$JAVA_APP" ] ; then
 	echo ""
@@ -52,9 +18,6 @@ if [ -z "$JAVA_APP" ] ; then
 	echo ""
 	exit
 fi
-
-
-echo "Running CCDP from: $CCDP_HOME"
 
 
 # CCDP Configuration directory
@@ -118,7 +81,7 @@ ARGS=""
 
 SRCH_APP_NAME="${JAVA_APP}"
 APP_NAME=`echo ${JAVA_APP} | sed 's/.*\.//'`
-JAVA_OPTS="-Dccdp.log.dir=${CCDP_LOG_DIR} \
+JAVA_OPTS="-Dccdp.logs.dir=${CCDP_LOG_DIR} \
 					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.properties \
 		       -Xmx1500m"
 
@@ -180,16 +143,17 @@ case $1 in
 	
   # If running from the command line and want to see the output
   if [ -z $CCDP_SKIP_REDIRECTION ] ; then
-    CMD="nohup
-
- ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &"
+    CMD="nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &"
+    nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
   else
     CMD="${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS"
+    exec $CMD
   fi
 
-	echo "Running ${CMD} "
-	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
-  exec $CMD
+#	echo "Running ${CMD} "
+#	# nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
+  #exec $CMD
+
 	echo $! > ${CCDP_PIDFILE}
 	echo "."
 

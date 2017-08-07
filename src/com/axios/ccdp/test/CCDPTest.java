@@ -1,7 +1,9 @@
 package com.axios.ccdp.test;
 
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
@@ -43,32 +45,12 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-   String id = "i-test-bff4b6a0c8c5";
-   String cp = "i-test-bff4b6a0c8c5";
-   
-   this.logger.info("Test 1 = " + id.equals(cp));
-   this.logger.info("Test 2 = " + (id ==  cp));
 
+
+    SimpleDateFormat formatter = 
+        new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
     
-//    for( int i = 1; i < 4; i++ )
-//
-//    Properties props = System.getProperties();
-//    Enumeration<Object> keys = props.keys();
-//    while( keys.hasMoreElements() )
-//
-//    {
-//      String key = (String)keys.nextElement();
-//      this.logger.info("Property[" + key + " = " + props.getProperty(key));
-//    }
-//    
-//
-//    this.logger.debug("The Map: " + this.map.toString());
-//    this.onEvent();
-//    this.logger.debug("The Map: " + this.map.toString());
-//    
-//
-//    boolean skip = CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
-//    this.logger.info("Skipping Sending HB " + skip );
+    this.logger.debug("The Date " + formatter.format( new Date() ));
 
   }
   

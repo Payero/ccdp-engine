@@ -121,13 +121,14 @@ class ModuleRunner:
     self.__s3 = boto3.resource('s3')
     self.__get_ccdp_gui_fmwk()
 
-
+    self.__logger.info("Running with arguments: %s" % pformat(cli_args))
+    
     if cli_args['file_name'] is None:
       self.__logger.debug('Using a bucket rather than a file')
-      #self.__runS3Task(cli_args)
+      self.__runS3Task(cli_args)
     else:
       self.__logger.debug('Using a file rather than an S3 bucket')
-      #self.__runFileTask(cli_args)
+      self.__runFileTask(cli_args)
 
 
   def __runFileTask(self, params):

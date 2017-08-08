@@ -323,6 +323,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     return terminate;
   }
   
+
   
   
   /**
@@ -334,10 +335,12 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    * 
    * @return the resource selected to run the task or null if none found
    */
+
    protected CcdpVMResource 
      customTaskAssignment(CcdpTaskRequest task, List<CcdpVMResource> resources)
    { 
      return CcdpVMResource.leastUsed(resources);
+
    }
 
    

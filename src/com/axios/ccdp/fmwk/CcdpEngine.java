@@ -797,7 +797,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
   private List<CcdpTaskRequest> assignTasks( CcdpVMResource target, 
                                           CcdpThreadRequest req )
   {
-    this.logger.trace("Assinging Tasks from Request " + req.getThreadId() );
+    this.logger.trace("Assigning Tasks from Request " + req.getThreadId() );
     
     String thid = req.getThreadId();
     List<CcdpTaskRequest> assignedTasks = new ArrayList<>();

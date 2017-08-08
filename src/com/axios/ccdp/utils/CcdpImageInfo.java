@@ -103,6 +103,7 @@ public class CcdpImageInfo
     this.setCredentialsFile(source.getCredentialsFile());
     this.setProfileName(source.getProfileName());
     this.setInstanceType(source.getInstanceType());
+    this.setStartupCommand(source.getStartupCommand());
     
     Map<String, String> tags = source.getTags();
     Map<String, String> tgt = new HashMap<>();

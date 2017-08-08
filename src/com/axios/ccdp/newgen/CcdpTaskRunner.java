@@ -146,7 +146,9 @@ public class CcdpTaskRunner extends Thread
     this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
     
     ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
+    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     pb.redirectErrorStream(true);
+    
     if( this.task.getConfiguration().containsKey(CcdpUtils.CFG_KEY_LOG_DIR) )
     {
       String log_dir = 

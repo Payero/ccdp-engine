@@ -1,6 +1,8 @@
 package com.axios.ccdp.test;
 
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,7 +13,11 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class CCDPTest 
 {
@@ -42,6 +48,16 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    String fname = "/nishome/oegante/req.json";
+    byte[] data = Files.readAllBytes( Paths.get( fname ) );
+    String job = new String(data, "utf-8");
+    this.logger.debug("Running a Task sender, sending " + job);
+    ObjectMapper mapper = new ObjectMapper();
+    
+    JsonNode node = mapper.readTree( job );
+    
+    ThreadRequestMessage req = mapper.treeToValue(node, ThreadRequestMessage.class);
+    this.logger.debug("Sending " + req.toString() );
 
   }
   

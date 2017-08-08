@@ -119,6 +119,7 @@ public class AmqSender extends AmqConnector
           message.setStringProperty(key, val);
         }
       }
+      this.logger.info("````````````````MESSAGE BODY IS: " + body.toString());
       CcdpMessage.buildMessage(body, message);
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
       
@@ -171,7 +172,6 @@ public class AmqSender extends AmqConnector
           message.setStringProperty(key, val);
         }
       }
-      
       CcdpMessage.buildMessage(body, message);
       Destination dest = this.session.createQueue(destination);
       
@@ -182,7 +182,7 @@ public class AmqSender extends AmqConnector
       //********************  IMPORTANTE NOTE!! IMPORTANTE NOTE!!  **********
       producer.send(dest, message, this.defDelivMode, this.defPriority, ttl); 
       
-      this.logger.debug("Sent: " + message.getText());
+      this.logger.info("Sent: " + message.getText());
   
     } 
     catch (Exception e) 

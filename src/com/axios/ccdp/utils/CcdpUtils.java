@@ -856,6 +856,9 @@ public class CcdpUtils
           img.setCredentialsFile(map.get("credentials.file"));
         if( map.containsKey("profile.name") )
           img.setProfileName(map.get("profile.name"));
+        if( map.containsKey("startup.command") )
+          img.setStartupCommand(map.get("startup.command"));
+        
         
         
         try

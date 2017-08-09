@@ -177,7 +177,6 @@ public class CcdpThreadRequest implements Serializable
       CcdpTaskState state = task.getState(); 
       if( state != CcdpTaskState.SUCCESSFUL ||  state != CcdpTaskState.FAILED)
       {
-        System.out.println("TASK :    " + task.getName() + " HAS A STATE OF :::: " + state);
         done = false;
         break;
       }

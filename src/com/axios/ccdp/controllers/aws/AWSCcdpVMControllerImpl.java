@@ -250,7 +250,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     String user_data = USER_DATA + imgCfg.getStartupCommand();
     
     if ( session_id != null )
-      user_data += "-s " + session_id;
+      user_data += " -s " + session_id;
     
     logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64

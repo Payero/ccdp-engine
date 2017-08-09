@@ -716,7 +716,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           switch ( state )
           {
             case STAGING:
-            
+              break;
             case RUNNING:
               task.started();
               this.sendUpdateMessage(task);
@@ -955,7 +955,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                   // need to make sure we are running on the appropriate node
                   if( !vm.getNodeType().equals(task.getNodeType() ) )
                     continue;
-                  this.logger.info("TRYING TO FIND A RESOURCE ");
                   // It has not been assigned yet and there is nothing running
                   if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
                   {
@@ -965,7 +964,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                     if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
                         vm.getStatus().equals(ResourceStatus.LAUNCHED))
                     {
-                      this.logger.info("SUCCESSFULLY ASSIGNED A VM TO TASK: " + task.getTaskId());
+                      this.logger.info("Successfully assigned VM: " + iid + " to Task: " + task.getTaskId());
                       this.sendTaskRequest(task, vm );
                       continue;
                     }
@@ -1006,7 +1005,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     RunTaskMessage msg = new RunTaskMessage();
     msg.setTask(task);
     this.connection.sendCcdpMessage(iid, msg);
-    this.logger.info("Launching Task " + tid + " on " + iid);
+    this.logger.info("Launching Task " + tid + " " + task.getState() + " on " + iid);
     task.setSubmitted(true);
     if (!resource.getTasks().contains(task)) 
     {
@@ -1056,7 +1055,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             CcdpNodeType type = task.getNodeType();
             //Don't want to find resources for a task that already has one
-            if (task.getHostId() != null) {
+            if (task.getHostId() != null && !task.getHostId().equals("")) {
               continue;
             }
             // if we have not done it before, let's check/create one
@@ -1241,7 +1240,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.logger.debug("Adding resource " + resource.toString());
                 this.resources.get(typeStr).add(resource);
                 this.connection.registerProducer(resource.getInstanceId());
-              //  this.connection.registerConsumer(resource.getInstanceId(), resource.getInstanceId());
               }
             }// need to deploy agents
           }// I do need free agents
@@ -1262,8 +1260,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               
               // making sure we do not shutdown the framework node
               String id = res.getInstanceId();
-              if( ResourceStatus.RUNNING.equals( res.getStatus() )  || 
-                  ResourceStatus.LAUNCHED.equals(res.getStatus()))
+              if( ResourceStatus.RUNNING.equals( res.getStatus() ))  //|| 
+                  //ResourceStatus.LAUNCHED.equals(res.getStatus()))
               {
                 this.logger.info("Flagging VM " + id + " for termination");          
                 // it is not in the 'do not terminate' list
@@ -1271,6 +1269,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 {
                   if( !id.startsWith("i-test-") )
                   {
+                    if (res.getNumberTasks() > 0) {
+                      this.logger.info(res.getInstanceId() +
+                          " still has " + res.getNumberTasks() + " tasks, skipping termination");
+                      continue;
+                    }
                     res.setStatus(ResourceStatus.SHUTTING_DOWN);
                     terminate.add(id);
                     done++;
@@ -1286,7 +1289,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 }
                 
               }// done searching for running VMs
-              
+             
               // Remove the ones 'SHUTTING_DOWN'
               if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
               {
@@ -1373,7 +1376,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       {
         this.logger.info("Success: Assigning VM " + res.getInstanceId() + " to " + sid);
         res.setAssignedSession(sid);
-        //temporarily commented out since we're not using REASSIGNED for much
+        //temporarily commented out since we're not using REASSIGNED
         //res.setStatus(ResourceStatus.REASSIGNED);
         synchronized( this.resources )
         {

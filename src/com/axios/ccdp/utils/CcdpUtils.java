@@ -832,7 +832,10 @@ public class CcdpUtils
       if( !map.isEmpty() )
       {
         if( map.containsKey("min.number.free.agents") )
+        {
           img.setMinReq(Integer.parseInt(map.get("min.number.free.agents")));
+          img.setMaxReq(Integer.parseInt(map.get("min.number.free.agents"))); //AWS charges for max
+        }
         if( map.containsKey("image.id") )
           img.setImageId(map.get("image.id"));
         if( map.containsKey("security.group") )

@@ -229,8 +229,9 @@ public class CcdpTaskRunnerTest extends Thread
 //    this.logger.info("Launching a new Process: " + this.cmdArgs.toString() );
     String path = System.getenv("CCDP_HOME");
     List<String> cmd = new ArrayList<>();
-    cmd.add(path + "/bin/test.sh");
-//    cmd.add("-c");
+    //cmd.add(path + "/bin/test.sh");
+    cmd.add("/bin/bash");
+    cmd.add("-c");
     cmd.add("/data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py -f /data/ccdp/webapp/frontend/server/src/modules/csv_reader.py -c CsvReader -a eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=");
     
     
@@ -245,7 +246,9 @@ public class CcdpTaskRunnerTest extends Thread
     this.logger.info("Launching a new Process: " + cmd );
 //    ProcessBuilder pb = new ProcessBuilder(this.cmdArgs);
     ProcessBuilder pb = new ProcessBuilder(cmd);
+    pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     pb.redirectErrorStream(true);
+    
     if( this.task.getConfiguration().containsKey(CcdpUtils.CFG_KEY_LOG_DIR) )
     {
       String log_dir = 

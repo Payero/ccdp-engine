@@ -17,8 +17,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import jdk.nashorn.internal.runtime.regexp.joni.WarnCallback;
-
 /**
  * An actual implementation of the CcdpTaskingIntf that uses ActiveMQ as the 
  * mechanism to send and receive events or messages.

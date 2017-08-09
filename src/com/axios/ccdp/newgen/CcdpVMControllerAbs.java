@@ -19,8 +19,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import jdk.nashorn.internal.runtime.regexp.joni.WarnCallback;
-
 /**
  * Class used to define the basic functionality of determining when to start
  * or to stop a resource.  

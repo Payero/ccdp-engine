@@ -968,19 +968,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                       this.sendTaskRequest(task, vm );
                       continue;
                     }
-//                    else
-//                      this.logger.info("7-08-03 16:05:21.138] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721083},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
-//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@1e2d273a\n" + 
-//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:688 [INFO  ] => Updating Task: 95 Current State: RUNNING\n" + 
-//                          "17-08-03 16:05:21.140] ccdp.newgen.CcdpMainApplication:798 [INFO  ] => Sending Status Update to fcd59de6-4d01-4ace-9bee-2212659e271d\n" + 
-//                          "17-08-03 16:05:21.140] connections.amq.AmqCcdpConnectionImpl:141 [DEBUG ] => fcd59de6-4d01-4ace-9bee-2212659e271d already has a Sender\n" + 
-//                          "17-08-03 16:05:21.158] connections.amq.AmqSender:186 [INFO  ] => Sent: {\"task\":{\"name\":\"Csv File Reader\",\"description\":\"\",\"state\":\"RUNNING\",\"retries\":3,\"command\":[\"/usr/bin/gedit\"],\"configuration\":{\"sleep-time\":\"\",\"filename\":\"\"},\"task-id\":\"95\",\"class-name\":\"tasks.csv_demo.CsvReader\",\"node-type\":\"DEFAULT\",\"reply-to\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"host-id\":\"i-test-77889363a679\",\"submitted\":false,\"cpu\":0.0,\"mem\":32.0,\"input-ports\":[],\"output-ports\":[],\"session-id\":\"fcd59de6-4d01-4ace-9bee-2212659e271d\",\"launched-time\":1501790721140},\"configuration\":{},\"reply-to\":null,\"msg-type\":4}\n" + 
-//                          "17-08-03 16:05:22.686] ccdp.newgen.CcdpMainApplication:338 [DEBUG ] => Got a new Event: com.axios.ccdp.message.TaskUpdateMessage@3e7b8b5dResource wasn't running :(  the resource was " + vm.getStatus());
                   }
                 }
-              }
-              
-            }
+              }              
+            }// if we couldn't find a resource
           }// the CPU is >= 100
         }// for each task
         this.requests.add( request );
@@ -1046,7 +1037,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         // could not find any available resource
         if ( resources.isEmpty() )
         {
-          this.logger.warn("No resources available for Session:: " + sid + 
+          this.logger.info("No resources available for Session:: " + sid + 
                            ". Assigning one from available resources.");
           
           // Need to assign VMs based on the node type
@@ -1260,8 +1251,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               
               // making sure we do not shutdown the framework node
               String id = res.getInstanceId();
-              if( ResourceStatus.RUNNING.equals( res.getStatus() ))  //|| 
-                  //ResourceStatus.LAUNCHED.equals(res.getStatus()))
+              if( ResourceStatus.RUNNING.equals( res.getStatus() ))
               {
                 this.logger.info("Flagging VM " + id + " for termination");          
                 // it is not in the 'do not terminate' list
@@ -1416,9 +1406,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           this.resources.get(sid).add(resource);
         }
         // had to create one, is this OK?
-       //TODO: UNCOMMENT OUT IF IT CAUSES ISSUE, as of now it's removing a resource if minreq is 0
-        //so i can't temp have a newly created resource since it'll remove it before i can even assign it
-        // this.checkFreeVMRequirements();
       }        
     }
     

@@ -239,6 +239,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 
     String session_id = imgCfg.getSessionId();
     String type = imgCfg.getNodeTypeAsString();
+    
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;
     
     Map<String, String> tags = imgCfg.getTags();

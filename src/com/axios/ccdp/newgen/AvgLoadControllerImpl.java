@@ -147,7 +147,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     }
     
     for( CcdpNodeType type : types.keySet() )
-      imgCfg = new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+      imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
     
     if( types.size() == 1 )
       this.logger.info("Need more " + imgCfg.getNodeTypeAsString() + " nodes");

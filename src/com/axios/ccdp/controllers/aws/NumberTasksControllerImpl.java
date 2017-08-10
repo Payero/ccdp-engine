@@ -83,7 +83,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     int tmp = this.getParam(config, "allocate.no.more.than");
     if( tmp > 0 )
       this.max_tasks = tmp;
-    tmp = this.getParam(config, "allocate.no.more.than");
+    tmp = this.getParam(config, "deallocate.avg.load.time");
     if( tmp > 0 )
       this.max_time = tmp;
   }

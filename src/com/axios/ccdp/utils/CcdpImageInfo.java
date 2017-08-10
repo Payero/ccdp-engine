@@ -3,10 +3,10 @@ package com.axios.ccdp.utils;
 import java.util.HashMap;
 import java.util.Map;
 
-
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -25,6 +25,12 @@ public class CcdpImageInfo
    * The type of Node the instances of this class will be used for
    */
   private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
+  
+  /**
+   * Performs all the nodes operations from and to JSON to/from objects
+   */
+  private static ObjectMapper mapper = new ObjectMapper();
+  
   /**
    * An unique id used to identify the image to use
    */
@@ -63,14 +69,59 @@ public class CcdpImageInfo
    */
   private Map<String, String> tags = new HashMap<>();
   
-  
+  /**
+   * Stores the region where the instances will be running from
+   */
   private String region = null;
+  /**
+   * The role associated with this instance to define permissions
+   */
   private String roleName = null;
+  /**
+   * URL used to access resources outside the cloud provider
+   */
   private String proxyUrl = null;
+  /**
+   * Port number used to access resources outside the cloud provider
+   */
   private int proxyPort = -1;
+  /**
+   * File containing credentials information regarding how to connect to the
+   * cloud provider
+   */
   private String credentialsFile = null;
+  /**
+   * The profile name to load in order to connect to the cloud provider
+   */
   private String profileName = null;
+  /**
+   * The type of instance or VM to create
+   */
   private String instanceType = "t2.micro";
+  
+  /**
+   * Creates a copy of the given CcdpImageConfiguration object.  This method
+   * should be used to avoid modifying the source object.  This method 
+   * effectively generates a new object that is a clone of the source.
+   * 
+   * @param source the object containing the information to clone
+   * 
+   * @return a newly instantiated object mirroring the information from the 
+   *         source argument
+   */
+  public static CcdpImageInfo copyImageInfo( CcdpImageInfo source )
+  {
+    try
+    {
+      return CcdpImageInfo.mapper.treeToValue(
+                                        source.toJSON(), CcdpImageInfo.class);
+    }
+    catch(JsonProcessingException e)
+    {
+      throw new RuntimeException("Could not copy the given object " + 
+                  e.getMessage());
+    }
+  }
   
   /**
    * Instantiates a new object, but does not perform any operation
@@ -79,42 +130,6 @@ public class CcdpImageInfo
   {
   }
 
-  /**
-   * Creates a copy of the given CcdpImageConfiguration object.  This method
-   * should be used to avoid modifying the source object.  This method 
-   * effectively generates a new object that is a clone of the source.
-   * 
-   * @param source the object containing the information to clone
-   */
-  public CcdpImageInfo( CcdpImageInfo source )
-  {
-    this.setMinReq(source.getMinReq());
-    this.setMaxReq(source.getMaxReq());
-    this.setNodeType(source.getNodeType());
-    this.setImageId(source.getImageId());
-    this.setSessionId(source.getSessionId());
-    this.setSecGrp(source.getSecGrp());
-    this.setSubnet(source.getSubnet());
-    this.setKeyFile(source.getKeyFile());
-    this.setRegion(source.getRegion());
-    this.setRoleName(source.getRoleName());
-    this.setProxyUrl(source.getProxyUrl());
-    this.setProxyPort(source.getProxyPort());
-    this.setCredentialsFile(source.getCredentialsFile());
-    this.setProfileName(source.getProfileName());
-    this.setInstanceType(source.getInstanceType());
-    this.setStartupCommand(source.getStartupCommand());
-    
-    Map<String, String> tags = source.getTags();
-    Map<String, String> tgt = new HashMap<>();
-    for( String key : tags.keySet() )
-    {
-      tgt.put(key, tags.get(key));
-    }
-    
-    this.setTags(tgt);
-  }
-  
   /**
    * Gets the minimum number of running instances at any given time 
    * @return the minimum number of running instances at any given time
@@ -444,7 +459,7 @@ public class CcdpImageInfo
    * 
    * @param proxyPort the instance's proxy port number
    */
-  @JsonSetter("proxy-url")
+  @JsonSetter("proxy-port")
   public void setProxyPort(int proxyPort)
   {
     this.proxyPort = proxyPort;
@@ -525,7 +540,7 @@ public class CcdpImageInfo
    */
   public ObjectNode toJSON()
   {
-    return new ObjectMapper().convertValue( this, ObjectNode.class );
+    return CcdpImageInfo.mapper.convertValue( this, ObjectNode.class );
   }
   
   /**
@@ -538,7 +553,7 @@ public class CcdpImageInfo
     
     try
     {
-      str = new ObjectMapper().writeValueAsString(this);
+      str = CcdpImageInfo.mapper.writeValueAsString(this);
     }
     catch( Exception e )
     {
@@ -560,9 +575,8 @@ public class CcdpImageInfo
     
     try
     {
-      ObjectMapper mapper = new ObjectMapper();
-      mapper.enable(SerializationFeature.INDENT_OUTPUT);
-      str = mapper.writeValueAsString(this);
+      CcdpImageInfo.mapper.enable(SerializationFeature.INDENT_OUTPUT);
+      str = CcdpImageInfo.mapper.writeValueAsString(this);
     }
     catch( Exception e )
     {

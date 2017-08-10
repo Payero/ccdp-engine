@@ -9,15 +9,19 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.message.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
+import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CCDPTest 
 {
@@ -48,17 +52,29 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    String fname = "/nishome/oegante/req.json";
-    byte[] data = Files.readAllBytes( Paths.get( fname ) );
-    String job = new String(data, "utf-8");
-    this.logger.debug("Running a Task sender, sending " + job);
+    CcdpImageInfo imgDef = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+    
+    this.logger.debug("The Original " + imgDef.toString());
+    
+    ObjectNode node = imgDef.toJSON();
     ObjectMapper mapper = new ObjectMapper();
     
-    JsonNode node = mapper.readTree( job );
+    CcdpImageInfo imgCpy = mapper.treeToValue(node, CcdpImageInfo.class);
+    imgCpy.setMinReq(2);
+    imgCpy.setMaxReq(3);
+    imgCpy.setSessionId("my-session");
+    Map<String, String> tags = imgCpy.getTags();
+    Iterator<String> keys = tags.keySet().iterator();
+    while( keys.hasNext() )
+    {
+      String key = keys.next();
+      tags.put(key, tags.get(key) + "-modified");
+    }
+    this.logger.debug("The Copy     " + imgCpy.toString());
+    this.logger.debug("The Original " + imgDef.toString());
     
-    ThreadRequestMessage req = mapper.treeToValue(node, ThreadRequestMessage.class);
-    this.logger.debug("Sending " + req.toString() );
-
+    CcdpImageInfo imgCpy2 = mapper.treeToValue(imgCpy.toJSON(), CcdpImageInfo.class);
+    this.logger.debug("The second   " + imgCpy2.toString());
   }
   
   

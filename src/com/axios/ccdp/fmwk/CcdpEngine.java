@@ -83,7 +83,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
    * Provides a consolidated way to format dates
    */
   private SimpleDateFormat formatter = 
-      new SimpleDateFormat("yyyy-mm-dd hh:mm:ss");
+      new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
   /**
    * Stores a list of requests to process.  Each request is a processing thread
    * containing one or more processing task.
@@ -674,7 +674,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
           // Getting a copy rather than the actual configured object so I can 
           // modify it without affecting the initial configuration 
           CcdpImageInfo imgCfg = 
-              new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+              CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
           imgCfg.setSessionId(sid);
           imgCfg.setMinReq(1);
           imgCfg.setMaxReq(1);
@@ -982,7 +982,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         // Getting a copy rather than the actual configured object so I can 
         // modify it without affecting the initial configuration 
         CcdpImageInfo imgInfo = 
-            new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+            CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
         this.logger.info("Did not find an available resource, creating one");
         imgInfo.setSessionId(sid);
         imgInfo.setMinReq(1);
@@ -1213,7 +1213,7 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     // Getting a copy rather than the actual configured object so I can 
     // modify it without affecting the initial configuration 
     CcdpImageInfo imgCfg = 
-        new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+        CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
     imgCfg.setSessionId(sid);
     imgCfg.setMinReq(1);
     imgCfg.setMaxReq(1);

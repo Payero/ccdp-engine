@@ -851,7 +851,7 @@ public class CcdpUtils
         if( map.containsKey("proxy.url") )
           img.setProxyUrl(map.get("proxy.url"));
         if( map.containsKey("proxy.port") )
-          img.setProxyPort( Integer.parseInt( map.get("port") ) );
+          img.setProxyPort( Integer.parseInt( map.get("proxy.port") ) );
         if( map.containsKey("credentials.file") )
           img.setCredentialsFile(map.get("credentials.file"));
         if( map.containsKey("profile.name") )

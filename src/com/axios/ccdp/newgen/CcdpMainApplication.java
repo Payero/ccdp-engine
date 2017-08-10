@@ -1398,7 +1398,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       // Getting a copy rather than the actual configured object so I can 
       // modify it without affecting the initial configuration 
       CcdpImageInfo imgInfo = 
-          new CcdpImageInfo(CcdpUtils.getImageInfo(type));
+          CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
       this.logger.info("Did not find an available resource, creating one");
       imgInfo.setSessionId(sid);
       imgInfo.setMinReq(1);

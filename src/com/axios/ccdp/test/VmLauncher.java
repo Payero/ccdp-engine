@@ -64,7 +64,19 @@ public class VmLauncher
         image.setImageId(node.get("image-id").asText());
         image.setSecGrp(node.get("security-group").asText());
         image.setSubnet(node.get("subnet").asText());
-        image.setKeyFile(node.get("key-file").asText());
+        
+        if( node.has("key-file") )
+        {
+          String txt = node.get("key-file").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setKeyFile(txt);
+        }
+        if( node.has("region") )
+        {
+          String txt = node.get("region").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setRegion(txt);
+        }
         
         if( node.has("instance-type") )
         {
@@ -77,6 +89,18 @@ public class VmLauncher
           String txt = node.get("role").asText();
           if( !txt.equals("null") && txt.length() != 0 )
             image.setRoleName(txt);
+        }
+        if( node.has("proxy-url") )
+        {
+          String txt = node.get("proxy-url").asText();
+          if( !txt.equals("null") && txt.length() != 0 )
+            image.setProxyUrl(txt);
+        }
+        if( node.has("proxy-port") )
+        {
+          int txt = node.get("proxy-port").asInt();
+          if( txt > 0 )
+            image.setProxyPort(txt);
         }
         if( node.has("user-data") )
         {

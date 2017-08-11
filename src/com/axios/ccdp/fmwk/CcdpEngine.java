@@ -1323,7 +1323,10 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
     // only update if it was LAUNCHED
     if( ResourceStatus.LAUNCHED.equals(stat ) || 
         ResourceStatus.REASSIGNED.equals(stat ))
+    {
       to.setStatus(ResourceStatus.RUNNING);
+      to.setLastAssignmentTime(System.currentTimeMillis());
+    }
     
     to.setLastUpdatedTime(System.currentTimeMillis());
     

@@ -119,7 +119,6 @@ public class AmqSender extends AmqConnector
           message.setStringProperty(key, val);
         }
       }
-      this.logger.info("````````````````MESSAGE BODY IS: " + body.toString());
       CcdpMessage.buildMessage(body, message);
       producer.send(message, this.defDelivMode, this.defPriority, ttl); 
       

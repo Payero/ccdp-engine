@@ -51,7 +51,7 @@ set_home()
 }
 set_home
 
-TEMP=`getopt -o hc:f:j:d:t: --longoptions help,config-file:,file:,jobs:dest:,kill-task: -n $0 -- "$@"`
+TEMP=`getopt -o hc:f:j:d:t:r: --longoptions help,config-file:,file:,jobs:dest:,kill-task:,reply-to: -n $0 -- "$@"`
 
 # Prints the Usage
 usage()
@@ -68,6 +68,7 @@ usage()
   echo '                            passed as a string'
   echo '   -d,--dest <arg>          The name of the Queue to send the job'
   echo '   -t,--task <arg>          The name of task to kill'
+  echo '   -r,--reply-to <arg>      The name of the channel to receive messages'
   echo ''
   exit 0
 }
@@ -79,9 +80,10 @@ APP_ARGS=""
 JSON=""
 DEST=""
 KILL=""
+REPLY=""
 
 
-CCDP_JAR_NAME="ccdp-engine.jar"
+#CCDP_JAR_NAME="ccdp-engine.jar"
 JAVA_APP="com.axios.ccdp.test.CcdpMsgSender"
 
 
@@ -95,6 +97,7 @@ while true ; do
 	-j | --jobs ) JSON=$2 ; shift 2 ;;
 	-d | --dest ) DEST=$2 ; shift 2 ;;
   -t | --task ) KILL=$2 ; shift 2 ;;
+  -r | --reply-to ) REPLY=$2 ; shift 2 ;;
     * ) break ;;
   esac
 done
@@ -129,6 +132,11 @@ fi
 if [ ! -z "$KILL" ] ; then
   echo "Adding Task to kill"
   APP_ARGS+=" -t $KILL"
+fi
+
+if [ ! -z "$REPLY" ] ; then
+  echo "Adding Channel to wait for "
+  APP_ARGS+=" -r $REPLY"
 fi
 
 unset _CLASSPATH

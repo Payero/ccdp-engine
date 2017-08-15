@@ -358,10 +358,18 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
         for( CcdpTaskRequest task : req.getTasks() )
         {
           String jid = task.getTaskId();
+          CcdpTaskState ts = task.getState();
+          
           this.logger.trace("Comparing Task: " + taskId + " against " + jid);
           if( jid.equals( taskId ) )
           {
             this.logger.trace("Found Task I was looking for");
+            // if there is no change, then just return
+            if( ts.equals(state) )
+            {
+              this.logger.debug("The task " + jid + " has not changed state");
+              return;
+            }
             
             boolean changed = false;
             switch ( state )

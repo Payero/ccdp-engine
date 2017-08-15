@@ -243,9 +243,7 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
         // running (avoiding new launches)
         if( diff >= dealloc.get("time").asInt() && 
             ResourceStatus.RUNNING.equals( vm.getStatus() ) &&
-            vm.getTasks().size() == 0 &&
-            !vm.isSingleTasked()
-           )
+            vm.getTasks().isEmpty() && !vm.isSingleTasked() )
         {
           this.logger.info("VM has not been allocated for a while, "
                             + "marked for termination");
@@ -409,7 +407,8 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
     
     if( target.isSingleTasked() )
     {
-      this.logger.debug("Target is assigned to a dedicated task " + target.getSingleTask() );
+      this.logger.debug("Target is assigned to a dedicated task " + 
+                        target.getSingleTask() );
       return false;
     }
     
@@ -498,7 +497,8 @@ public class AvgLoadControllerImpl implements CcdpTaskingControllerIntf
      this.logger.debug("Comparing Host " + id + " and task's Host Id " + hid);
      if( hid != null && hid.equals( id ) )
      {
-       this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
+       this.logger.debug(resource.getInstanceId() + " Status: " + 
+                         resource.getStatus() );
        if( resource.getStatus().equals(ResourceStatus.RUNNING) )
        {
          String tid = task.getTaskId();

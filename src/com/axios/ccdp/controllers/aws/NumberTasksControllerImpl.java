@@ -3,7 +3,9 @@
  */
 package com.axios.ccdp.controllers.aws;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -31,10 +33,14 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
    */
   public static int DEF_MAX_IDLE_TIME = 5;
   /**
+   * Provides a consolidated way to format dates
+   */
+  private SimpleDateFormat formatter = new SimpleDateFormat("hh:mm:ss");
+  /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(NumberTasksControllerImpl.class
-      .getName());
+  private Logger logger = 
+      Logger.getLogger(NumberTasksControllerImpl.class.getName());
   /**
    * Creates all the ObjectNode and ArrayNode required by this object
    */
@@ -83,6 +89,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     int tmp = this.getParam(config, "allocate.no.more.than");
     if( tmp > 0 )
       this.max_tasks = tmp;
+    
     tmp = this.getParam(config, "deallocate.avg.load.time");
     if( tmp > 0 )
       this.max_time = tmp;
@@ -131,43 +138,40 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
    */
   public boolean needResourceAllocation(List<CcdpVMResource> resources)
   {
-    if( resources == null )
-      return true;
-    
-    int sz = resources.size();
-    this.logger.info("Using Max number of Tasks "+ this.max_tasks);
-    
-    if( sz > 0 )
-    {
-      int total_tasks = 0;
-      for( CcdpVMResource res : resources )
-      {
-        total_tasks += res.getNumberTasks();
-      }
-      
-      int avgLoad = (int)( total_tasks / sz);
-
-      
-      if( avgLoad >= this.max_tasks )
-      {
-        String txt = "Need Resources: the Average Load " + avgLoad + 
-            " is greater than allowed " + this.max_tasks;
-        this.logger.info(txt);
-        return true;
-      }
-      else
-      {
-        String txt = "Does not need Resources: the Average Load " + avgLoad + 
-            " is lower than allowed " + this.max_tasks;
-        this.logger.info(txt);
-        return false;
-      }
-    }
-    else
+    if( resources == null || resources.isEmpty() )
     {
       this.logger.info("Need Resources: There are no resources running");
       return true;
     }
+    
+    int sz = resources.size();
+    this.logger.info("Using Max number of Tasks "+ this.max_tasks);
+    
+
+    int total_tasks = 0;
+    for( CcdpVMResource res : resources )
+    {
+      total_tasks += res.getNumberTasks();
+    }
+    
+    int avgLoad = (int)( total_tasks / sz);
+
+    
+    if( avgLoad >= this.max_tasks )
+    {
+      String txt = "Need Resources: the Average Load " + avgLoad + 
+          " is greater than allowed " + this.max_tasks;
+      this.logger.info(txt);
+      return true;
+    }
+    else
+    {
+      String txt = "Does not need Resources: the Average Load " + avgLoad + 
+          " is lower than allowed " + this.max_tasks;
+      this.logger.info(txt);
+      return false;
+    }
+
   }
   
   /**
@@ -187,12 +191,18 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     {
       long last = vm.getLastAssignmentTime();
       int diff = (int)( ( (now - last) / 1000) / 60 );
+      String nowStr = this.formatter.format(new Date(now));
+      String lastStr = this.formatter.format(new Date(last));
+      this.logger.info("Max time allowed " + this.max_time);
+      String txt = "Allocation time diff: " + diff + " Now " + nowStr + 
+                   " last " + lastStr;
+      this.logger.info(txt);
+      
       // is the time of the last assignment greater than allowed and it was
       // running (avoiding new launches)
       if( diff >= this.max_time && 
           ResourceStatus.RUNNING.equals( vm.getStatus() ) &&
-          vm.getTasks().size() == 0 &&
-          !vm.isSingleTasked()
+          vm.getTasks().isEmpty() && !vm.isSingleTasked()
          )
       {
         this.logger.info("VM " + vm.getInstanceId() + 
@@ -315,11 +325,13 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
   }
   
   /**
-   * Checks the amount of CPU and memory available in this VM resource.  If the VM has enough resources to run the
-   * task then it returns the CcdpTaskRequest otherwise it returns null
+   * Checks the amount of CPU and memory available in this VM resource.  If the 
+   * VM has enough resources to run the task then it returns the CcdpTaskRequest 
+   * otherwise it returns null
    * 
    * @param task the task to assign to a resource
-   * @param resource the resource to determine whether or not it can be run this task
+   * @param resource the resource to determine whether or not it can be run 
+   *        this task
    * 
    * @return true if this task can be executed on this node
    */
@@ -376,14 +388,16 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
     * 
     * @return true if the VM is found and is RUNNING
     */
-   private boolean canAssignResource(CcdpTaskRequest task, CcdpVMResource resource )
+   private boolean canAssignResource(CcdpTaskRequest task, 
+                                     CcdpVMResource resource )
    {
      String hid = task.getHostId();
      String id = resource.getInstanceId();
      this.logger.debug("Comparing Host " + id + " and task's Host Id " + hid);
      if( hid != null && hid.equals( id ) )
      {
-       this.logger.debug(resource.getInstanceId() + " Status: " + resource.getStatus() );
+       this.logger.debug(resource.getInstanceId() + " Status: " + 
+                         resource.getStatus() );
        if( resource.getStatus().equals(ResourceStatus.RUNNING) )
        {
          String tid = task.getTaskId();

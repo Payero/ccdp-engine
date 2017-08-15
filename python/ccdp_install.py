@@ -97,7 +97,12 @@ class CcdpInstaller:
   def __init__(self, cli_args):
     self.__logger = logging.getLogger('CcdpInstaller')
     handler = logging.StreamHandler()
-    filelog = logging.FileHandler('/tmp/ccdp_install.log')
+
+    log_file = '/tmp/ccdp_install.log'
+    if os.path.isfile(log_file):
+      os.remove(log_file)
+
+    filelog = logging.FileHandler(log_file)
 
     formatter = logging.Formatter(
             '%(asctime)s %(name)-12s %(lineno)d %(levelname)-8s %(message)s')
@@ -194,6 +199,7 @@ class CcdpInstaller:
     
     if not os.path.isdir(tgt_dir):
       os.makedirs(tgt_dir)
+      os.chmod(tgt_dir, 0750)
 
     filename = 'bogus_filename'
 
@@ -409,6 +415,7 @@ class CcdpInstaller:
     cfg = os.path.join(inst_path, "config", "ccdp-config.properties")
     log = os.path.join(inst_path, "config", "log4j.properties")
     bin_dir = os.path.join(inst_path, "bin")
+    os.chmod(bin_dir, 0777)
     for name in glob.glob("%s/*" % bin_dir):
       self.__logger.debug("Changing permission to %s" % name)
       os.chmod(name, 0777)
@@ -460,7 +467,8 @@ class CcdpInstaller:
             key = key_val[0]
             if key == 'log4j.appender.logfile.file':
               self.__logger.debug("Found the log file")
-              new_line = "%s=%s\n" % (key,os.path.join(inst_path, 'logs/framework.log'))
+              new_line = "%s=%s\n" % (key,os.path.join(inst_path, 
+                                      'logs/framework.log') )
           
           tgt.write(new_line)    
       
@@ -534,9 +542,9 @@ class CcdpInstaller:
       ec2 = boto3.resource('ec2')
       ec2instance = ec2.Instance(iid)
       for tags in ec2instance.tags:
-          if tags["Key"] == 'Name':
-              name = tags["Value"]
-              break
+        if tags["Key"] == 'Name':
+          name = tags["Value"]
+          break
 
       fname = '/etc/profile.d/prompt.sh'
       if os.path.isfile(fname):

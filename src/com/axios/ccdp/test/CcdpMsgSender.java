@@ -352,8 +352,8 @@ public class CcdpMsgSender implements CcdpMessageConsumerIntf
       String job = new String(data, "utf-8");
       new CcdpMsgSender(dest, job, task_filename, reply_to);
     }
-    
-    new CcdpMsgSender(dest, jobs, task_filename, reply_to);
+    else
+      new CcdpMsgSender(dest, jobs, task_filename, reply_to);
     
   }
 }

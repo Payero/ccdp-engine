@@ -1,6 +1,7 @@
 package com.axios.ccdp.mesos.fmwk;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -15,6 +16,7 @@ import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskInfo;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
+import org.apache.mesos.Protos.Value.Text;
 import org.apache.mesos.Protos.Status;
 
 import com.axios.ccdp.resources.CcdpVMResource;
@@ -145,8 +147,8 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
     this.logger.debug("Setting the resource parameters");
     if( this.agentInfo != null )
     {
-      String iid = null; 
-      String sid = null;
+      String iid = this.vmInfo.getInstanceId(); 
+      String sid = this.vmInfo.getAssignedSession();
       // Getting the attribute information
       for( Attribute attr : this.agentInfo.getAttributesList() )
       {
@@ -217,7 +219,40 @@ public class CcdpCommandExecutor implements Executor, TaskEventIntf
   @Override
   public void frameworkMessage(ExecutorDriver driver, byte[] msg)
   {
-    this.vmInfo.setAssignedSession( new String(msg) ); 
+    String sid = new String(msg);
+    this.vmInfo.setAssignedSession( sid ); 
+    boolean add_sid = true;
+    List<Attribute> attrs = this.agentInfo.getAttributesList();
+    int sz = attrs.size();
+    
+    for( int i = 0; i < sz; i++ )
+    {
+      Attribute attr = this.agentInfo.getAttributes(i);
+      String name = attr.getName();
+      if( CcdpUtils.KEY_SESSION_ID.equals( name ) )
+      {
+        Attribute.Builder bldr = Attribute.newBuilder();
+        bldr.setName(CcdpUtils.KEY_SESSION_ID);
+        Text.Builder value = Text.newBuilder();
+        value.setValue(sid);
+        bldr.setText(value.build());
+        attrs.set(i, attr);
+        add_sid = false;
+      }
+    }
+    
+    if( add_sid )
+    {
+      Attribute.Builder bldr = Attribute.newBuilder();
+      bldr.setName(CcdpUtils.KEY_SESSION_ID);
+      Text.Builder value = Text.newBuilder();
+      value.setValue(sid);
+      bldr.setText(value.build());
+      attrs.add(bldr.build());
+    }
+    
+    
+    
   }
 
   /**

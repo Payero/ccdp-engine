@@ -1356,6 +1356,10 @@ public class CcdpEngine implements TaskEventIntf, CcdpMessageConsumerIntf
       {
         CcdpVMResource res = this.resources.get(key);
         this.checkDeallocation(res.getAssignedSession());
+        // if the resource is not running, then we don't have to check the time
+        if( !res.getStatus().equals(ResourceStatus.RUNNING) )
+          continue;
+        
         long now = System.currentTimeMillis();
         long resTime = res.getLastUpdatedTime();
         long diff = now - resTime;

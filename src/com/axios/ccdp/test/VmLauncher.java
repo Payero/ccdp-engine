@@ -131,7 +131,7 @@ public class VmLauncher
       else
       {
         image.setImageId("ami-f83a1d83");
-        image.setInstanceType("t2.micro");
+        image.setInstanceType("t2.medium");
         image.setSecGrp("sg-54410d2f");
         image.setSubnet("subnet-d7008b8f");
         image.setKeyFile("aws_serv_server_key");
@@ -165,7 +165,7 @@ public class VmLauncher
     String subNet = imgCfg.getSubnet();
     String keyFile = imgCfg.getKeyFile();
     
-    String instType = "t2.micro";
+    String instType = "t2.medium";
     String field = imgCfg.getInstanceType();
     
     if( field != null )

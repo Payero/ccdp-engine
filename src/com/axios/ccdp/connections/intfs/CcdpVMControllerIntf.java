@@ -1,8 +1,10 @@
 package com.axios.ccdp.connections.intfs;
 
 import java.util.List;
+import java.util.Map;
 
 import com.axios.ccdp.resources.CcdpVMResource;
+import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -63,6 +65,13 @@ public interface CcdpVMControllerIntf
    *         'available' on different state
    */
   public List<CcdpVMResource> getAllInstanceStatus();
+  
+  /**
+   * Gets the current instance state of the resource with the given id
+   * 
+   * @return the status of the resource
+   */
+  public ResourceStatus getInstanceState(String id);
   
   /**
    * Returns information about all instances matching the set of filters given

@@ -1,12 +1,12 @@
 
 {"__comment": "required fields: image-id, sec-group, subnet, key-file",
- "image-id": "ami-5d193626",
- "security-group": "sg-54410d2f",
+ "image-id": "ami-39e70c43",
+ "security-group": "sg-9e30a2ed",
  "subnet": "subnet-d7008b8f",
  "key-file": "aws_serv_server_key",
  "region": "us-east-1",
 
- "instance-type": "t2.micro",
+ "instance-type": "t2.medium",
  "role": "EMR_EC2_DefaultRole",
  "proxy-url": "",
  "proxy-port": "",

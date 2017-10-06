@@ -60,7 +60,7 @@ public class NumberTasksControllerImpl implements CcdpTaskingControllerIntf
    */
   public NumberTasksControllerImpl()
   {
-    this.logger.debug("Initiating Tasker object");
+    this.logger.debug("HOW DID I GET HERE... Initiating Tasker object");
     // making the JSON Objects Pretty Print
     this.mapper.enable(SerializationFeature.INDENT_OUTPUT);
   }

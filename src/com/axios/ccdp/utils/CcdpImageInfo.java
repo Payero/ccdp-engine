@@ -97,7 +97,7 @@ public class CcdpImageInfo
   /**
    * The type of instance or VM to create
    */
-  private String instanceType = "t2.medium";
+  private String instanceType = "t2.micro";
   
   /**
    * Creates a copy of the given CcdpImageConfiguration object.  This method

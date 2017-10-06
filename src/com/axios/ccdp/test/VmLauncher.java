@@ -30,6 +30,7 @@ import com.amazonaws.util.Base64;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -131,7 +132,7 @@ public class VmLauncher
       else
       {
         image.setImageId("ami-f83a1d83");
-        image.setInstanceType("t2.medium");
+        image.setInstanceType("t2.micro");
         image.setSecGrp("sg-54410d2f");
         image.setSubnet("subnet-d7008b8f");
         image.setKeyFile("aws_serv_server_key");
@@ -165,7 +166,8 @@ public class VmLauncher
     String subNet = imgCfg.getSubnet();
     String keyFile = imgCfg.getKeyFile();
     
-    String instType = "t2.medium";
+    String instType = "t2.micro";
+    
     String field = imgCfg.getInstanceType();
     
     if( field != null )

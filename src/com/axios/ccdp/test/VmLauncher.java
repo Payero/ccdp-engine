@@ -30,6 +30,7 @@ import com.amazonaws.util.Base64;
 import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -166,6 +167,7 @@ public class VmLauncher
     String keyFile = imgCfg.getKeyFile();
     
     String instType = "t2.micro";
+    
     String field = imgCfg.getInstanceType();
     
     if( field != null )

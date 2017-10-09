@@ -333,7 +333,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         String txt = "The Agent " + vm.getInstanceId() + 
                      " has not sent updates since " + this.formatter.format(new Date(resTime));
         this.logger.warn(txt);
-        remove.add(vm);
+        //TODO: Uncomment this out later after finishing nifi testing
+        //remove.add(vm);
       }
     }
     
@@ -792,7 +793,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 req.removeTask(task);
                 vm.removeTask(task);
                 //If there are no more tasks, mark the resource as available again
-                //TODO: move this if I found a better place to put it (mseto)
                 if (vm.getNumberTasks() == 0)
                 {
                   update.add(vm);
@@ -1220,17 +1220,20 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             int need = free_vms - available;
             if( need > 0 )
             {
-              this.logger.info("Starting " + need + " free agents to meet the minreq of " + free_vms);
-              List<String> launched = this.controller.startInstances(imgCfg);
-            
-              for( String id : launched )
+              for (int i = 0; i < need; i++)
               {
-                CcdpVMResource resource = new CcdpVMResource(id);
-                resource.setStatus(ResourceStatus.LAUNCHED);
-                resource.setAssignedSession(typeStr);
-                this.logger.debug("Adding resource " + resource.toString());
-                this.resources.get(typeStr).add(resource);
-                this.connection.registerProducer(resource.getInstanceId());
+                this.logger.info("Starting vm number: " + i  + " free agents to meet the minreq of " + free_vms);
+                List<String> launched = this.controller.startInstances(imgCfg);
+                
+                for( String id : launched )
+                {
+                  CcdpVMResource resource = new CcdpVMResource(id);
+                  resource.setStatus(ResourceStatus.LAUNCHED);
+                  resource.setAssignedSession(typeStr);
+                  this.logger.debug("Adding resource " + resource.toString());
+                  this.resources.get(typeStr).add(resource);
+                  this.connection.registerProducer(resource.getInstanceId());
+                }
               }
             }// need to deploy agents
           }// I do need free agents
@@ -1467,6 +1470,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           if (res.isSingleTasked()) {
             continue;
           }
+         
+          //Updates the status if the resource (from pending to running)
+          res.setStatus(this.controller.getInstanceState(res.getInstanceId()));
           
           if( !ResourceStatus.SHUTTING_DOWN.equals(res.getStatus() ) )
           {
@@ -1485,7 +1491,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               }
           }
         }
-        this.logger.debug("Number of resources available is: " + available);
+        this.logger.debug(sid + " Number of resources available is: " + available);
       }// found a list of sessions
       else
       {

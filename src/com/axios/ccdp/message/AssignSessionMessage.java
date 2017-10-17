@@ -7,6 +7,7 @@ public class AssignSessionMessage extends CcdpMessage
   private CcdpMessageType msgType = CcdpMessageType.ASSIGN_SESSION;
   
   private String sessionId = null;
+  private String assignCmd = null;
   
   public AssignSessionMessage()
   {
@@ -40,5 +41,18 @@ public class AssignSessionMessage extends CcdpMessage
   public void setSessionId( String sessionId )
   {
     this.sessionId = sessionId;
+  }
+  
+  @PropertyNameGet("assign-command")
+  public String getAssignCommand()
+  {
+    return this.assignCmd;
+  }
+
+  
+  @PropertyNameSet("assign-command")
+  public void setAssignCommand( String assignCmd )
+  {
+    this.assignCmd = assignCmd;
   }
 }

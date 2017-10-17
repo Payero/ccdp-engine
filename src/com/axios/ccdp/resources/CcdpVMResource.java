@@ -699,6 +699,7 @@ public class CcdpVMResource implements Serializable
    */
   public boolean removeTask( CcdpTaskRequest task )
   {
+    this.last_assignment = System.currentTimeMillis();
     return this.tasks.remove(task);
   }
   
@@ -712,6 +713,7 @@ public class CcdpVMResource implements Serializable
    */
   public boolean removeTasks( List<CcdpTaskRequest> tasks )
   {
+    this.last_assignment = System.currentTimeMillis();
     return this.tasks.removeAll(tasks);
   }
   

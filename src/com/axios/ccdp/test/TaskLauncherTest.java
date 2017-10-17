@@ -84,10 +84,10 @@ public class TaskLauncherTest implements CcdpTaskLauncher
       CcdpTaskRunnerTest ccdpTask = new CcdpTaskRunnerTest(task, this);
       
       task.setState(CcdpTaskState.STAGING);
-      //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
+      //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());de
       this.statusUpdate(task, null);
       
-     // ccdpTask.start();
+     ccdpTask.start();
       
       task.setState(CcdpTaskState.RUNNING);
       //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());

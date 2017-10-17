@@ -65,6 +65,10 @@ public class CcdpImageInfo
    */
   private String startupCommand = "";
   /**
+   * The command or script to execute when assigning session
+   */
+  private String assignmentCommand = "";
+  /**
    * A map with all the tags to be added to the instance
    */
   private Map<String, String> tags = new HashMap<>();
@@ -354,6 +358,27 @@ public class CcdpImageInfo
     this.startupCommand = startupCmd;
   }
   
+  /**
+   * Gets the command or script to execute at assignment
+   * 
+   * @return the command or script to execute at assignment
+   */
+  @JsonGetter("assignment-command")
+  public String getAssignmentCommand()
+  {
+    return assignmentCommand;
+  }
+
+  /**
+   * Sets the command or script to execute at assignment
+   * 
+   * @param assignmentCmd the command or script to execute at assignment
+   */
+  @JsonSetter("assignment-command")
+  public void setAssignmentCommand(String assignmentCmd)
+  {
+    this.assignmentCommand = assignmentCmd;
+  }
   
   /**
    * Gets a map with all the tags to be added to the instance

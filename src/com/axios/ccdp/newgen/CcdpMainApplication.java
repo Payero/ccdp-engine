@@ -78,7 +78,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Provides a consolidated way to format dates
    */
   private SimpleDateFormat formatter = 
-      new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
   /**
    * Creates all the ArrayNode and ObjectNode
    */
@@ -598,7 +598,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     String iid = vm.getInstanceId();
     this.logger.info(iid + " -> Assign VM to available for session " + sid);
     AssignSessionMessage msg = new AssignSessionMessage();
+    CcdpImageInfo img = CcdpUtils.getImageInfo(vm.getNodeType());
+    
     msg.setSessionId(sid);
+    msg.setAssignCommand(img.getAssignmentCommand());
     this.connection.sendCcdpMessage(iid, msg);
   }
 
@@ -625,7 +628,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.connection.registerProducer(iid);
      // this.connection.registerConsumer(iid, iid);
       AssignSessionMessage msg = new AssignSessionMessage();
+      CcdpImageInfo img = CcdpUtils.getImageInfo(vm.getNodeType());
+      String cmd = img.getAssignmentCommand();
+      
+      this.logger.info("\n\nNode Type " + img.getNodeTypeAsString() + " has a command " + cmd + "\n\n");
       msg.setSessionId(type);
+      msg.setAssignCommand(cmd);
+      
       this.connection.sendCcdpMessage(iid, msg);
       
       List<CcdpVMResource> list = this.getResourcesBySessionId(type);
@@ -1073,6 +1082,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                   // assign the session
                   AssignSessionMessage asm = new AssignSessionMessage();
                   asm.setSessionId(sid);
+                  asm.setAssignCommand(imgCfg.getAssignmentCommand());
                   this.connection.sendCcdpMessage(id, asm);
                   
                   this.logger.debug("Adding resource " + resource.toString());

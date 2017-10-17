@@ -14,11 +14,17 @@ import ast, socket
 
 
 class Test:
-  
+
   __LEVELS = {"debug": logging.DEBUG, 
               "info": logging.INFO, 
               "warning": logging.WARN,
               "error": logging.ERROR}
+  
+  __NFS_HOST ="192.168.86.10"
+  __DIR_LOC = "/media/root/Pictures"
+  __MNT_DIRS = ['root', 'music', 'video']
+  __MNT_CMD = "sudo mount %s:/volume1/%s /media/%s -o %s"
+  __MNT_OPTS = "nouser,rsize=8192,wsize=8192,atime,auto,rw,dev,exec,suid"
   
   def __getLogger(self, name='Tester', level='debug'):
     logger = logging.getLogger(name)
@@ -43,9 +49,25 @@ class Test:
 
   def __runTest(self, args):
     self.__logger.info("Running the test")
-    ip = str([l for l in ([ip for ip in socket.gethostbyname_ex(socket.gethostname())[2] if not ip.startswith("127.")][:1], [[(s.connect(("8.8.8.8", 53)), s.getsockname()[0], s.close()) for s in [socket.socket(socket.AF_INET, socket.SOCK_DGRAM)]][0][1]]) if l][0][0])
 
-    self.__logger.debug("IP %s" % ip)    
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+      s.connect((self.__NFS_HOST, 22))
+      self.__logger.debug("Host %s available checking directory" % self.__NFS_HOST)
+      if not os.path.isdir(self.__DIR_LOC):
+        self.__logger.info("Need to mount the drive")
+        for d in self.__MNT_DIRS:
+          cmd = self.__MNT_CMD % (self.__NFS_HOST, d, d, self.__MNT_OPTS)
+          self.__logger.info("Executing: %s" % cmd)
+      else:
+        self.__logger.info("%s is already available" % self.__DIR_LOC)
+
+    except socket.error as e:
+      self.__logger.debug("Host %s not available" % self.__NFS_HOST)
+
+    s.close()
+
+    
 """
   Runs the application by instantiating a new Test object and passing all the
   command line arguments

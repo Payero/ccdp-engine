@@ -2,7 +2,9 @@ package com.axios.ccdp.newgen;
 
 import java.io.File;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -201,6 +203,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       case ASSIGN_SESSION:
         AssignSessionMessage sessionMsg = (AssignSessionMessage)message;
         this.setSessionId(sessionMsg.getSessionId());
+        this.runAssignmentTask(sessionMsg.getAssignCommand());
         break;
       case RESOURCE_UPDATE:
       case RUN_TASK:
@@ -310,6 +313,35 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     {
       this.launchTask(task);
     }
+  }
+  
+  /**
+   * Invoked when the resource has been reassigned to a new session.
+   * 
+   * @param command describes the task to launch
+   * 
+   */
+  private void runAssignmentTask( String command )
+  {
+    
+    if( command == null || command.length() == 0 )
+    {
+      this.logger.debug("Assignment command is null, ignoring it");
+      return;
+    }
+    
+    this.logger.info("Running assignment command " + command );
+    
+    CcdpTaskRequest task = new CcdpTaskRequest();
+    String[] items = command.split(" ");
+    List<String> cmd = new ArrayList<>();
+    for( String item : items )
+      cmd.add(item);
+    
+    task.setCommand(cmd);
+    task.setSessionId(this.vmInfo.getAssignedSession());
+    task.setHostId(this.vmInfo.getInstanceId());
+    this.launchTask(task);
   }
   
   /**

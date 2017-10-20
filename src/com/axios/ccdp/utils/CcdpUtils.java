@@ -867,7 +867,8 @@ public class CcdpUtils
           img.setProfileName(map.get("profile.name"));
         if( map.containsKey("startup.command") )
           img.setStartupCommand(map.get("startup.command"));
-        
+        if( map.containsKey("assignment.command") )
+          img.setAssignmentCommand(map.get("assignment.command"));
         
         
         try

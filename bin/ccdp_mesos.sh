@@ -53,6 +53,7 @@ set_home
 
 export JAVA_APP="com.axios.ccdp.mesos.fmwk.CCDPEngineMain"
 export BASE_NAME="CCDPEngineMain"
-export CCDP_JAR_NAME="mesos-ccdp-exec.jar"
+#export CCDP_JAR_NAME="mesos-ccdp-exec.jar"
+export CCDP_SKIP_REDIRECTION=1
 
 ${CCDP_HOME}/bin/run_service.sh $@

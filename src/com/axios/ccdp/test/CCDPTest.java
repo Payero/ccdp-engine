@@ -52,29 +52,14 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpImageInfo imgDef = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
     
-    this.logger.debug("The Original " + imgDef.toString());
+    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSS");
     
-    ObjectNode node = imgDef.toJSON();
-    ObjectMapper mapper = new ObjectMapper();
-    
-    CcdpImageInfo imgCpy = mapper.treeToValue(node, CcdpImageInfo.class);
-    imgCpy.setMinReq(2);
-    imgCpy.setMaxReq(3);
-    imgCpy.setSessionId("my-session");
-    Map<String, String> tags = imgCpy.getTags();
-    Iterator<String> keys = tags.keySet().iterator();
-    while( keys.hasNext() )
-    {
-      String key = keys.next();
-      tags.put(key, tags.get(key) + "-modified");
-    }
-    this.logger.debug("The Copy     " + imgCpy.toString());
-    this.logger.debug("The Original " + imgDef.toString());
-    
-    CcdpImageInfo imgCpy2 = mapper.treeToValue(imgCpy.toJSON(), CcdpImageInfo.class);
-    this.logger.debug("The second   " + imgCpy2.toString());
+    long mills = System.currentTimeMillis();
+    String now = formatter.format(new Date(mills) );
+    this.logger.debug("Now " + now);
+    String then = formatter.format(new Date(mills + 43200000) );
+    this.logger.debug("Then " + then);
   }
   
   

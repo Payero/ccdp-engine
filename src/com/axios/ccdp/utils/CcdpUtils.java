@@ -512,7 +512,13 @@ public class CcdpUtils
     {
       String envVarName = null == m.group(1) ? m.group(2) : m.group(1);
       String envVarValue = System.getenv(envVarName);
-      // did not find it 
+      // did not find it trying Property
+      if( envVarValue == null )
+      {
+        logger.info("Did not find env. var. " + envVarName + " trying property");
+        envVarValue = System.getProperty(envVarName);
+      }
+      
       if( envVarValue == null )
       {
         String txt = "The environment variable " + envVarName + 

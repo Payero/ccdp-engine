@@ -614,7 +614,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
-    this.logger.trace("Updating resources from " + sid);
+    this.logger.debug("Updating resources from " + sid);
     
     if( sid == null )
     {
@@ -629,8 +629,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       AssignSessionMessage msg = new AssignSessionMessage();
       CcdpImageInfo img = CcdpUtils.getImageInfo(vm.getNodeType());
       String cmd = img.getAssignmentCommand();
-      
-      this.logger.info("\n\nNode Type " + img.getNodeTypeAsString() + " has a command " + cmd + "\n\n");
       msg.setSessionId(type);
       msg.setAssignCommand(cmd);
       
@@ -949,7 +947,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                   this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
               }
             }
-            // Couldn't find any resources assigned to the reuest
+            // Couldn't find any resources assigned to the request
             // Check available resources or create a new one.
             if (fail)
             { 
@@ -1495,7 +1493,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               }
           }
         }
-        this.logger.debug("Number of resources available is: " + available);
+        this.logger.trace("Number of resources available is: " + available);
       }// found a list of sessions
       else
       {

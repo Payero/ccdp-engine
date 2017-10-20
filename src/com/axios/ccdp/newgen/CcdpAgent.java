@@ -37,6 +37,7 @@ import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -91,7 +92,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
    */
-  public CcdpAgent()
+  public CcdpAgent(CcdpNodeType type)
   {
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
@@ -119,8 +120,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       String[] items = UUID.randomUUID().toString().split("-");
       hostId = "i-test-" + items[items.length - 1];
     }
-    this.logger.info("Using Host Id: " + hostId);
+    this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
     this.vmInfo = new CcdpVMResource(hostId);
+    this.vmInfo.setNodeType(type);
+    
 //    this.me.setAssignedSession("available");
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
@@ -268,6 +271,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void setSessionId( String sid )
   {
+    this.logger.info("Setting Session to " + sid);
     this.vmInfo.setAssignedSession(sid);
   }
   
@@ -323,7 +327,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   private void runAssignmentTask( String command )
   {
-    
     if( command == null || command.length() == 0 )
     {
       this.logger.debug("Assignment command is null, ignoring it");
@@ -356,6 +359,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void launchTask( CcdpTaskRequest task)
   {
+    this.logger.info("Launching Task " + task.toPrettyPrint() );
+    
     // mutex to protect all global variables
     synchronized( this )
     {
@@ -433,6 +438,12 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     Option help = new Option("h", "help", false, "Shows this message");
     help.setRequired(false);
     options.addOption(help);
+    
+    // A way to assign a node type
+    String node_type = "The type of node this agent is running on";
+    Option node = new Option("n", "node-type", true, node_type);
+    config.setRequired(false);
+    options.addOption(node);
 
     
     CommandLineParser parser = new DefaultParser();
@@ -497,11 +508,26 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       }
     }
     
+    CcdpNodeType type = CcdpNodeType.DEFAULT;
+    if( cmd.hasOption('n') )
+    {
+      String val = cmd.getOptionValue('n');
+      try
+      {
+        CcdpNodeType temp = CcdpNodeType.valueOf( val );
+        type = temp;
+      }
+      catch( Exception e )
+      {
+        System.err.println("Invalid Node Type " + val + " using DEFAULT");
+      }
+    }
+    
     if( !loaded )
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
-    new CcdpAgent();
+    new CcdpAgent(type);
 
   }
 }

@@ -92,7 +92,15 @@ MY_PID=$$
 
 case $1 in
 	start)
-	
+  
+  # If the node type is set, then use it  
+  NODE_TYPE="DEFAULT"
+  if [ ! -z $CCDP_NODE_TYPE ] ; then
+    echo "Setting Node type"
+    NODE_TYPE=`echo $CCDP_NODE_TYPE | awk '{print toupper($0)}'`
+    ARGS="${ARGS} --node-type ${NODE_TYPE} "
+  fi
+
 
 	# Looking for running processes to avoid multiple launches
 	#			   Find the app name       avoid grep    and java     and this pid         or the script    get the PID

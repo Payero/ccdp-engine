@@ -115,6 +115,10 @@ public class CcdpTaskRequest implements Serializable
    * The unique identifier of the Agent responsible for the task
    */
   private String hostId;
+  /** 
+   * The IP address or hostname of the node where this task is running
+   */
+  private String hostname;
   /**
    * The number of times this task needs to be executed before set it as failed
    */
@@ -499,6 +503,29 @@ public class CcdpTaskRequest implements Serializable
     this.hostId = hostId;
   }
 
+  
+  /**
+   * Gets the IP address or hostname of the node where this task is running
+   * 
+   * @return the hostname
+   */
+  @JsonGetter("hostname")
+  public String getHostName()
+  {
+    return this.hostname;
+  }
+
+  /**
+   * Sets the IP address or hostname of the node where this task is running
+   * 
+   * @param hostname the hostname to set
+   */
+  @JsonSetter("hostname")
+  public void setHostName(String hostname)
+  {
+    this.hostname = hostname;
+  }
+  
   /**
    * @return the retries
    */

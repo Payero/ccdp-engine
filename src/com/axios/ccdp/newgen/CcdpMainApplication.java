@@ -500,7 +500,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             String iid = t.getHostId();
             this.logger.info("Found Task to kill " + tid + " at " + iid);
             KillTaskMessage msg = new KillTaskMessage();
-            msg.setTask(t);
+            msg.setTask(task);
             this.connection.sendCcdpMessage(iid, msg);
             t.killed();
             found = true;

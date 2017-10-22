@@ -1,6 +1,8 @@
 package com.axios.ccdp.test;
 
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -11,10 +13,14 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -30,8 +36,6 @@ public class CCDPTest
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
-  
-  Map<String, List<Integer>> map = new HashMap<>();
   
   
   public CCDPTest()
@@ -53,13 +57,16 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSSS");
-    
-    long mills = System.currentTimeMillis();
-    String now = formatter.format(new Date(mills) );
-    this.logger.debug("Now " + now);
-    String then = formatter.format(new Date(mills + 43200000) );
-    this.logger.debug("Then " + then);
+    try
+    {
+      InetAddress addr = CcdpUtils.getLocalHostAddress();
+      String hostname = addr.getHostAddress();
+      this.logger.debug("The Hostname " + hostname);
+    }
+    catch(UnknownHostException uhe)
+    {
+      this.logger.warn("Could not get the IP address");
+    }
   }
   
   

@@ -1,7 +1,9 @@
 package com.axios.ccdp.newgen;
 
 import java.io.File;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -109,19 +111,32 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
 
     
     String hostId = null;
+    String hostname = null;
+    
     try
     {
       this.logger.debug("Retrieving Instance ID");
       hostId = CcdpUtils.retrieveEC2InstanceId();
+      hostname = CcdpUtils.retrieveEC2Info("public-ipv4");
     }
     catch( Exception e )
     {
       this.logger.error("Could not retrieve Instance ID");
       String[] items = UUID.randomUUID().toString().split("-");
       hostId = "i-test-" + items[items.length - 1];
+      try
+      {
+        InetAddress addr = CcdpUtils.getLocalHostAddress();
+        hostname = addr.getHostAddress();
+      }
+      catch(UnknownHostException uhe)
+      {
+        this.logger.warn("Could not get the IP address");
+      }
     }
     this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
     this.vmInfo = new CcdpVMResource(hostId);
+    this.vmInfo.setHostname(hostname);
     this.vmInfo.setNodeType(type);
     
 //    this.me.setAssignedSession("available");
@@ -241,6 +256,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
     CcdpTaskState state = task.getState();
+    task.setHostName(this.vmInfo.getHostname());
+    
     this.connection.sendTaskUpdate(this.toMain, task);
     
     if( state.equals(CcdpTaskState.FAILED) || 
@@ -289,6 +306,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       
       synchronized( this )
       {
+        // if there is a command to run, do it
+        if( !task.getCommand().isEmpty() )
+          this.launchTask(task);
+        
         CcdpTaskRunner runner = this.tasks.remove(task);
         if( runner != null )
         {

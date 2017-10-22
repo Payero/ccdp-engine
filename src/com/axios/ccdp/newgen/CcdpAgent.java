@@ -93,6 +93,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   /**
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
+   * 
+   * @param type the type of node this agent is running
    */
   public CcdpAgent(CcdpNodeType type)
   {
@@ -396,6 +398,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.statusUpdate(task, null);
         
         ccdpTask.start();
+        
+        // If the task is a dedicated one, then need to make sure I capture it
+        if( task.getCPU() >= 100 )
+          this.vmInfo.isSingleTasked(true);
         
         task.setState(CcdpTaskState.RUNNING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());

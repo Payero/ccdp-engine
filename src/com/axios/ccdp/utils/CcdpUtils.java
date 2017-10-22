@@ -895,7 +895,7 @@ public class CcdpUtils
   /**
    * Returns an <code>InetAddress</code> object encapsulating what is most 
    * likely the machine's LAN IP address.
-   * <p/>
+   * 
    * This method is intended for use as a replacement of JDK method 
    * <code>InetAddress.getLocalHost</code>, because
    * that method is ambiguous on Linux systems. Linux systems enumerate the 
@@ -905,7 +905,7 @@ public class CcdpUtils
    * and will often return the loopback address, which is not valid for network 
    * communication. Details
    * <a href="http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4665037">here</a>.
-   * <p/>
+   * 
    * This method will scan all IP addresses on all network interfaces on the 
    * host machine to determine the IP address most likely to be the machine's 
    * LAN address. If the machine has multiple IP addresses, this method will 
@@ -914,11 +914,12 @@ public class CcdpUtils
    * if the machine has more than one), but if the machine does not hold a 
    * site-local address, this method will return simply the first non-loopback 
    * address found (IPv4 or IPv6).
-   * <p/>
+   * 
    * If this method cannot find a non-loopback address using this selection 
    * algorithm, it will fall back to calling and returning the result of JDK 
    * method <code>InetAddress.getLocalHost</code>.
-   * <p/>
+   * 
+   * @return the InetAddress that is the most likely interface being used
    *
    * @throws UnknownHostException If the LAN address of the machine cannot be 
    *         found.

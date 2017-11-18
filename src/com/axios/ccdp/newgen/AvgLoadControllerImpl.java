@@ -119,11 +119,21 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     if( resources == null || resources.size() == 0 )
       return imgCfg;
     
+    List<CcdpVMResource> avail = new ArrayList<>();
+    for( CcdpVMResource tmp : resources )
+    {
+      if( !tmp.isSingleTasked() )
+        avail.add(tmp);
+    }
+    
+    if( avail.size() == 0 )
+      return imgCfg;
+    
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
     int tasks = alloc.get("max-tasks").asInt();
-    int sz = resources.size();
+    int sz = avail.size();
     double[] assignedCPU = new double[sz];
     double[] assignedMEM = new double[sz];
     double[] availableCPU = new double[sz];
@@ -135,7 +145,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     
     for( int i = 0; i < sz; i++ )
     {
-      CcdpVMResource vm = resources.get(i);
+      CcdpVMResource vm = avail.get(i);
       CcdpNodeType type = vm.getNodeType();
       types.put(type, CcdpUtils.getImageInfo(type));
       
@@ -197,7 +207,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     {
       this.logger.info("High utilization for this session, checking time");
       long last = 0;
-      for( CcdpVMResource vm : resources )
+      for( CcdpVMResource vm : avail )
       {
         if( vm.getLastAssignmentTime() > last )
           last = vm.getLastAssignmentTime();

@@ -57,7 +57,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
       System.err.println("Could not setup environment");
     }
     
-    Map<String, String> map = CcdpUtils.getKeysByFilter("taskingIntf");
+    Map<String, String> map = CcdpUtils.getKeysByFilter("connectionIntf");
     this.broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     this.logger.debug("Connection to " + broker);
     

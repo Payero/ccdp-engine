@@ -122,9 +122,19 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     if( resources == null || resources.size() == 0 )
       return imgCfg;
     
-    CcdpNodeType type = resources.get(0).getNodeType();
+    List<CcdpVMResource> avail = new ArrayList<>();
+    for( CcdpVMResource tmp : resources )
+    {
+      if( !tmp.isSingleTasked() )
+        avail.add(tmp);
+    }
+    
+    if( avail.size() == 0 )
+      return imgCfg;
+    
+    CcdpNodeType type = avail.get(0).getNodeType();
     boolean are_diff = false;
-    for( CcdpVMResource vm : resources )
+    for( CcdpVMResource vm : avail )
     {
       CcdpNodeType t = vm.getNodeType();
       if( !t.equals(type) )
@@ -138,12 +148,13 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       this.logger.warn("Has more than one type of node, returning first one");
     else
       this.logger.info("Need more " + type + " nodes");
-      
-    int sz = resources.size();
+    
+    int sz = avail.size();
+    this.logger.info("Resources size " + resources.size() + " available " + sz);
     this.logger.info("Using Max number of Tasks "+ this.max_tasks);
     
     int total_tasks = 0;
-    for( CcdpVMResource res : resources )
+    for( CcdpVMResource res : avail )
       total_tasks += res.getNumberTasks();
     
     int avgLoad = (int)( total_tasks / sz);

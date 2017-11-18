@@ -57,16 +57,8 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    try
-    {
-      InetAddress addr = CcdpUtils.getLocalHostAddress();
-      String hostname = addr.getHostAddress();
-      this.logger.debug("The Hostname " + hostname);
-    }
-    catch(UnknownHostException uhe)
-    {
-      this.logger.warn("Could not get the IP address");
-    }
+    int i = 0;
+    System.out.printf("%d,%d,%d%n", i++, i++, i++);
   }
   
   

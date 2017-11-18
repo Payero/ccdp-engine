@@ -1,6 +1,8 @@
 package com.axios.ccdp.test;
 
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
@@ -11,10 +13,14 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.message.KillTaskMessage;
 import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -30,8 +36,6 @@ public class CCDPTest
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
-  
-  Map<String, List<Integer>> map = new HashMap<>();
   
   
   public CCDPTest()
@@ -52,29 +56,9 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpImageInfo imgDef = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
     
-    this.logger.debug("The Original " + imgDef.toString());
-    
-    ObjectNode node = imgDef.toJSON();
-    ObjectMapper mapper = new ObjectMapper();
-    
-    CcdpImageInfo imgCpy = mapper.treeToValue(node, CcdpImageInfo.class);
-    imgCpy.setMinReq(2);
-    imgCpy.setMaxReq(3);
-    imgCpy.setSessionId("my-session");
-    Map<String, String> tags = imgCpy.getTags();
-    Iterator<String> keys = tags.keySet().iterator();
-    while( keys.hasNext() )
-    {
-      String key = keys.next();
-      tags.put(key, tags.get(key) + "-modified");
-    }
-    this.logger.debug("The Copy     " + imgCpy.toString());
-    this.logger.debug("The Original " + imgDef.toString());
-    
-    CcdpImageInfo imgCpy2 = mapper.treeToValue(imgCpy.toJSON(), CcdpImageInfo.class);
-    this.logger.debug("The second   " + imgCpy2.toString());
+    int i = 0;
+    System.out.printf("%d,%d,%d%n", i++, i++, i++);
   }
   
   

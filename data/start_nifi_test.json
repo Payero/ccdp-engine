@@ -1,0 +1,18 @@
+{
+  "tasks": 
+    [
+      {
+          "node-type": "NIFI", 
+          "retries": 3, 
+          "name": "NiFi Start", 
+          "submitted": false, 
+          "state": "PENDING", 
+          "session-id": "Oscar-001", 
+          "command": ["/data/ccdp/run_nifi.sh", "run"], 
+          "reply-to": "CCDP-WebServer", 
+          "cpu": 100.0, 
+          "description": "Starts NiFi Application"	  
+      }
+
+    ]
+}

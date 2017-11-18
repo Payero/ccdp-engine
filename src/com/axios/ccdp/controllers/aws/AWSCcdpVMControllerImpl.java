@@ -237,7 +237,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( max == 0 )
       max = 1;
 
+    // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
+    if( session_id == null )
+      imgCfg.setSessionId(imgCfg.getNodeTypeAsString());
+    
     String type = imgCfg.getNodeTypeAsString();
     
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;
@@ -249,12 +253,20 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     String instType = imgCfg.getInstanceType();
     
     // Do we need to add session id?
-    String user_data = USER_DATA + imgCfg.getStartupCommand();
+    String img_cmd = imgCfg.getStartupCommand();
+    String user_data = "";
+    if( img_cmd != null && img_cmd.length() > 0 )
+    {
+      user_data = USER_DATA + img_cmd;
+      if ( session_id != null )
+        user_data += " -s " + session_id;
+      logger.info("Using User Data: " + user_data);
+    }
+    else
+    {
+      logger.info("User Data not provided, ignoring it");
+    }
     
-    if ( session_id != null )
-      user_data += " -s " + session_id;
-    
-    logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
     logger.trace("encoded value is " + new String(bytesEncoded));
@@ -380,6 +392,17 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       return false;
     }
     
+    boolean test = false;
+    if( test )
+    {
+      logger.error("\nTESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK\n");
+      for(String id : instIDs)
+        logger.error("Terminating Instance: " + id);
+      return true;
+    }
     logger.info("Terminating Instances");
     boolean terminated = false;
     TerminateInstancesRequest request = new TerminateInstancesRequest(instIDs);

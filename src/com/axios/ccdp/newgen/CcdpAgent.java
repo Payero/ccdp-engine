@@ -1,7 +1,9 @@
 package com.axios.ccdp.newgen;
 
 import java.io.File;
+import java.net.InetAddress;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,6 +39,7 @@ import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -90,8 +93,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   /**
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
+   * 
+   * @param type the type of node this agent is running
    */
-  public CcdpAgent()
+  public CcdpAgent(CcdpNodeType type)
   {
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
@@ -108,19 +113,34 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
 
     
     String hostId = null;
+    String hostname = null;
+    
     try
     {
       this.logger.debug("Retrieving Instance ID");
       hostId = CcdpUtils.retrieveEC2InstanceId();
+      hostname = CcdpUtils.retrieveEC2Info("public-ipv4");
     }
     catch( Exception e )
     {
       this.logger.error("Could not retrieve Instance ID");
       String[] items = UUID.randomUUID().toString().split("-");
       hostId = "i-test-" + items[items.length - 1];
+      try
+      {
+        InetAddress addr = CcdpUtils.getLocalHostAddress();
+        hostname = addr.getHostAddress();
+      }
+      catch(UnknownHostException uhe)
+      {
+        this.logger.warn("Could not get the IP address");
+      }
     }
-    this.logger.info("Using Host Id: " + hostId);
+    this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
     this.vmInfo = new CcdpVMResource(hostId);
+    this.vmInfo.setHostname(hostname);
+    this.vmInfo.setNodeType(type);
+    
 //    this.me.setAssignedSession("available");
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
@@ -238,6 +258,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
     CcdpTaskState state = task.getState();
+    task.setHostName(this.vmInfo.getHostname());
+    
     this.connection.sendTaskUpdate(this.toMain, task);
     
     if( state.equals(CcdpTaskState.FAILED) || 
@@ -268,6 +290,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void setSessionId( String sid )
   {
+    this.logger.info("Setting Session to " + sid);
     this.vmInfo.setAssignedSession(sid);
   }
   
@@ -285,6 +308,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       
       synchronized( this )
       {
+        // if there is a command to run, do it
+        if( !task.getCommand().isEmpty() )
+          this.launchTask(task);
+        
         CcdpTaskRunner runner = this.tasks.remove(task);
         if( runner != null )
         {
@@ -323,7 +350,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   private void runAssignmentTask( String command )
   {
-    
     if( command == null || command.length() == 0 )
     {
       this.logger.debug("Assignment command is null, ignoring it");
@@ -356,6 +382,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void launchTask( CcdpTaskRequest task)
   {
+    this.logger.info("Launching Task " + task.toPrettyPrint() );
+    
     // mutex to protect all global variables
     synchronized( this )
     {
@@ -370,6 +398,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.statusUpdate(task, null);
         
         ccdpTask.start();
+        
+        // If the task is a dedicated one, then need to make sure I capture it
+        if( task.getCPU() >= 100 )
+          this.vmInfo.isSingleTasked(true);
         
         task.setState(CcdpTaskState.RUNNING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
@@ -433,6 +465,12 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     Option help = new Option("h", "help", false, "Shows this message");
     help.setRequired(false);
     options.addOption(help);
+    
+    // A way to assign a node type
+    String node_type = "The type of node this agent is running on";
+    Option node = new Option("n", "node-type", true, node_type);
+    config.setRequired(false);
+    options.addOption(node);
 
     
     CommandLineParser parser = new DefaultParser();
@@ -497,11 +535,26 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       }
     }
     
+    CcdpNodeType type = CcdpNodeType.DEFAULT;
+    if( cmd.hasOption('n') )
+    {
+      String val = cmd.getOptionValue('n');
+      try
+      {
+        CcdpNodeType temp = CcdpNodeType.valueOf( val );
+        type = temp;
+      }
+      catch( Exception e )
+      {
+        System.err.println("Invalid Node Type " + val + " using DEFAULT");
+      }
+    }
+    
     if( !loaded )
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
-    new CcdpAgent();
+    new CcdpAgent(type);
 
   }
 }

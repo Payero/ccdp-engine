@@ -237,23 +237,36 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( max == 0 )
       max = 1;
 
+    // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
+    if( session_id == null )
+      imgCfg.setSessionId(imgCfg.getNodeTypeAsString());
+    
     String type = imgCfg.getNodeTypeAsString();
     
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;
     
     Map<String, String> tags = imgCfg.getTags();
     
-    RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
+    //RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
+    RunInstancesRequest request = new RunInstancesRequest(imgId, 1, 1);
     String instType = imgCfg.getInstanceType();
     
     // Do we need to add session id?
-    String user_data = USER_DATA + imgCfg.getStartupCommand();
+    String img_cmd = imgCfg.getStartupCommand();
+    String user_data = "";
+    if( img_cmd != null && img_cmd.length() > 0 )
+    {
+      user_data = USER_DATA + img_cmd;
+      if ( session_id != null )
+        user_data += " -s " + session_id;
+      logger.info("Using User Data: " + user_data);
+    }
+    else
+    {
+      logger.info("User Data not provided, ignoring it");
+    }
     
-    if ( session_id != null )
-      user_data += " -s " + session_id;
-    
-    logger.info("Using User Data: " + user_data);
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
     logger.trace("encoded value is " + new String(bytesEncoded));
@@ -379,6 +392,17 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       return false;
     }
     
+    boolean test = false;
+    if( test )
+    {
+      logger.error("\nTESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK\n");
+      for(String id : instIDs)
+        logger.error("Terminating Instance: " + id);
+      return true;
+    }
     logger.info("Terminating Instances");
     boolean terminated = false;
     TerminateInstancesRequest request = new TerminateInstancesRequest(instIDs);
@@ -429,6 +453,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       InstanceStatus stat = states.next();
       
       String instId = stat.getInstanceId();
+      System.out.println("INSTANCE ID: " + instId);
       CcdpVMResource res = new CcdpVMResource(instId);
       
       String status = stat.getInstanceState().getName();
@@ -436,6 +461,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       {
       case "pending":
         res.setStatus(ResourceStatus.INITIALIZING);
+        System.out.println("STATUS SET TO NITIALIZING");
         break;
       case "running":
         res.setStatus(ResourceStatus.RUNNING);
@@ -451,7 +477,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         res.setStatus(ResourceStatus.STOPPED);
         break;
         
-      }
+      }  
       resources.put(instId, res);
     }
     
@@ -496,6 +522,58 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     return new ArrayList<CcdpVMResource>( resources.values() );
+  }
+  
+  
+  /**
+   * Gets the current instance state of the resource with the given id
+   * 
+   * @return the status of the resource
+   */
+  @Override
+  public ResourceStatus getInstanceState(String id)
+  {
+    DescribeInstanceStatusRequest descInstReq = 
+        new DescribeInstanceStatusRequest()
+          .withInstanceIds(id);
+    DescribeInstanceStatusResult descInstRes = 
+                              this.ec2.describeInstanceStatus(descInstReq);
+    
+    List<InstanceStatus> state = descInstRes.getInstanceStatuses();
+    //Default as launched
+    ResourceStatus updatedstat = ResourceStatus.LAUNCHED;
+    
+    Iterator<InstanceStatus> states = state.iterator();
+    String status = new String();
+    while( states.hasNext() )
+    {
+      InstanceStatus stat = states.next();
+      
+      String instId = stat.getInstanceId();
+      CcdpVMResource res = new CcdpVMResource(instId);
+      
+      status = stat.getInstanceState().getName();
+      switch( status )
+      {
+      case "pending":
+        updatedstat = ResourceStatus.INITIALIZING;
+        break;
+      case "running":
+        updatedstat = ResourceStatus.RUNNING;
+        break;
+      case "shutting-down":
+        updatedstat = ResourceStatus.SHUTTING_DOWN;
+        break;
+      case "terminated":
+        updatedstat = ResourceStatus.TERMINATED;
+        break;
+      case "stopping":
+      case "stopped":
+        updatedstat = ResourceStatus.STOPPED;
+        break;
+      }  
+    }
+    return updatedstat;
   }
   
   /**

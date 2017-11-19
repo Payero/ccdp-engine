@@ -690,8 +690,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           return;
         }
       }
-      this.logger.info("Was not found adding it");
+      this.logger.info(iid + " was not found in SID: " + sid + " adding it");
       this.resources.get(sid).add(vm);
+      
     }// the sid is not null
     
     this.logger.info("Could not find VM " + vm.getInstanceId() );
@@ -1533,13 +1534,18 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       if( this.resources.containsKey( sid ) )
       {
+        this.logger.trace("SID found");
         int available = 0;
         List<CcdpVMResource> assigned = this.resources.get(sid);
+        this.logger.trace("Number of assigned resources " + assigned.size());
         for( CcdpVMResource res : assigned )
         {
-          if (res.isSingleTasked()) {
-            continue;
-          }
+//          if (res.isSingleTasked()) 
+//          {
+//            int sz = res.getNumberTasks();
+//            this.logger.trace("Is single tasked, ignoring it " + sz);
+//            continue;
+//          }
          
           //Updates the status if the resource (from pending to running)
           res.setStatus(this.controller.getInstanceState(res.getInstanceId()));
@@ -1563,7 +1569,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             }
           }
         }
-        this.logger.debug(sid + " Number of resources available is: " + available);
+        
+        this.logger.trace(sid + " --> Resources available: " + available);
       }// found a list of sessions
       else
       {

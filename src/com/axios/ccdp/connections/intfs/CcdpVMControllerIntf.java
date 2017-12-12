@@ -69,6 +69,8 @@ public interface CcdpVMControllerIntf
   /**
    * Gets the current instance state of the resource with the given id
    * 
+   * @param id the unigue id of the desired VM
+   * 
    * @return the status of the resource
    */
   public ResourceStatus getInstanceState(String id);

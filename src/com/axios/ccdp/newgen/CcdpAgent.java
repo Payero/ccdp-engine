@@ -23,12 +23,13 @@ import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.factory.CcdpObjectFactory;
-import com.axios.ccdp.message.AssignSessionMessage;
-import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
-import com.axios.ccdp.message.KillTaskMessage;
-import com.axios.ccdp.message.RunTaskMessage;
-import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.messages.AssignSessionMessage;
+import com.axios.ccdp.messages.CcdpMessage;
+import com.axios.ccdp.messages.KillTaskMessage;
+import com.axios.ccdp.messages.RunTaskMessage;
+import com.axios.ccdp.messages.ShutdownMessage;
+import com.axios.ccdp.messages.ThreadRequestMessage;
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -124,8 +125,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     catch( Exception e )
     {
       this.logger.error("Could not retrieve Instance ID");
-      String[] items = UUID.randomUUID().toString().split("-");
-      hostId = "i-test-" + items[items.length - 1];
+      String[] uid = UUID.randomUUID().toString().split("-");
+      hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
       try
       {
         InetAddress addr = CcdpUtils.getLocalHostAddress();
@@ -238,6 +239,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         ThreadRequestMessage threadMsg = (ThreadRequestMessage)message;
         this.threadRequest(threadMsg.getRequest());
         break;
+      case SHUTDOWN:
+        ShutdownMessage shutdownMsg = (ShutdownMessage)message;
+        this.shutdown(shutdownMsg.getMessage());
+        break;
       case TASK_UPDATE:
       case UNDEFINED:
       default:
@@ -277,7 +282,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.debug("Sending Heartbeat to " + this.toMain);
+    this.logger.trace("Sending Heartbeat to " + this.toMain);
     this.updateResourceInfo();
     this.connection.sendHeartbeat(this.toMain, this.vmInfo);
   }
@@ -336,6 +341,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   private void threadRequest( CcdpThreadRequest request )
   {
     this.logger.info("Got a Thread Request Message");
+    // Updating the session based on the request to be always updated
+    this.setSessionId(request.getSessionId());
     for( CcdpTaskRequest task : request.getTasks() )
     {
       this.launchTask(task);
@@ -416,16 +423,19 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
 
 
   /**
-   * This callback informs the executor to gracefully shut down.  It is called 
-   * when a slave restart fails to complete within the grace period or when the
-   * executor's framework completes.  The executor will be forcibly killed if 
-   * shutdown doesn't complete within 5 seconds (the default, configurable on 
-   * the slave command line with --executor_shutdown_grace_period).
+   * This callback informs the agent to gracefully shut down.  
+   * 
+   * @param message any message to print for debugging purposes
    * 
    */
-  public void shutdown()
+  public void shutdown( String message )
   {
-    this.logger.info("Shuting Down Executor");
+    if( message != null )
+      this.logger.info("Shuting Down Agent, given message: " + message);
+    else
+      this.logger.info("Shuting Down Agent");
+    this.vmInfo.setStatus(ResourceStatus.SHUTTING_DOWN);
+    
     if( this.timer != null )
       this.timer.stop();
     

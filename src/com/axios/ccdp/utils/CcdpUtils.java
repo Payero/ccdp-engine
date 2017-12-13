@@ -700,6 +700,12 @@ public class CcdpUtils
         
         if( job.has("cpu") )
           task.setCPU( job.get("cpu").asDouble() );
+        if( job.has("node-type") )
+        {
+          String type = job.get("node-type").asText();
+          task.setNodeType( CcdpNodeType.valueOf(type.toUpperCase() ));
+        }
+        
         if( job.has("mem") )
           task.setMEM( job.get("mem").asDouble() );
         if( job.has(CcdpUtils.KEY_SESSION_ID) )

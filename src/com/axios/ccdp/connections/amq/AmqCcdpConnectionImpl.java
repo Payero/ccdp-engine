@@ -9,9 +9,9 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.ResourceUpdateMessage;
-import com.axios.ccdp.message.TaskUpdateMessage;
+import com.axios.ccdp.messages.CcdpMessage;
+import com.axios.ccdp.messages.ResourceUpdateMessage;
+import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;

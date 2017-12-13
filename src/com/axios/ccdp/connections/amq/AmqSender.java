@@ -11,7 +11,8 @@ import javax.jms.TextMessage;
 
 import org.apache.activemq.Message;
 import org.apache.log4j.Logger;
-import com.axios.ccdp.message.CcdpMessage;
+
+import com.axios.ccdp.messages.CcdpMessage;
 
 /**
  * Class used to send ActiveMQ messages.  It was designed to be part of the

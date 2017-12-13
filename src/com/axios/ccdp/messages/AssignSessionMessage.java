@@ -1,4 +1,4 @@
-package com.axios.ccdp.message;
+package com.axios.ccdp.messages;
 
 
 public class AssignSessionMessage extends CcdpMessage

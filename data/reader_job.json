@@ -1,5 +1,8 @@
 {
-  "_comment":"ax-ccdp host: eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=",
+  "_comment":[
+            "ax-ccdp host: eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30=",
+            "localhost: eeydicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJywgJ2Jyb2tlcl9ob3N0JzogJ2xvY2FsaG9zdCd9"
+             ],
   "jobs": 
     [
       {"session-id":"mtest", 
@@ -7,6 +10,6 @@
             "/data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py", 
             "-f", "/data/ccdp/webapp/frontend/server/src/modules/csv_reader.py" , 
             "-c", "CsvReader",
-            "-a", "eeydicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJywgJ2Jyb2tlcl9ob3N0JzogJ2xvY2FsaG9zdCd9"]}
+            "-a", "eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30="]}
     ]
 }

@@ -413,7 +413,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     int code = shm.getHttpStatusCode();
     if( code == 200 )
     {
-      logger.debug("Stop Request Successful");
+      logger.debug("Stop Request Successful, terminated " + instIDs.toString());
       terminated = true;
     }
     else

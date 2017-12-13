@@ -1,6 +1,6 @@
 package com.axios.ccdp.connections.intfs;
 
-import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.messages.CcdpMessage;
 
 /**
  * Generic interface to allow Consumers to receive incoming Events

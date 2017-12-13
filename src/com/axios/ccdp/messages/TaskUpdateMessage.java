@@ -1,17 +1,17 @@
-package com.axios.ccdp.message;
+package com.axios.ccdp.messages;
 
 
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 
-public class KillTaskMessage extends CcdpMessage
+public class TaskUpdateMessage extends CcdpMessage
 {
 
-  private CcdpMessageType msgType = CcdpMessageType.KILL_TASK;
+  private CcdpMessageType msgType = CcdpMessageType.TASK_UPDATE;
   
   private CcdpTaskRequest task = null;
-  private int how_many = 0;
   
-  public KillTaskMessage()
+  public TaskUpdateMessage()
   {
 
   }
@@ -30,20 +30,7 @@ public class KillTaskMessage extends CcdpMessage
     this.task = task;
   }
 
-  @PropertyNameGet("how-many")
-  public int getHowMany()
-  {
-    return how_many;
-  }
 
-  
-  @PropertyNameSet("how-many")
-  public void setHowMany(int how_many)
-  {
-    if( how_many >= 0 )
-      this.how_many = how_many;
-  }
-  
   @Override
   public Integer getMessageType()
   {

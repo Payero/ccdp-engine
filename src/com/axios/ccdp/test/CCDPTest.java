@@ -18,8 +18,8 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.amq.AmqSender;
-import com.axios.ccdp.message.KillTaskMessage;
-import com.axios.ccdp.message.ThreadRequestMessage;
+import com.axios.ccdp.messages.KillTaskMessage;
+import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;

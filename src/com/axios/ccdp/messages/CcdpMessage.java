@@ -1,4 +1,4 @@
-package com.axios.ccdp.message;
+package com.axios.ccdp.messages;
 
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -114,7 +114,8 @@ public abstract class CcdpMessage implements Cloneable
     END_SESSION(8),
     START_THREAD(9),
     PAUSE_THREAD(10),
-    STOP_THREAD(11);
+    STOP_THREAD(11),
+    SHUTDOWN(12);
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

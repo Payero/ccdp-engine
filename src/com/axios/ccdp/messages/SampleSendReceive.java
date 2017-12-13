@@ -1,4 +1,4 @@
-package com.axios.ccdp.message;
+package com.axios.ccdp.messages;
 
 import javax.jms.Message;
 import javax.jms.TextMessage;
@@ -6,7 +6,7 @@ import javax.jms.TextMessage;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.amq.AmqConnector;
-import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 
 public class SampleSendReceive extends AmqConnector

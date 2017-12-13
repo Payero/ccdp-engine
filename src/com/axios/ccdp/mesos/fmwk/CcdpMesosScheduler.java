@@ -31,10 +31,10 @@ import org.apache.mesos.Protos.Attribute;
 
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.fmwk.CcdpEngine;
-import com.axios.ccdp.message.CcdpMessage;
-import com.axios.ccdp.message.KillTaskMessage;
-import com.axios.ccdp.message.ResourceUpdateMessage;
-import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.CcdpMessage;
+import com.axios.ccdp.messages.KillTaskMessage;
+import com.axios.ccdp.messages.ResourceUpdateMessage;
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;

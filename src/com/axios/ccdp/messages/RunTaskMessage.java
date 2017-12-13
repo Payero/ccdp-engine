@@ -1,7 +1,7 @@
-package com.axios.ccdp.message;
+package com.axios.ccdp.messages;
 
 
-import com.axios.ccdp.message.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 
 public class RunTaskMessage extends CcdpMessage

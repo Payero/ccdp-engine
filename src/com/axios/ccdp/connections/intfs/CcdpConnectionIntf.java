@@ -2,7 +2,7 @@ package com.axios.ccdp.connections.intfs;
 
 import java.util.Map;
 
-import com.axios.ccdp.message.CcdpMessage;
+import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;

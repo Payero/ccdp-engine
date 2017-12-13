@@ -20,11 +20,6 @@ class Test:
               "warning": logging.WARN,
               "error": logging.ERROR}
   
-  __NFS_HOST ="192.168.86.10"
-  __DIR_LOC = "/media/root/Pictures"
-  __MNT_DIRS = ['root', 'music', 'video']
-  __MNT_CMD = "sudo mount %s:/volume1/%s /media/%s -o %s"
-  __MNT_OPTS = "nouser,rsize=8192,wsize=8192,atime,auto,rw,dev,exec,suid"
   
   def __getLogger(self, name='Tester', level='debug'):
     logger = logging.getLogger(name)
@@ -50,23 +45,21 @@ class Test:
   def __runTest(self, args):
     self.__logger.info("Running the test")
 
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    url = 'http://169.254.169.254/latest/meta-data/instance-id'
     try:
-      s.connect((self.__NFS_HOST, 22))
-      self.__logger.debug("Host %s available checking directory" % self.__NFS_HOST)
-      if not os.path.isdir(self.__DIR_LOC):
-        self.__logger.info("Need to mount the drive")
-        for d in self.__MNT_DIRS:
-          cmd = self.__MNT_CMD % (self.__NFS_HOST, d, d, self.__MNT_OPTS)
-          self.__logger.info("Executing: %s" % cmd)
-      else:
-        self.__logger.info("%s is already available" % self.__DIR_LOC)
+      response = requests.get(self.__METADATA_URL, timeout=2)
+      iid = response.text
+      ec2 = boto3.resource('ec2')
+      ec2instance = ec2.Instance(iid)
+      for tags in ec2instance.tags:
+        if tags["Key"] == 'Name':
+          name = tags["Value"]
+          break
 
-    except socket.error as e:
-      self.__logger.debug("Host %s not available" % self.__NFS_HOST)
 
-    s.close()
-
+    except:
+      self.__logger.debug("Is not an EC2 Instance, skipping nickname")
+      traceback.print_exc()
     
 """
   Runs the application by instantiating a new Test object and passing all the

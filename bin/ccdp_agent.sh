@@ -62,7 +62,7 @@ set_home()
 set_home
 
 ## ------------- Now the actual parameters to run the service -------------- ##
-export JAVA_APP="com.axios.ccdp.newgen.CcdpAgent"
+export JAVA_APP="com.axios.ccdp.fmwk.CcdpAgent"
 export BASE_NAME="CcdpAgent"
 export CCDP_JAR_NAME="ccdp-engine.jar"
 export CCDP_SKIP_REDIRECTION=1

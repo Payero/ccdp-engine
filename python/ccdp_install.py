@@ -15,25 +15,23 @@ class CcdpInstaller:
   """
   Performs different manipulations to install and/or configure the CCDP engine.
   Its main goal is to provide a way to generate, distribute, and install files
-  from a common place that can be used when deploying new VMs.  It uses two
-  different files to performs its operations:
+  from a common place that can be used when deploying new VMs.  It uses a single
+  file to performs its operations:
 
     - dist-file:  A compressed file containing the distribution package for the
                   ccdp-engine
-    - mesos-file: The mesos configuration file to configure all the mesos-slave
-                  or agents
 
   Actions ( -a | --action ):
     default = None
 
     There are two main operations that require attention: download and upload.
-    As their names indicates it uploads or downloads the distribution and/or the 
-    mesos configuration files from/to an S3 bucket or from/to the file system.  
+    As their names indicates it uploads or downloads the distribution afile
+    from/to an S3 bucket or from/to the file system.  
 
-    IMPORTANT: If one of the files is not passed as an argument no action is 
-               performed on that file
+    IMPORTANT: If the file is not passed as an argument no action is 
+               performed on it
   
-  Files:
+  File:
     The beginning of the file indicates whether we are uploading/downloading
     from/to an S3 bucket or file system.  If the file begins with 's3://' then
     with the file will be download/upload from/to an S3 bucket. If the file  
@@ -46,16 +44,6 @@ class CcdpInstaller:
       The compressed file containing the ccdp-engine application so it can be 
       either download or upload to a S3 bucket or file system
 
-    mesos configuraion file: ( -m | --mesos-config )
-      default = None
-
-      A JSON file containing the mesos configuration to be used when deploying
-      a mesos agent node so it can be either download or upload to a S3 bucket 
-      or file system
-
-      IMPORTANT:  If this file is provied and the action is download, then
-                  it is assumed that the ccdp-engine was intalled in the given
-                  target location and that the configuration needs to be set.
   
   Target Location ( -t  | --target-location )
   default = None
@@ -79,8 +67,8 @@ class CcdpInstaller:
     necessary files
 
   Session Id ( -s | --session-id ):
-   Sets the session id as an atrribute and is interpreted by the mesos-slave
-   agents.
+   Sets the session id as an atrribute and is interpreted by the ccdp agent
+   
 
   """
   
@@ -151,7 +139,7 @@ class CcdpInstaller:
     Because we are supportring multiple protocols, want to centralize where we
     are handling the files manipulation
     """
-    self.__files = { 'dist-file':{}, 'mesos-file':{} }
+    self.__files = { 'dist-file':{} }
 
     if params.action == 'download':
       
@@ -163,14 +151,6 @@ class CcdpInstaller:
         self.__files['dist-file']['path'] = self.__download_file(src_file, 
                                                                   tgt_dir)
 
-      # Second, do we have a mesos config file?
-      if params.mesos_config:
-        # just in case using environment variables
-        src_file = os.path.expandvars(params.mesos_config)
-        tgt_dir = params.tgt_location
-        self.__files['mesos-file']['path'] = self.__download_file(src_file, 
-                                                                  tgt_dir)
-
     elif params.action == 'upload':
       # First, do we have a distribution file?
       if params.ccdp_dist_file:
@@ -180,13 +160,6 @@ class CcdpInstaller:
         self.__files['dist-file']['path'] = self.__upload_file(src_file, 
                                                                   tgt_dir)
 
-      # Second, do we have a mesos config file?
-      if params.mesos_config:
-        # just in case using environment variables
-        src_file = os.path.expandvars(params.mesos_config)
-        tgt_dir = params.tgt_location
-        self.__files['mesos-file']['path'] = self.__upload_file(src_file, 
-                                                                  tgt_dir)
 
 
   def __download_file(self, src_file, tgt_dir):
@@ -330,16 +303,6 @@ class CcdpInstaller:
       self.__logger.info("No distro file provided, skipping install")
 
 
-    # Do I need to set mesos?
-    if self.__files['mesos-file'].has_key('path'):
-      mesos_file = self.__files['mesos-file']['path']
-
-      if os.path.isfile(mesos_file):
-        self.__set_mesos( mesos_file, params.tgt_location, params.session_id )
-    else:
-      self.__logger.info("No mesos file provided, skipping mesos")
-
-
     # Runs an agent 
     if params.worker_agent:
       self.__logger.info("Starting a ccdp-agent worker")
@@ -478,55 +441,7 @@ class CcdpInstaller:
     return inst_path
         
 
-  def __set_mesos(self, mesos_file, tgt_loc, sid):
-    """
-    Install the configuraion related to Mesos
-    """
-    self.__logger.info("Installing Mesos Settings")
-    ccdp_root = os.path.join(tgt_loc, 'ccdp-engine')
-
-    if ccdp_root != None:
-      self.__logger.info("CCDP is installed in %s" % ccdp_root)
-    else:
-      self.__logger.error("Need the location where CCDP was installed")
-      sys.exit(-2)
-
-    if not os.path.isfile(mesos_file):
-      self.__logger.error("The JSON mesos settings file was not found ")
-      sys.exit(-3)
-          
-    self.__logger.debug("Loading Json data")
-    data = open( mesos_file ). read()
-    json_data = json.loads(data)
-    self.__logger.info("CCDP HOME: %s" % ccdp_root)
-
-    # Do I need to add session?
-    if sid:
-      self.__logger.info("Adding Session ID: %s" % sid)
-      json_data['session-id'] = sid
-      with open(mesos_file, 'w') as outfile:
-        self.__logger.info("Adding session %s to file %s" % (sid, mesos_file) )
-        json.dump(json_data, outfile)
-        
-    self.__logger.info("Using Data: %s" % str(json_data))
-
-    scripts = os.path.join(ccdp_root, 'python')
-    try:
-      sys.path.index(scripts)
-    except ValueError:
-      self.__logger.info("%s was not found in path, adding it" % scripts)
-      sys.path.append(scripts)
-      self.__logger.info("Path (%s) added to the sys.path" % scripts)
-    
-    os.chdir(scripts)
-    cmd = []
-    os.environ['CCDP_HOME'] = ccdp_root
-
-    n = self.__run_sudo_cmd( ["./mesos_config.py", mesos_file] )
-      
-    self.__logger.debug("The Exit Code: %d" % n)
-
-
+  
   def __set_nickname(self):
     """
     Queries AWS for the Tag set as the 'Name' for this EC2 instance.  If found
@@ -566,6 +481,7 @@ class CcdpInstaller:
       traceback.print_exc()
 
 
+
   def __run_sudo_cmd(self, cmd):
     """
     Tests the user running this script, if not root then it inserts the 'sudo'
@@ -582,6 +498,8 @@ class CcdpInstaller:
 
     self.__logger.debug("Running: %s " % ' '.join( cmd ) )
     return call(cmd)
+
+
 
 """
   Runs the application by instantiating a new Test object and passing all the
@@ -614,11 +532,6 @@ if __name__ == '__main__':
         default=None,                      
         help='To either download or upload files to set the env',)
   
-  parser.add_option("-m", "--mesos-config",
-        dest="mesos_config",
-        default=None,
-        help="The location of the mesos settings to use")
-
   parser.add_option("-d", "--ccdp-dist-file",
         dest="ccdp_dist_file",
         default=None,

@@ -14,11 +14,11 @@ public interface CcdpTaskLauncher
 
   /**
    * Sends an update to the ExecutorDriver with the status change provided
-   * as an argument.  If the message is not null then is set using the 
-   * setMessage() method in the TaskStatus.Builder object
+   * as an argument.  If there was an error executing the task then a message
+   * is provided back to the caller.
    * 
    * @param task the task to send updates to the main application
-   * @param message a message (optional) to be sent back to the ExecutorDriver
+   * @param message a message describing the error if a tasks fails to execute
    */
   public void statusUpdate(CcdpTaskRequest task, String message);
   

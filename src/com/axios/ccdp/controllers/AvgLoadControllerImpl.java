@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.controllers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class AvgLoadControllerImpl extends CcdpVMControllerAbs
 {
+  private Logger logger = Logger.getLogger(AvgLoadControllerImpl.class);
   
   /**
    * Instantiates a new object and starts receiving and processing incoming 
@@ -115,25 +116,29 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    */
   public CcdpImageInfo allocateResources(List<CcdpVMResource> resources)
   {
+    this.logger.trace("Checking Avg Load for resource allocation");
     CcdpImageInfo imgCfg = null;
     if( resources == null || resources.size() == 0 )
       return imgCfg;
+
+    // REVISIT THE WHOLE SINGLE TASKED ORDEAL HERE
     
-    List<CcdpVMResource> avail = new ArrayList<>();
-    for( CcdpVMResource tmp : resources )
-    {
-      if( !tmp.isSingleTasked() )
-        avail.add(tmp);
-    }
-    
-    if( avail.size() == 0 )
-      return imgCfg;
+//    List<CcdpVMResource> avail = new ArrayList<>();
+//    for( CcdpVMResource tmp : resources )
+//    {
+//      if( !tmp.isSingleTasked() )
+//        avail.add(tmp);
+//    }
+//    
+//    if( avail.size() == 0 )
+//      return imgCfg;
     
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
     int tasks = alloc.get("max-tasks").asInt();
-    int sz = avail.size();
+    int sz = resources.size();
+    this.logger.trace("Allocating Resources based on " + sz + " VMs");
     double[] assignedCPU = new double[sz];
     double[] assignedMEM = new double[sz];
     double[] availableCPU = new double[sz];
@@ -145,14 +150,22 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     
     for( int i = 0; i < sz; i++ )
     {
-      CcdpVMResource vm = avail.get(i);
+      CcdpVMResource vm = resources.get(i);
       CcdpNodeType type = vm.getNodeType();
       types.put(type, CcdpUtils.getImageInfo(type));
       
-      assignedCPU[i] = vm.getAssignedCPU();
-      assignedMEM[i] = vm.getAssignedMemory();
-      availableCPU[i] = vm.getCPU();
-      availableMEM[i] = vm.getTotalMemory();
+      double vm_cpu = vm.getCPULoad();
+      double vm_mem = vm.getMemLoad();
+      double vm_tc = vm.getCPU();
+      double vm_tm = vm.getTotalMemory();
+      
+      String iid = vm.getInstanceId();
+      this.logger.trace("Instance " + iid + " CPU: " + vm_cpu + " MEM " + vm_mem);
+      assignedCPU[i] = vm_cpu;
+      assignedMEM[i] = vm_mem;
+      
+      availableCPU[i] = vm_tc;
+      availableMEM[i] = vm_tm;
       load += vm.getNumberTasks();
     }
     
@@ -207,7 +220,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     {
       this.logger.info("High utilization for this session, checking time");
       long last = 0;
-      for( CcdpVMResource vm : avail )
+      for( CcdpVMResource vm : resources )
       {
         if( vm.getLastAssignmentTime() > last )
           last = vm.getLastAssignmentTime();
@@ -289,6 +302,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
       else
       {
         this.logger.debug("Adding resources to average lists");
+        
         assignedCPU[i] = vm.getAssignedCPU();
         assignedMEM[i] = vm.getAssignedMemory();
         availableCPU[i] = vm.getCPU();
@@ -301,8 +315,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     double avgMem = this.getAverage(assignedMEM, availableMEM);
     this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
     
-    this.logger.debug("Average CPU Utilization: " + avgCpu);
-    this.logger.debug("Average MEM Utilization: " + avgMem);
+    this.logger.debug("Dealloc: Avg CPU Utilization: " + avgCpu);
+    this.logger.debug("Dealloc: Avg MEM Utilization: " + avgMem);
     
     
     if( avgCpu <= cpu && avgMem <= mem )

@@ -115,7 +115,8 @@ public abstract class CcdpMessage implements Cloneable
     START_THREAD(9),
     PAUSE_THREAD(10),
     STOP_THREAD(11),
-    SHUTDOWN(12);
+    SHUTDOWN(12),
+    ERROR_MSG(13);
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

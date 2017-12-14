@@ -9,7 +9,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;

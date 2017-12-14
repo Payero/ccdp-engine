@@ -27,7 +27,7 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.util.Base64;
-import com.axios.ccdp.controllers.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;

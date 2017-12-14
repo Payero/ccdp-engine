@@ -1,10 +1,12 @@
 /**
  * 
  */
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.controllers;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import org.apache.log4j.Logger;
 
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -20,6 +22,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class NumberTasksControllerImpl extends CcdpVMControllerAbs
 {
+  private Logger logger = Logger.getLogger(NumberTasksControllerImpl.class);
+  
   /**
    * The default value of the maximum number of tasks to execute
    */

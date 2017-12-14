@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -57,8 +58,23 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    int i = 0;
-    System.out.printf("%d,%d,%d%n", i++, i++, i++);
+    long startTime = System.currentTimeMillis();
+    double load = 50;
+    long secs = 1000;
+    
+    this.logger.debug("Diff " + (System.currentTimeMillis() - startTime ) );
+    long diff = System.currentTimeMillis() - startTime;
+    
+    // Loop for the given duration
+    while (diff < secs) 
+    {
+      // Every 100ms, sleep for the percentage of unladen time
+      if (System.currentTimeMillis() % 100 == 0) 
+      {
+        Thread.sleep((long) Math.floor((1 - load) * 100));
+      }
+      diff = System.currentTimeMillis() - startTime;
+    }
   }
   
   

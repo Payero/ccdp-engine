@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.controllers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +40,7 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  protected Logger logger = Logger.getLogger(CcdpVMControllerAbs.class
+  private Logger logger = Logger.getLogger(CcdpVMControllerAbs.class
       .getName());
   
   /**

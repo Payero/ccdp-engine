@@ -3,7 +3,7 @@
     [
       {
         "session-id":"test-1", 
-        "node-type": "ec2", 
+        "node-type": "DEFAULT", 
         "command": 
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 

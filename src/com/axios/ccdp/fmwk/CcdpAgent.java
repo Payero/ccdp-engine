@@ -1,4 +1,4 @@
-package com.axios.ccdp.newgen;
+package com.axios.ccdp.fmwk;
 
 import java.io.File;
 import java.net.InetAddress;
@@ -30,6 +30,8 @@ import com.axios.ccdp.messages.RunTaskMessage;
 import com.axios.ccdp.messages.ShutdownMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.CcdpMessageException;
+import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -102,7 +104,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
     
-    // creating the factory that generates the objects used by the scheduler
+    // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     ObjectNode task_msg_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
@@ -254,11 +256,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   
   /**
    * Sends an update to the ExecutorDriver with the status change provided
-   * as an argument.  If the message is not null then is set using the 
-   * setMessage() method in the TaskStatus.Builder object
+   * as an argument.  If there was an error executing the task then a message
+   * is provided back to the caller.
    * 
    * @param task the task to send updates to the main application
-   * @param message a message (optional) to be sent back to the ExecutorDriver
+   * @param message a message describing the error if a tasks fails to execute
    */
   public void statusUpdate(CcdpTaskRequest task, String message)
   {
@@ -272,6 +274,13 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     {
       this.tasks.remove(task);
       this.vmInfo.removeTask(task);
+    }
+    
+    if( message != null )
+    {
+      ErrorMessage msg = new ErrorMessage();
+      msg.setErrorMessage(message);
+      this.connection.sendCcdpMessage(this.toMain, msg);
     }
     
     this.logger.info("Have " + this.tasks.size() + " tasks remaining");
@@ -318,16 +327,21 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
           this.launchTask(task);
         
         CcdpTaskRunner runner = this.tasks.remove(task);
+        this.vmInfo.removeTask(task);
         if( runner != null )
         {
           runner.killTask();
-          this.vmInfo.getTasks().remove(task);
         }
       }
     }
     catch( Exception e )
     {
-      this.logger.error("Message: " + e.getMessage(), e);
+      String txt = "Task " + task.getTaskId() + " could not be killed.  " +
+        "Got an exception with the following errror message " + e.getMessage();
+      this.logger.error(txt, e);
+      ErrorMessage msg = new ErrorMessage();
+      msg.setErrorMessage(txt);
+      this.connection.sendCcdpMessage(this.toMain, msg);
     }
   }
 
@@ -417,6 +431,12 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       catch( Exception e )
       {
         this.logger.error("Message: " + e.getMessage(), e);
+        task.setState(CcdpTaskState.FAILED);
+        this.logger.warn("Task " + task.getTaskId() + " set to " + task.getState());
+        String txt = "Task " + task.getTaskId() + " failed to execute.  " +
+         "Got an exception with the following errror message " + e.getMessage();
+        this.logger.warn(txt);        
+        this.statusUpdate(task, txt);
       }
     }
   }

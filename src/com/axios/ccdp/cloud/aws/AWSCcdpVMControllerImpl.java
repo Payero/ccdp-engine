@@ -59,23 +59,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /** Stores the name of the ACCESS SECRET System Property **/
   public static final String ACCESS_SECRET_PROPERTY = "aws.secretKey";
   
-//  /** The name of the files with access keys */
-//  public static final String FLD_CREDS_FILE   = "credentials.file";
-//  /** The profile to use in the given file */
-//  public static final String FLD_PROFILE_NAME = "profile.name";
-//  /** The type of instance to deploy (default t2.micro) */
-//  public static final String FLD_INST_TYPE    = "instance.type";
-//  /** The command to run under a bash script */
-//  public static final String FLD_STARTUP_COMMAND    = "startup.command";
-//  /** The region to use, if other than default */
-//  public static final String FLD_REGION    = "region";
-//  /** The URL of a proxy to use to contact AWS */
-//  public static final String FLD_PROXY_URL    = "proxy.url";
-//  /** The port number of a proxy to use to contact AWS */
-//  public static final String FLD_PROXY_PORT    = "proxy.port";
-//  /** The role to assign to newly created instances */
-//  public static final String FLD_ROLE_NAME    = "role.name";
-  
   /**
    * Stores the command to execute at startup
    */

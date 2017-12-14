@@ -81,7 +81,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * Stores all the tasks assigned to this executor
    */
   private Map<CcdpTaskRequest, MockCcdpTaskRunner> tasks = new HashMap<>();
-  
+      
   /**
    * Instantiates a new object and establishes all the required connections
    */
@@ -100,7 +100,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     this.connection.setConsumer(this);
     this.logger.debug("Done with the connections: " + task_msg_node.toString());
     
-    String hostId = null;
+    String hostId;
     String hostname = null;
     
     try
@@ -443,4 +443,31 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     this.controller.set();
   }
   
+  /**
+   * 
+   * Gets the object containing all the information there is to know about this
+   * Virtual Machine
+   * 
+   * @return all the information related to this virtual machine
+   */
+  public CcdpVMResource getVirtualMachineInfo()
+  {
+    return this.vmInfo;
+  }
+  
+  /**
+   * Sets the tags of the VM information object. This is needed to be able to 
+   * search based on tags 
+   * 
+   * @param tags the set of key-value pairs to group VMs 
+   */
+  public void setTags( Map<String, String> tags)
+  {
+    this.vmInfo.setTags(tags);
+  }
+  
+  public void changeVirtualMachineState( String action )
+  {
+    // TODO Not sure what I need to do here, but need to do something
+  }
 }

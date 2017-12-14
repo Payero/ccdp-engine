@@ -92,6 +92,15 @@
 		<echo message="    test.amq.connection" />
 	</target>
 	
+
+  <!-- Runs ALL Unit Tests -->
+  <target name="test.amq.connection" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="**/**UnitTest" />
+    </antcall>
+   </target>
+
+
 	<!-- Runs all the unit tests generating Thread Requests -->
 	<target name="test.tasks.gen" depends="test-compile">
 		<antcall target="junit.testing">

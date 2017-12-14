@@ -11,6 +11,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -335,4 +336,35 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     return null;
   }
+  
+  public String getStatusSummary()
+  {
+    StringBuffer buf = new StringBuffer();
+    buf.append("NodeType - \tState - \tTasks\n");
+    
+    for( String type : this.nodes.keySet() )
+    {
+      buf.append(type + "\n");
+      buf.append("-----------------------------------------------------------\n");
+      List<MockVirtualMachine> vms = this.nodes.get(type);
+      for( MockVirtualMachine vm : vms )
+      {
+        CcdpVMResource info = vm.getVirtualMachineInfo();
+        String id = info.getInstanceId();
+        String status = info.getStatus().toString();
+        buf.append("\t- " + id + " - \t" + status + " - \tTasks");
+        List<CcdpTaskRequest> tasks = info.getTasks();
+        for( CcdpTaskRequest task : tasks )
+        {
+          String tid = task.getTaskId();
+          String state = task.getState().toString();
+          buf.append("\t     \t   \t - " + tid + " - \t" + state);
+        } // end of the tasks
+      }// end of the VMs
+    }// end of the Node Types
+    
+    
+    return buf.toString();
+  }
+  
 }

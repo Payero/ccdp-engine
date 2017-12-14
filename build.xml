@@ -125,8 +125,8 @@
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">
     <junit printsummary="yes" haltonfailure="no" fork="true">
-    	<sysproperty key="ccdp.config.file" 
-    		           value="${basedir}/config/ccdp-config.properties" />
+
+    	<sysproperty key="ccdp.config.file" value="${ccdp.cfg.file}" />
     	
         <classpath>
           <path refid="classpath.test"/>

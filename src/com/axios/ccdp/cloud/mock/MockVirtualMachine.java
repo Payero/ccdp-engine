@@ -466,8 +466,23 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     this.vmInfo.setTags(tags);
   }
   
+  /**
+   * Changes the ResourceStatus based on the action.  The only 2 valid options
+   * are stop or terminate.
+   * 
+   * @param action the action to perform to the Virtual Machines (stop or 
+   *               terminate)
+   */
   public void changeVirtualMachineState( String action )
   {
-    // TODO Not sure what I need to do here, but need to do something
+    this.logger.info("Changing the Virtual Machine Status ");
+    if( "stop".equals(action) )
+      this.vmInfo.setStatus(ResourceStatus.STOPPED);
+    else if( "terminate".equals(action) )
+      this.vmInfo.setStatus(ResourceStatus.TERMINATED);
+    else
+      this.logger.warn("Invalid Action: " + action);
+    
+    this.logger.info("Virtual Machine Status set to " + this.vmInfo.getStatus() );
   }
 }

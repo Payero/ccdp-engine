@@ -22,7 +22,7 @@ public class MockVMControllerUnitTest
   @BeforeClass
   public static void initialize()
   {
-    
+    JUnitTestHelper.initialize();
   }
   
   @Before

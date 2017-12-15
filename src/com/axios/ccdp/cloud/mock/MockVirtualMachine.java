@@ -88,6 +88,8 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   
   /**
    * Instantiates a new object and establishes all the required connections
+   * 
+   * @param type the type of node to create
    */
   public MockVirtualMachine(CcdpNodeType type)
   {

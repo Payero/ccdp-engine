@@ -43,7 +43,7 @@ public class MockCcdpTaskRunner extends Thread
   {
     MOCK_PAUSE("mock-pause-task"),
     MOCK_CPU("mock-cpu-task"),
-    MOCK_FAILED("mock-failed-task");
+    MOCK_FAIL("mock-fail-task");
     
     private final String text;
     
@@ -89,17 +89,10 @@ public class MockCcdpTaskRunner extends Thread
     this.task = task;
     this.logger.info("Creating a new CCDP Task: " + this.task.getTaskId());
     this.launcher = agent;
-    
-    // adding the basic commands to run it on a shell
-    StringBuffer buf = new StringBuffer();
-    for( String cmd : task.getCommand() )
-    {
-      buf.append(cmd);
-      buf.append(" ");
-    }
-    this.cmdArgs.add( buf.toString().trim() );
+    this.cmdArgs = task.getCommand();
   }
 
+  
   /**
    * Runs the actual command.
    */
@@ -118,7 +111,7 @@ public class MockCcdpTaskRunner extends Thread
       case MOCK_CPU:
         this.mockCPUUsage();
         break;
-      case MOCK_FAILED:
+      case MOCK_FAIL:
         this.mockFailed();
         break;
       default:
@@ -137,10 +130,13 @@ public class MockCcdpTaskRunner extends Thread
     {
       this.logger.info("Running a Pause Task");
       int sz = this.cmdArgs.size();
-      Random rand = new Random(MockCcdpTaskRunner.UPPER_LIMIT);
-      int secs = rand.nextInt();
+      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      
       if( sz >= 2 )
-         secs = rand.nextInt( Integer.valueOf( this.cmdArgs.get(1) ) );
+         secs = Integer.valueOf( this.cmdArgs.get(1) );
+      if( secs == 0 )
+        secs = 1;
+      
       this.logger.debug("Pausing for " + secs + " seconds");
       CcdpUtils.pause(secs);
       this.task.setState(CcdpTaskState.SUCCESSFUL);
@@ -158,26 +154,24 @@ public class MockCcdpTaskRunner extends Thread
   
   /**
    * It loads the CPU to a specific percentage for a predetermined period of 
-   * time.  If not provided then it loads the CPU to 100% for a random number
-   * of seconds between 0 and the default upper limit.  If the third argument
-   * is less than zero then it does not end.
+   * time.  If not provided then it loads the CPU to 100% for the number
+   * of seconds set as argument.  If the second argument is less than zero then 
+   * it does not end.
    */
   private void mockCPUUsage()
   {
     try 
     {
-      Random rand = new Random();
-      int secs = rand.nextInt();
-      double load = 100;
+      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      double load = 1;
+      
       int sz = this.cmdArgs.size();
       if( sz >= 2 )
       {
+        this.logger.debug("The assigned time " + this.cmdArgs.get(1));
         int time = Integer.valueOf( this.cmdArgs.get(1) );
-        if( time <= 0 )
-        {
-          this.logger.info("Time is less or equal than zero");
-          secs = Integer.MAX_VALUE;
-        }
+        if( time > 0 )
+          secs = time;
       }
       
       if( sz >= 3 )
@@ -186,21 +180,26 @@ public class MockCcdpTaskRunner extends Thread
       this.logger.debug("Maximizing CPU for " + secs + " seconds");
       secs *= 1000;
       
-      long startTime = System.currentTimeMillis();
-
-      // Loop for the given duration
-      while (System.currentTimeMillis() - startTime < secs) 
+      int cores = Runtime.getRuntime().availableProcessors();
+      int numThreadsPerCore = 2;
+      int amount = cores * numThreadsPerCore;
+      
+      Thread[] threads = new Thread[amount];
+      for (int thread = 0; thread < amount; thread++) 
       {
-        // Every 100ms, sleep for the percentage of unladen time
-        if (System.currentTimeMillis() % 100 == 0) 
-        {
-          Thread.sleep((long) Math.floor((1 - load) * 100));
-        }
+        Thread t = new BusyThread("Thread" + thread, load, secs);
+        t.start();
+        threads[thread] = t;
+        
       }
+      // once the threads are launched then let's wait for them
+      for( int i = 0; i < amount; i++ )
+        threads[i].join();
+      
       this.task.setState(CcdpTaskState.SUCCESSFUL);
       this.launcher.statusUpdate(this.task, null);
     } 
-    catch (InterruptedException e) 
+    catch ( Exception e) 
     {
       this.logger.error("Message: " + e.getMessage(), e);
       String txt = "Could not load CPU to desired value.  Got the following " +
@@ -210,16 +209,23 @@ public class MockCcdpTaskRunner extends Thread
     }
   }
   
+  /**
+   * Runs a tasks for a determined number of seconds and then  sends a FAILED
+   * response back 
+   */
   private void mockFailed()
   {
     try
     {
       this.logger.info("Running a Failed Task");
       int sz = this.cmdArgs.size();
-      Random rand = new Random(MockCcdpTaskRunner.UPPER_LIMIT);
-      int secs = rand.nextInt();
+      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      
       if( sz >= 2 )
-         secs = rand.nextInt( Integer.valueOf( this.cmdArgs.get(1) ) );
+         secs = Integer.valueOf( this.cmdArgs.get(1) );
+      if( secs == 0 )
+        secs = 1;
+      
       this.logger.debug("Pausing for " + secs + " seconds");
       CcdpUtils.pause(secs);
       this.task.setState(CcdpTaskState.FAILED);
@@ -234,5 +240,70 @@ public class MockCcdpTaskRunner extends Thread
       this.launcher.statusUpdate(this.task, txt);
     }
   }
+  
+  
+  /**
+   * Thread that actually generates the given load
+   * 
+   * @author Oscar E. Ganteaume
+   */
+  public static class BusyThread extends Thread 
+  {
+    /**
+     * Stores the load to generate
+     */
+    private double load;
+    /**
+     * How long to generate the load
+     */
+    private long duration;
+
+    /**
+     * Constructor which creates the thread
+     * 
+     * @param name Name of this thread
+     * @param load Load % that this thread should generate
+     * @param duration Duration that this thread should generate the load for
+     */
+    public BusyThread(String name, double load, long duration) 
+    {
+      super(name);
+      
+      if( load <= 0 || load > 1 )
+        throw new IllegalArgumentException("The load needs to be between 0 and 1");
+      
+      if( duration < 0 )
+        throw new IllegalArgumentException("The duration cannot be negative");
+      
+      this.load = load;
+      this.duration = duration;
+    }
+
+    /**
+     * Generates the load when run
+     */
+    @Override
+    public void run() 
+    {
+      long startTime = System.currentTimeMillis();
+      try 
+      {
+        // Loop for the given duration
+        while (System.currentTimeMillis() - startTime < duration) 
+        {
+          // Every 100ms, sleep for the percentage of unladen time
+          if (System.currentTimeMillis() % 100 == 0) 
+          {
+            Thread.sleep((long) Math.floor((1 - load) * 100));
+          }
+        }
+      } 
+      catch (InterruptedException e) 
+      {
+        e.printStackTrace();
+      }
+    }
+  }
+  
 }
 

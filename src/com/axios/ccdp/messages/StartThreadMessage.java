@@ -1,14 +1,14 @@
 package com.axios.ccdp.messages;
 
 
-public class StopThread extends CcdpMessage
+public class StartThreadMessage extends CcdpMessage
 {
 
-  private CcdpMessageType msgType = CcdpMessageType.STOP_THREAD;
+  private CcdpMessageType msgType = CcdpMessageType.START_THREAD;
   
   private String threadId = null;
   
-  public StopThread()
+  public StartThreadMessage()
   {
 
   }

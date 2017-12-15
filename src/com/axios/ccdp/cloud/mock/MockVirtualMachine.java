@@ -81,7 +81,11 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * Stores all the tasks assigned to this executor
    */
   private Map<CcdpTaskRequest, MockCcdpTaskRunner> tasks = new HashMap<>();
-      
+  /**
+   * Indicates whether or not to remove the tasks when they are done 
+   */
+  private boolean remove_tasks = true;
+  
   /**
    * Instantiates a new object and establishes all the required connections
    */
@@ -179,7 +183,29 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       CcdpUtils.pause(1);
     }
   }
-
+  
+  /**
+   * Sets the flag indicating whether or not to remove the tasks when they are 
+   * done
+   * 
+   *  @param remove whether to keep or remove the tasks after completion
+   */
+  public void setRemoveTask(boolean remove )
+  {
+    this.remove_tasks = remove;
+  }
+  
+  /**
+   * Gets the flag indicating whether or not to remove the tasks when they are 
+   * done
+   * 
+   *  @return whether to keep or remove the tasks after completion
+   */
+  public boolean getRemoveTask()
+  {
+    return this.remove_tasks;
+  }
+  
   /**
    * Updates the resource information by getting the CPU, Memory, and Disk space
    * currently used by the system.
@@ -251,7 +277,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   
   
   /**
-   * Sends an update to the ExecutorDriver with the status change provided
+   * Sends an update to the main application with the status change provided
    * as an argument.  If there was an error executing the task then a message
    * is provided back to the caller.
    * 
@@ -265,8 +291,8 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     
     this.connection.sendTaskUpdate(this.toMain, task);
     
-    if( state.equals(CcdpTaskState.FAILED) || 
-        state.equals(CcdpTaskState.SUCCESSFUL) )
+    if( this.remove_tasks && (state.equals(CcdpTaskState.FAILED) || 
+        state.equals(CcdpTaskState.SUCCESSFUL) ) )
     {
       this.tasks.remove(task);
       this.vmInfo.removeTask(task);
@@ -311,9 +337,11 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
         // if there is a command to run, do it
         if( !task.getCommand().isEmpty() )
           this.launchTask(task);
-        
-        this.tasks.remove(task);
-        this.vmInfo.removeTask(task);
+        if( this.remove_tasks )
+        {
+          this.tasks.remove(task);
+          this.vmInfo.removeTask(task);
+        }
         task.setState(CcdpTaskState.KILLED);
         this.statusUpdate( task, null );
       }

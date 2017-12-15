@@ -94,7 +94,7 @@
 	
 
   <!-- Runs ALL Unit Tests -->
-  <target name="test.amq.connection" depends="test-compile">
+  <target name="all.tests" depends="test-compile">
     <antcall target="junit.testing">
       <param name="test.pattern" value="**/**UnitTest" />
     </antcall>

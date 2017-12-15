@@ -55,28 +55,31 @@ public class JUnitTestHelper
     System.out.println("      ant -Dccdp.cfg.file=<new file> test ");
     System.out.println("");
     
+    String path = System.getenv("CCDP_HOME");
+    if( path == null )
+      path = System.getProperty("CCDP_HOME");
+    assertNotNull("The CCDP_HOME environment variable is not defined", path);
+    assertTrue("The CCDP_HOME env variable cannot be empty", path.length() > 0);
+    File file = new File(path);
+    assertTrue("The path: " + path + " is invalid", file.isDirectory());
+    
+    
     // getting the name of the configuration file .  If is null or invalid
     // attempts to use the default one
     String fname = System.getProperty(CFG_FILE_KEY);
-    if( fname == null )
+    if( fname != null )
     {
-      // if it can't find the file set it to nill to use default file
-      File file = new File(fname);
+      // if it can't find the file set it to null to use default file
+      file = new File(fname);
       if( !file.isFile() )
         fname = null;
     }
     // attempt to use default file
     if( fname == null )
-    {
-      String path = System.getenv("CCDP_HOME");
-      if( path == null )
-        fail();
-      
       fname = path + "/config/" + DEFAULT_CFG_FILE;
-    }
     
     // final test, make sure is there
-    File file = new File(fname);
+    file = new File(fname);
     if( !file.isFile() )
       fail();
     

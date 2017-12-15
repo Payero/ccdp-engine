@@ -103,20 +103,21 @@ public abstract class CcdpMessage implements Cloneable
   
   public enum CcdpMessageType
   {
-    UNDEFINED(0),
-    THREAD_REQUEST(1),
-    RUN_TASK(2),
+    ASSIGN_SESSION(0),
+    END_SESSION(1),
+    ERROR_MSG(2),
     KILL_TASK(3),
-    TASK_UPDATE(4),
+    PAUSE_THREAD(4),
     RESOURCE_UPDATE(5),
-    ASSIGN_SESSION(6),
-    START_SESSION(7),
-    END_SESSION(8),
+    RUN_TASK(6),
+    SHUTDOWN(7),
+    START_SESSION(8),
     START_THREAD(9),
-    PAUSE_THREAD(10),
-    STOP_THREAD(11),
-    SHUTDOWN(12),
-    ERROR_MSG(13);
+    STOP_THREAD(10),
+    TASK_UPDATE(11),
+    THREAD_REQUEST(12),
+    UNDEFINED(13);
+    
     
     private static final Map<Integer, CcdpMessageType> lookup = new HashMap<>();
     

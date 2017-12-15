@@ -79,6 +79,10 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     CcdpNodeType type = imgCfg.getNodeType();
     String typeStr = type.toString();
+    // if the session id is not assigned, then use the node type
+    String session_id = imgCfg.getSessionId();
+    if( session_id == null )
+      imgCfg.setSessionId( imgCfg.getNodeTypeAsString() );
     
     this.logger.info("Launching " + max + " Nodes of type " + typeStr );
     List<String> launched = new ArrayList<>();
@@ -86,8 +90,9 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     {
       MockVirtualMachine node = new MockVirtualMachine( type );
       node.setTags(imgCfg.getTags());
+      node.setSessionId(imgCfg.getSessionId());
       
-      launched.add(node.getVirtualMachineInfo().getNodeTypeAsString());
+      launched.add(node.getVirtualMachineInfo().getInstanceId());
       if( !this.nodes.containsKey(typeStr) )
       {
         this.logger.info("Creating a new List for " + typeStr);
@@ -142,22 +147,27 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   private boolean performAction( String action, List<String> hostIds)
   {
+    this.logger.debug("Performing action " + action);
     boolean done = true;
     try
     {
       // first we need to get all the lists
       for( String nodeType : this.nodes.keySet() )
       {
+        this.logger.debug("Working on Node Type " + nodeType);
         List<MockVirtualMachine> vms = this.nodes.get(nodeType);
         // for each list, get all the host ids and compare
         for( MockVirtualMachine vm : vms )
         {
           String hostId = vm.getVirtualMachineInfo().getInstanceId();
+          this.logger.debug("Checking host " + hostId);
           for( String id : hostIds )
           {
+            this.logger.debug("Comparing " + hostId + " vs " + id);
             // found it, skip the rest
             if( id.equals(hostId) )
             {
+              this.logger.debug("Found Host, changeing State");
               vm.changeVirtualMachineState(action);
               continue;
             }
@@ -340,26 +350,30 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
   public String getStatusSummary()
   {
     StringBuffer buf = new StringBuffer();
-    buf.append("NodeType - \tState - \tTasks\n");
+    buf.append("\nNodeType:\n");
     
     for( String type : this.nodes.keySet() )
     {
-      buf.append(type + "\n");
-      buf.append("-----------------------------------------------------------\n");
+      buf.append(type);
+      buf.append("\n\tInstance Id\t\tSession ID\t\tState\n");
+      buf.append("--------------------------------------------------------------------------------\n");
       List<MockVirtualMachine> vms = this.nodes.get(type);
       for( MockVirtualMachine vm : vms )
       {
         CcdpVMResource info = vm.getVirtualMachineInfo();
         String id = info.getInstanceId();
+        String sid = info.getAssignedSession();
         String status = info.getStatus().toString();
-        buf.append("\t- " + id + " - \t" + status + " - \tTasks");
+        buf.append("\t" + id + "\t" + sid + "\t\t\t" + status + "\t\tTasks\n");
         List<CcdpTaskRequest> tasks = info.getTasks();
         for( CcdpTaskRequest task : tasks )
         {
           String tid = task.getTaskId();
           String state = task.getState().toString();
-          buf.append("\t     \t   \t - " + tid + " - \t" + state);
+          buf.append("\t\t\t\t\t\t\t\t\t * " + tid + "\t" + state + "\n");
         } // end of the tasks
+        buf.append("\n");
+        
       }// end of the VMs
     }// end of the Node Types
     

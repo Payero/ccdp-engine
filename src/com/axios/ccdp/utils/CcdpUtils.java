@@ -518,7 +518,6 @@ public class CcdpUtils
       // did not find it trying Property
       if( envVarValue == null )
       {
-        logger.info("Did not find env. var. " + envVarName + " trying property");
         envVarValue = System.getProperty(envVarName);
       }
       

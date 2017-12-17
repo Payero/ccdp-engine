@@ -79,22 +79,18 @@
   </target>
 
 
-	<!-- Runs all the unit tests by calling each one of the test target -->
-	<target name="test.all" 
-          depends="test.tasks.gen, test.aws.controller, test.amq.connection" />
+
+
 	
   <!-- Shows a message with the names of all the unitests available -->
-  <target name="which.test" 
-          description="Shows the names of all the unitests available">
-	  <echo message="The Tests available to run:" />
-		<echo message="    test.tasks.gen" />
-		<echo message="    test.aws.controller" />
-		<echo message="    test.amq.connection" />
-	</target>
+<target name="test.names">
+  <exec executable="${basedir}/python/find_unittest.py" >
+  </exec>
+</target>
 	
 
   <!-- Runs ALL Unit Tests -->
-  <target name="all.tests" depends="test-compile">
+  <target name="test" depends="test-compile">
     <antcall target="junit.testing">
       <param name="test.pattern" value="**/**UnitTest" />
     </antcall>
@@ -102,25 +98,39 @@
 
 
 	<!-- Runs all the unit tests generating Thread Requests -->
-	<target name="test.tasks.gen" depends="test-compile">
+	<target name="ThreadRequestsGenerator" depends="test-compile">
 		<antcall target="junit.testing">
 			<param name="test.pattern" value="ThreadRequestsGeneratorUnitTest" />
 		</antcall>
 	</target>
 	
 	<!-- Runs all the unit tests to the the AWS tasking controller interface -->
-	<target name="test.aws.controller" depends="test-compile">
+	<target name="AWSController" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AWSControllerUnitTest" />
 	  </antcall>
 	</target>
 
   <!-- Runs all the unit tests to the the AWS tasking controller interface -->
-  <target name="test.amq.connection" depends="test-compile">
+  <target name="AmqConnections" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AmqConnectionsUnitTest" />
 	  </antcall>
 	 </target>
+
+  <!-- Runs all the unit tests to the Mock Virtual Machine-->
+  <target name="MockVirtualMachine" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="MockVirtualMachineUnitTest" />
+    </antcall>
+   </target>
+
+  <!-- Runs all the unit tests to the Mock Controller-->
+  <target name="MockVMController" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="MockVMControllerUnitTest" />
+    </antcall>
+   </target>
 
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">

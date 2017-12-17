@@ -279,6 +279,9 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     List<CcdpVMResource> all = this.getAllInstanceStatus();
     List<CcdpVMResource> some = new ArrayList<>();
     
+    if( filter == null )
+      return some;
+    
     logger.debug("All Instances: " + all);
     
     for(CcdpVMResource inst : all )
@@ -290,16 +293,16 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       if( tags != null  )
       {
         Iterator<String> filter_keys = filter.fieldNames();
-        boolean found = true;
+        boolean found = false;
         while( filter_keys.hasNext() )
         {
           String key = filter_keys.next();
-          Object val = filter.get(key);
+          Object val = filter.get(key).asText();
           logger.debug("Evaluating Filter[" + key + "] = " + val );
-          if( !tags.containsKey(key) || !tags.get(key).equals(val) )
+          if( tags.containsKey(key) && tags.get(key).equals(val) )
           {
-            logger.info("Instance " + id + " does not have matching tag " + key);
-            found = false;
+            logger.info("Instance " + id + " has matching tag " + key);
+            found = true;
             break;
           }
         }// end of filter keys while loop
@@ -347,6 +350,12 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     return null;
   }
   
+  /**
+   * Creates a Summary containing all the current activity involving this 
+   * simulation.
+   * 
+   * @return a String representation of what the system knows
+   */
   public String getStatusSummary()
   {
     StringBuffer buf = new StringBuffer();

@@ -1,11 +1,11 @@
 package com.axios.ccdp.test.unittest.mock;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
@@ -32,6 +32,7 @@ import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
@@ -107,7 +108,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start an instance and make sure is only one
    */
-  @Ignore
+  @Test
   public void startSingleInstanceTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -128,7 +129,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start multiple instances using a single request
    */
-  @Ignore
+  @Test
   public void startMultipleInstancesTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -149,7 +150,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start an instance with a specific Session ID
    */
-  @Ignore
+  @Test
   public void startInstanceWithSessionIdTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -173,7 +174,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start an instance without a specific Session ID
    */
-  @Ignore
+  @Test
   public void startInstanceWithoutSessionIdTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -196,7 +197,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start and stop an instance
    */
-  @Ignore
+  @Test
   public void startAndStopInstanceTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -230,7 +231,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start multiple instances and stopping just one
    */
-  @Ignore
+  @Test
   public void startManyAndStopSingleInstanceTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.NIFI);
@@ -322,7 +323,170 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   }
   
   
+  /**
+   * Tests the ability of getting the instance id of a non-existing instance, 
+   * a request with null, and a valid instance id
+   */
+  @Test
+  public void getInstanceStateTest()
+  {
+    ResourceStatus state = this.controller.getInstanceState(null);
+    assertNull(state);
+    
+    state = this.controller.getInstanceState("my-bogus-id");
+    assertNull(state);
+    
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    assertNotNull("Could not find Image information", imgInf);
+    CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
+    assertNotNull("Could not find Image information", image);
+    image.setMinReq(1);
+    image.setMaxReq(1);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
+    assertTrue("The maximum should be ", image.getMaxReq() == 1);
+    
+    List<String> vms = this.controller.startInstances(image);
+    assertTrue("Wrong number of instances", vms.size() == 1);
+    
+    state = this.controller.getInstanceState(vms.get(0));
+    assertNotNull("The state came back null", state);
+    
+  }
   
+  
+  /**
+   * Tests the ability to retrieve Status of the Remote resources based on the
+   * tags associated with that server
+   */
+  @Test
+  public void getStatusFilteredByTagsTest()
+  {
+    List<String> iids = new ArrayList<>();
+    Map<String, String> tags = new HashMap<>();
+    tags.put("Name", "Server-One");
+    tags.put("Group", "Test");
+    
+    this.logger.debug("Creating the first instance");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    assertNotNull("Could not find Image information", imgInf);
+    CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
+    assertNotNull("Could not find Image information", image);
+    image.setMinReq(1);
+    image.setMaxReq(1);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
+    assertTrue("The maximum should be ", image.getMaxReq() == 1);
+
+    image.setTags(tags);
+    
+    iids.add( this.controller.startInstances(image).get(0) );
+    
+    assertTrue("Should have only one instance", this.controller.getAllInstanceStatus().size() == 1);
+    this.logger.debug("Creating the Second Instance");
+    Map<String, String> tags2 = new HashMap<>();
+    tags2.put("Name", "Server-Two");
+    tags2.put("Group", "Test");
+    
+    assertNotNull("Could not find Image information", imgInf);
+    image = CcdpImageInfo.copyImageInfo(imgInf);
+    assertNotNull("Could not find Image information", image);
+    image.setMinReq(1);
+    image.setMaxReq(1);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
+    assertTrue("The maximum should be ", image.getMaxReq() == 1);
+
+    image.setTags(tags2);
+    
+    iids.add( this.controller.startInstances(image).get(0) );
+    assertTrue("Should have only two instance", this.controller.getAllInstanceStatus().size() == 2);
+    
+    this.logger.debug("Creating the Third Instance");
+    Map<String, String> tags3 = new HashMap<>();
+    tags3.put("Name", "Server-Three");
+    tags3.put("Group", "Other-Test");
+    
+    assertNotNull("Could not find Image information", imgInf);
+    image = CcdpImageInfo.copyImageInfo(imgInf);
+    assertNotNull("Could not find Image information", image);
+    image.setMinReq(1);
+    image.setMaxReq(1);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
+    assertTrue("The maximum should be ", image.getMaxReq() == 1);
+
+    image.setTags(tags3);
+    
+    iids.add( this.controller.startInstances(image).get(0) );
+    assertTrue("Should have only three instance", this.controller.getAllInstanceStatus().size() == 3);
+    
+    List<CcdpVMResource> res = this.controller.getAllInstanceStatus();
+    for(CcdpVMResource vm : res )
+    {
+      this.logger.debug(vm.toPrettyPrint() );
+      this.logger.debug("----------------------------------------------------");
+      
+    }
+    
+    this.logger.debug("Now the actual tests");
+    List<CcdpVMResource> vms = null;
+    assertTrue("Have more than three instances", iids.size() == 3);
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode node = mapper.createObjectNode();
+    node.put("Name", "Server-Two");
+    vms = this.controller.getStatusFilteredByTags(node);
+    assertNotNull("The results should not be null", vms);
+    assertTrue("The Second Server should have been found", vms.size() == 1);
+    
+    node = mapper.createObjectNode();
+    node.put("Group", "Test");
+    
+    vms = this.controller.getStatusFilteredByTags(node);
+    assertNotNull("The results should not be null", vms);
+    assertTrue("Should have found two servers", vms.size() == 2);
+    
+    vms = this.controller.getStatusFilteredByTags(null);
+    assertNotNull("The results should not be null", vms);
+    assertTrue("Should be empty", vms.size() == 0);
+    
+    node = mapper.createObjectNode();
+    vms = this.controller.getStatusFilteredByTags(null);
+    assertNotNull("The results should not be null", vms);
+    assertTrue("Should be empty", vms.size() == 0);
+    
+  }
+  
+  /**
+   * Tests the ability to get a single instance based on the id.
+   */
+  @Test
+  public void getStatusByIdTest()
+  {
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    assertNotNull("Could not find Image information", imgInf);
+    CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
+    assertNotNull("Could not find Image information", image);
+    image.setMinReq(1);
+    image.setMaxReq(5);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
+    assertTrue("The maximum should be ", image.getMaxReq() == 5);
+
+    List<String> iids = this.controller.startInstances(image);
+    assertEquals("Shoud have five instances", iids.size(), 5);
+    
+    String id = iids.get(1);
+    CcdpVMResource vm = this.controller.getStatusFilteredById(id);
+    assertNotNull("Should not be null", vm);
+    assertEquals("Should be the same VM", id, vm.getInstanceId());
+    
+    vm = this.controller.getStatusFilteredById(null);
+    assertNull("ID passed was null so it should be null", vm);
+    
+    vm = this.controller.getStatusFilteredById("bogus-id");
+    assertNull("Invalid id so it should be null", vm);
+  }
+  
+  
+  /***************************************************************************/
+  /**                            Helper Classes                             **/
+  /***************************************************************************/
   
   /**
    * Sends a task message to the intended VM.  
@@ -360,7 +524,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   public void onCcdpMessage( CcdpMessage message )
   {
     CcdpMessageType msgType = CcdpMessageType.get( message.getMessageType() );
-    this.logger.debug("Got a new Message: " + msgType.toString());
+    this.logger.trace("Got a new Message: " + msgType.toString());
     switch( msgType )
     {
       case RESOURCE_UPDATE:
@@ -376,9 +540,6 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
         this.messages.add(message);
     }
   }
-  
-  
-  
   
   /**
    * This method is invoked after every test and can be used to do some 

@@ -580,6 +580,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     List<CcdpVMResource> all = this.getAllInstanceStatus();
     List<CcdpVMResource> some = new ArrayList<>();
     
+    if( filter == null )
+      return some;
+    
     logger.debug("All Instances: " + all);
     
     for(CcdpVMResource inst : all )
@@ -595,12 +598,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         while( filter_keys.hasNext() )
         {
           String key = filter_keys.next();
-          Object val = filter.get(key);
+          Object val = filter.get(key).asText();
           logger.debug("Evaluating Filter[" + key + "] = " + val );
-          if( !tags.containsKey(key) || !tags.get(key).equals(val) )
+          if( tags.containsKey(key) && tags.get(key).equals(val) )
           {
-            logger.info("Instance " + id + " does not have matching tag " + key);
-            found = false;
+            found = true;
             break;
           }
         }// end of filter keys while loop

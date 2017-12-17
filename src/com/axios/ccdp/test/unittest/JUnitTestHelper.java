@@ -58,7 +58,14 @@ public class JUnitTestHelper
     String path = System.getenv("CCDP_HOME");
     if( path == null )
       path = System.getProperty("CCDP_HOME");
-    assertNotNull("The CCDP_HOME environment variable is not defined", path);
+    
+    if( path == null || path.length() == 0 )
+    {
+      String txt = "Cannot find CCDP_HOME environment variable or "
+          + "System Property.  Please check the configuration";
+      System.err.println(txt);
+      System.exit(-1);
+    }
     assertTrue("The CCDP_HOME env variable cannot be empty", path.length() > 0);
     File file = new File(path);
     assertTrue("The path: " + path + " is invalid", file.isDirectory());

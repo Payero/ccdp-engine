@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import javax.jms.TextMessage;
+
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
@@ -117,9 +119,11 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     }
     catch( Exception e )
     {
-      this.logger.error("Could not retrieve Instance ID");
+      this.logger.warn("Could not retrieve Instance ID");
       String[] uid = UUID.randomUUID().toString().split("-");
-      hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
+      
+      //hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
+      hostId = "i-mock-" + uid[uid.length - 1];
       try
       {
         InetAddress addr = CcdpUtils.getLocalHostAddress();
@@ -244,7 +248,24 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   public void onCcdpMessage( CcdpMessage message )
   {
     CcdpMessageType msgType = CcdpMessageType.get( message.getMessageType() );
-    this.logger.debug("Got a new Event: " + message.toString());
+    
+    if( message instanceof TextMessage)
+    {
+      try
+      {
+        this.logger.debug("Got a Message: " + ((TextMessage)message).getText());
+      }
+      catch (Exception e)
+      {
+      }
+      
+    }
+    else
+    {
+      CcdpMessageType type = CcdpMessageType.get( message.getMessageType() );
+      this.logger.debug("Got a new Event: " + type);
+    }
+    
     switch( msgType )
     {
       case ASSIGN_SESSION:

@@ -4,6 +4,7 @@ import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
+import com.axios.ccdp.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -165,11 +166,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the tasking
    */
-  public CcdpTaskingControllerIntf getCcdpTaskingController(ObjectNode config)
+  public CcdpVMControllerAbs getCcdpTaskingController(ObjectNode config)
   {
     String key = CcdpUtils.CFG_KEY_TASKER_CLASSNAME;
     Object obj = this.getNewInstance(key, CcdpTaskingControllerIntf.class);
-    CcdpTaskingControllerIntf impl = (CcdpTaskingControllerIntf)obj;
+    CcdpVMControllerAbs impl = (CcdpVMControllerAbs)obj;
     impl.configure(config);
     return impl; 
   }

@@ -101,8 +101,17 @@ public class MockCcdpTaskRunner extends Thread
   {
     String action = this.cmdArgs.get(0);
     this.logger.info("Executing the Task: " + action);
-    MockActions mock = MockActions.valueOf(action);
-    
+    MockActions mock = MockActions.MOCK_PAUSE;
+    try
+    {
+      mock = MockActions.valueOf(action);
+    }
+    catch(Exception e )
+    {
+      this.logger.warn("Could not find action " + mock.toString() + 
+                        " using MOCK_PAUSE");      
+    }
+      
     switch( mock )
     {
       case MOCK_PAUSE:
@@ -114,8 +123,7 @@ public class MockCcdpTaskRunner extends Thread
       case MOCK_FAIL:
         this.mockFailed();
         break;
-      default:
-        this.logger.error("Could not find action " + mock.toString());
+        
     }
   }
 
@@ -132,8 +140,16 @@ public class MockCcdpTaskRunner extends Thread
       int sz = this.cmdArgs.size();
       int secs = MockCcdpTaskRunner.UPPER_LIMIT;
       
-      if( sz >= 2 )
-         secs = Integer.valueOf( this.cmdArgs.get(1) );
+      try
+      {
+        if( sz >= 2 )
+           secs = Integer.valueOf( this.cmdArgs.get(1) );
+      }
+      catch( Exception e )
+      {
+        this.logger.warn("Could not parse integer using UPPER_LIMIT");
+      }
+      
       if( secs == 0 )
         secs = 1;
       

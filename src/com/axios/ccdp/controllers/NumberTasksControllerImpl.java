@@ -4,6 +4,7 @@
 package com.axios.ccdp.controllers;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
@@ -74,7 +75,8 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     int tmp = this.getParam(config, "allocate.no.more.than");
     if( tmp > 0 )
       this.max_tasks = tmp;
-    tmp = this.getParam(config, "allocate.no.more.than");
+    
+    tmp = this.getParam(config, "deallocate.avg.load.time");
     if( tmp > 0 )
       this.max_time = tmp;
   }
@@ -89,9 +91,12 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
    */
   private int getParam(ObjectNode config, String field)
   {
+    this.logger.trace("Looking for " + field);
     if( config.has(field) )
     {
+      this.logger.trace("Found it");
       int tmp = config.get(field).asInt();
+      this.logger.trace("The vaule is " + tmp);
       if( tmp > 0 )
       {
         return tmp;
@@ -122,6 +127,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
    */
   public CcdpImageInfo allocateResources(List<CcdpVMResource> resources)
   {
+    this.logger.trace("Checking resource allocation");
     CcdpImageInfo imgCfg = null;
     if( resources == null || resources.size() == 0 )
       return imgCfg;
@@ -150,12 +156,10 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     
     if( are_diff )
       this.logger.warn("Has more than one type of node, returning first one");
-    else
-      this.logger.info("Need more " + type + " nodes");
     
     int sz = avail.size();
-    this.logger.info("Resources size " + resources.size() + " available " + sz);
-    this.logger.info("Using Max number of Tasks "+ this.max_tasks);
+    this.logger.trace("Resources size " + resources.size() + " available " + sz);
+    this.logger.trace("Using Max number of Tasks "+ this.max_tasks);
     
     int total_tasks = 0;
     for( CcdpVMResource res : avail )
@@ -174,7 +178,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     {
       String txt = "Does not need Resources: the Average Load " + avgLoad + 
           " is lower than allowed " + this.max_tasks;
-      this.logger.info(txt);
+      this.logger.trace(txt);
     }
     
     return imgCfg;
@@ -197,6 +201,17 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     {
       long last = vm.getLastAssignmentTime();
       int diff = (int)( ( (now - last) / 1000) / 60 );
+      StringBuffer buf = 
+          new StringBuffer("\nInstanceId: " + vm.getInstanceId() + "\n");
+      buf.append("Current State: " + vm.getStatus() + "\n");
+      buf.append("Number of Tasks: " + vm.getNumberTasks() + "\n");
+      buf.append("Single Tasked? " + vm.isSingleTasked() + "\n");
+      buf.append("Last Assignment: " + new Date(last) + "\n");
+      buf.append("Time Diff: " + diff + "\n");
+      buf.append("Max Time: " + this.max_tasks + "\n");
+      
+      this.logger.trace(buf.toString());
+      
       // is the time of the last assignment greater than allowed and it was
       // running (avoiding new launches)
       if( diff >= this.max_time && 

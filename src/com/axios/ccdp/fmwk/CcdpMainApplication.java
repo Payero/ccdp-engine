@@ -176,11 +176,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     
-    //TODO: I am forcing a cast so I can use the same routine as Mesos
-    this.tasker = 
-              (CcdpVMControllerAbs)factory.getCcdpTaskingController(task_ctr_node);
-    
-    this.tasker.configure(task_ctr_node);
+    this.tasker = factory.getCcdpTaskingController(task_ctr_node);
     
     this.controller = factory.getCcdpResourceController(res_ctr_node);
     this.storage = factory.getCcdpStorageControllerIntf(storage_node);
@@ -327,7 +323,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       {
         String id = vm.getInstanceId();
         String st = vm.getStatus().toString();
-        this.logger.debug("Ignoring unresponsive VM " + id + ", Status: " + st);
+        this.logger.trace("Ignoring unresponsive VM " + id + ", Status: " + st);
         continue;
       }
       long now = System.currentTimeMillis();
@@ -338,8 +334,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         String txt = "The Agent " + vm.getInstanceId() + " Status " + vm.getStatus() + 
                      " has not sent updates since " + this.formatter.format(new Date(resTime));
         this.logger.warn(txt);
-        //TODO: Uncomment this out later after finishing nifi testing
-        //remove.add(vm);
+        remove.add(vm);
       }
     }
     
@@ -596,11 +591,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void changeSession(CcdpVMResource vm, String sid)
   {
-    //removing from default resource and assigning to the new session
-    this.resources.get(vm.getAssignedSession()).remove(vm);   
-    vm.setAssignedSession(sid);
-    this.resources.get(sid).add(vm);
-
+    synchronized( this.resources )
+    {
+      //removing from default resource and assigning to the new session
+      this.resources.get(vm.getAssignedSession()).remove(vm);   
+      vm.setAssignedSession(sid);
+      this.resources.get(sid).add(vm);
+    }
+    
     //Update the agent of the change
     String iid = vm.getInstanceId();
     this.logger.info(iid + " -> Assign VM to available for session " + sid);
@@ -622,7 +620,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
-    this.logger.info("Updating " + vm.getInstanceId() + " Session ID " + sid + 
+    this.logger.trace("Updating " + vm.getInstanceId() + " Session ID " + sid + 
                      " status " + vm.getStatus() );
     
     if( sid == null )
@@ -672,7 +670,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                          " and " + iid );
         if( res.getInstanceId().equals(iid) )
         {
-          this.logger.debug("Updating Agent " + iid);
+          this.logger.trace("Updating Agent " + iid);
  
           res.setFreeDiskSpace(vm.getFreeDiskspace());
           res.setTotalMemory(vm.getTotalMemory());
@@ -837,6 +835,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.requests.remove(delThread);
       }
     }// end of the sync request
+    
+    this.showSystemChange();
 
   }
 
@@ -1318,7 +1318,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               for (int i = 0; i < need; i++)
               {
                 this.logger.info("Starting vm number: " + i  + " free agents to meet the minreq of " + free_vms);
-                this.startInstances(imgCfg);;
+                this.startInstances(imgCfg);
                 // REPLACE ALL THE CODE BELOW WITH THE METHOD ABOVE
 //                List<String> launched = this.controller.startInstances(imgCfg);
 //                
@@ -1337,6 +1337,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         
           // Now checking to make sure there are no more free agents than needed        
           this.logger.trace("Making sure we deallocate free nodes as well");
+          
           int over = available - free_vms;
           int done = 0;
           List<String> terminate = new ArrayList<>();
@@ -1382,8 +1383,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 
               }// done searching for running VMs
              
-              // Remove the ones 'SHUTTING_DOWN'
-              if( ResourceStatus.SHUTTING_DOWN.equals( res.getStatus() ) )
+              // Remove the ones 'SHUTTING_DOWN' and 'TERMINATED'
+              ResourceStatus status = res.getStatus();
+              if( ResourceStatus.SHUTTING_DOWN.equals( status ) || 
+                  ResourceStatus.TERMINATED.equals( status ) )
               {
                 long now = System.currentTimeMillis();
                 if( now - res.getLastAssignmentTime() >= 18000 )
@@ -1398,7 +1401,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             this.logger.info("Terminating " + terminate.toString() );
             this.controller.terminateInstances(terminate);
-            
+            this.showSystemChange();
           }
           
           // remove old pending 'SHUTTING_DOWN' nodes from map
@@ -1406,6 +1409,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             this.logger.debug("Removing " + typeStr + " from resources map");
             this.resources.get(typeStr).remove(res);
+            
+            this.showSystemChange();
           }
           
         }// end of the NodeType for loop
@@ -1552,16 +1557,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       asm.setAssignCommand(imgInfo.getAssignmentCommand());
       this.connection.sendCcdpMessage(id, asm);
       
-      this.logger.debug("Adding resource " + resource.toString());
-      this.resources.get(sid).add(resource);
       
       // need to add to the list that is used down below
       synchronized( this.resources )
       {
+        this.logger.debug("Adding resource " + resource.toString());
         this.resources.get(sid).add(resource);
       }
     }
     
+    this.showSystemChange();
     return this.resources.get(sid);
   }
   
@@ -1602,7 +1607,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     for( CcdpVMResource vm : vms )
     {
       vm.setSingleTask(null);
-      vm.setAssignedSession(vm.getNodeTypeAsString());
+      String sessId = vm.getNodeTypeAsString();
+      this.changeSession(vm, sessId);
+      
+      this.showSystemChange();
     }
   }
   
@@ -1688,6 +1696,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }// end of synch list
     
     return list;
+  }
+  
+  /**
+   * Sends a summary of the system to the logger handlers
+   */
+  private void showSystemChange()
+  {
+    this.logger.debug(this.controller.toString());
   }
   
   

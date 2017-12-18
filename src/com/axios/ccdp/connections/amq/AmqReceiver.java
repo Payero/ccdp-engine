@@ -3,11 +3,9 @@ package com.axios.ccdp.connections.amq;
 
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.jms.BytesMessage;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import javax.jms.MessageConsumer;
@@ -19,11 +17,8 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
-import com.axios.ccdp.messages.EndSessionMessage;
-import com.axios.ccdp.messages.KillTaskMessage;
 import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.RunTaskMessage;
-import com.axios.ccdp.messages.StartSessionMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.messages.UndefinedMessage;
@@ -31,10 +26,6 @@ import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Class used to receive ActiveMQ messages.  It was designed to be part of the
@@ -54,10 +45,6 @@ public class AmqReceiver extends AmqConnector implements MessageListener
    */
   private CcdpMessageConsumerIntf consumer = null;
 
-  /**
-   * Generates all the JSON objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
   
   /**
    * Instantiates a new object and sets the consumer
@@ -67,50 +54,13 @@ public class AmqReceiver extends AmqConnector implements MessageListener
   {
     this.consumer = consumer;
   }
-
-//  /**
-//   * Method invoked every time a new AMQ message is received
-//   */
-//  public void onMessage( Message message )
-//  {
-//    try
-//    {
-//      if (message instanceof TextMessage) 
-//      {
-//        ObjectNode node = this.mapper.createObjectNode();
-//        ObjectNode cfg = this.mapper.createObjectNode();
-//        @SuppressWarnings("unchecked")
-//        Enumeration<String> keys = message.getPropertyNames();
-//        while( keys.hasMoreElements() )
-//        {
-//          String key = keys.nextElement(); 
-//          cfg.put(key, message.getStringProperty(key));
-//        }
-//        
-//        TextMessage text = (TextMessage) message;
-//        String msg = text.getText();
-//        node.set("config", cfg);
-//        JsonNode body = this.mapper.readTree(msg);
-//        
-//        node.set("body", body);
-//        this.logger.debug("Message is : " + node.toString());
-//        this.consumer.onEvent(node);
-//      }
-//      else
-//      {
-//        this.logger.warn("Expecting TextMessages only");
-//      }
-//    }
-//    catch( Exception e )
-//    {
-//      this.logger.error("Message: " + e.getMessage(), e);
-//    }
-//  }
   
-  private void printMessage( TextMessage msg )
+  public void printMessage( TextMessage msg )
   {
     try
     {
+      
+      @SuppressWarnings("rawtypes")
       Enumeration keys = msg.getPropertyNames();
       while( keys.hasMoreElements() )
       {
@@ -169,85 +119,20 @@ public class AmqReceiver extends AmqConnector implements MessageListener
       {
         TextMessage txtMsg = (TextMessage)message;
         this.logger.debug("Payload: " + txtMsg.getText());
-        int msgTypeNum = -1;
-        String keyFld = CcdpMessage.MSG_TYPE_FLD;
-        // let's try option one: the message type is in the header
-        if( txtMsg.propertyExists(keyFld) )
-        {
-          msgTypeNum = txtMsg.getIntProperty(keyFld);
-        }
-        else  // is not, is it in the actual body as json?
-        {
-          JsonNode obj = this.mapper.readTree(txtMsg.getText());
-          this.logger.debug("The Json Object " + obj.toString());
-          
-          // I am looking for the msg-type field, is it there?
-          if( obj.has(keyFld) )
-          {
-            String val = obj.get(keyFld).asText();
-            msgTypeNum = Integer.valueOf(val);
-          }
-          else
-          {
-            this.logger.error("The Message does not have message type field " + keyFld);
-            this.logger.error("Payload: " + txtMsg.getText());
-          }
-        }
+        
+        // the actual message type is returned based on the msgType field
+        CcdpMessage ccdpMsg = CcdpMessage.buildObject(txtMsg);
         
         // if it has an integer field called msg-type, then it might be a
         // CcdpMessage
-        if( msgTypeNum >= 0 )
+        if( ccdpMsg != null )
         {
           String replyTo = null;
           if( txtMsg.getJMSReplyTo() != null )
             replyTo = txtMsg.getJMSReplyTo().toString();
           
-          this.logger.info("The Message Type (" + msgTypeNum +")");
-          CcdpMessageType msgType = CcdpMessageType.get(msgTypeNum);
-          this.logger.info("Got a " + msgType + " Message");
-          CcdpMessage ccdpMsg = null;
-          switch( msgType )
-          {
-            case UNDEFINED:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, UndefinedMessage.class);
-              break;
-            case THREAD_REQUEST:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, ThreadRequestMessage.class);
-              break;
-            case RUN_TASK:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, RunTaskMessage.class);
-              break;
-            case KILL_TASK:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, KillTaskMessage.class);
-              break;
-            case TASK_UPDATE:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, TaskUpdateMessage.class);
-              break;
-            case RESOURCE_UPDATE:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, ResourceUpdateMessage.class);
-              break;  
-            case ASSIGN_SESSION:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, AssignSessionMessage.class);
-              break;
-            case START_SESSION:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, StartSessionMessage.class);
-              break;
-            case END_SESSION:
-              ccdpMsg = 
-                  CcdpMessage.buildObject(txtMsg, EndSessionMessage.class);
-              break;
-            default:
-              this.logger.error("Message Type not found");
-          }
           ccdpMsg.setReplyTo(replyTo);
+          
           // passing the message to the consumer
           this.consumer.onCcdpMessage(ccdpMsg);
         }

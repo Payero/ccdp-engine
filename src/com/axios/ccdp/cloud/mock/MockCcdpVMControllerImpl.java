@@ -133,6 +133,7 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public boolean terminateInstances(List<String> instIDs)
   {
+    this.logger.info("Terminating Instances: " + instIDs.toString());
     return this.performAction("terminate", instIDs);
   }
 
@@ -240,10 +241,10 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
         {
           CcdpVMResource res = vm.getVirtualMachineInfo(); 
           String hostId = res.getInstanceId();
-          this.logger.debug("Comparing " + id + " against " + hostId);
+          this.logger.trace("Comparing " + id + " against " + hostId);
           if( hostId.equals(id) )
           {
-            this.logger.info("Found Host ID " + id);
+            this.logger.trace("Found Host ID " + id);
             return res.getStatus();
           }
         }
@@ -373,7 +374,7 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
         String id = info.getInstanceId();
         String sid = info.getAssignedSession();
         String status = info.getStatus().toString();
-        buf.append("\t" + id + "\t" + sid + "\t\t\t" + status + "\t\tTasks\n");
+        buf.append("\t" + id + "\t" + sid + "\t\t\t" + status + "\t\t\tTasks\n");
         List<CcdpTaskRequest> tasks = info.getTasks();
         for( CcdpTaskRequest task : tasks )
         {
@@ -388,6 +389,18 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     
     return buf.toString();
+  }
+  
+  /**
+   * Generates a String representation of the current state of the system in a
+   * human readable form.  This is achieved by invoking the getSummary() method
+   * 
+   * @return a summary of the current state of the system in a human readable
+   *         form
+   */
+  public String toString()
+  {
+    return this.getStatusSummary();
   }
   
 }

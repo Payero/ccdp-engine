@@ -21,6 +21,7 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.cloud.mock.MockCcdpTaskRunner.BusyThread;
 import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.messages.KillTaskMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -58,17 +59,10 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    int secs = 5;
-    secs *= 1000;
-    double load = 0.5;
+    int num = 0;
+    CcdpMessageType t = CcdpMessageType.get(num);
+    this.logger.debug("The Type " + t);
     
-    int cores = Runtime.getRuntime().availableProcessors();
-    int numThreadsPerCore = 2;
-    
-    for (int thread = 0; thread < cores * numThreadsPerCore; thread++) 
-    {
-      new BusyThread("Thread" + thread, load, secs).start();
-    }
   }
 
   

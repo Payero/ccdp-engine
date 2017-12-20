@@ -19,7 +19,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.cloud.mock.MockCcdpTaskRunner.BusyThread;
+import com.axios.ccdp.cloud.sim.SimCcdpTaskRunner.BusyThread;
 import com.axios.ccdp.connections.amq.AmqSender;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpImageInfo;

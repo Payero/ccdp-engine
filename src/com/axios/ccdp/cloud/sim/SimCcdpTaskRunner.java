@@ -1,4 +1,4 @@
-package com.axios.ccdp.cloud.mock;
+package com.axios.ccdp.cloud.sim;
 
 import java.io.File;
 import java.lang.ProcessBuilder.Redirect;
@@ -29,7 +29,7 @@ import com.axios.ccdp.utils.CcdpUtils;
  * @author Oscar E. Ganteaume
  *
  */
-public class MockCcdpTaskRunner extends Thread 
+public class SimCcdpTaskRunner extends Thread 
 {
   /**
    * The default upper limit to bound the time to pause
@@ -64,7 +64,7 @@ public class MockCcdpTaskRunner extends Thread
   /**
    * Stores the object responsible for printing items to the screen
    */
-  private Logger logger = Logger.getLogger(MockCcdpTaskRunner.class.getName());
+  private Logger logger = Logger.getLogger(SimCcdpTaskRunner.class.getName());
   /**
    * Stores the object requesting the task execution
    */
@@ -85,7 +85,7 @@ public class MockCcdpTaskRunner extends Thread
    * @param task the name of the task to run
    * @param agent the actual process to execute the task
    */
-  public MockCcdpTaskRunner(CcdpTaskRequest task, CcdpTaskLauncher agent)
+  public SimCcdpTaskRunner(CcdpTaskRequest task, CcdpTaskLauncher agent)
   {
     this.task = task;
     this.logger.info("Creating a new CCDP Task: " + this.task.getTaskId());
@@ -139,7 +139,7 @@ public class MockCcdpTaskRunner extends Thread
     {
       this.logger.info("Running a Pause Task");
       int sz = this.cmdArgs.size();
-      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      int secs = SimCcdpTaskRunner.UPPER_LIMIT;
       
       try
       {
@@ -179,7 +179,7 @@ public class MockCcdpTaskRunner extends Thread
   {
     try 
     {
-      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      int secs = SimCcdpTaskRunner.UPPER_LIMIT;
       double load = 1;
       
       int sz = this.cmdArgs.size();
@@ -236,7 +236,7 @@ public class MockCcdpTaskRunner extends Thread
     {
       this.logger.info("Running a Failed Task");
       int sz = this.cmdArgs.size();
-      int secs = MockCcdpTaskRunner.UPPER_LIMIT;
+      int secs = SimCcdpTaskRunner.UPPER_LIMIT;
       
       if( sz >= 2 )
          secs = Integer.valueOf( this.cmdArgs.get(1) );

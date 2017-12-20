@@ -1,4 +1,4 @@
-package com.axios.ccdp.cloud.mock;
+package com.axios.ccdp.cloud.sim;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -45,13 +45,13 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf, 
+public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf, 
                                   TaskEventIntf, CcdpTaskLauncher
 {
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(MockVirtualMachine.class.getName());
+  private Logger logger = Logger.getLogger(SimVirtualMachine.class.getName());
   /**
    * Stores all the information about this resource
    */
@@ -82,7 +82,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   /**
    * Stores all the tasks assigned to this executor
    */
-  private Map<CcdpTaskRequest, MockCcdpTaskRunner> tasks = new HashMap<>();
+  private Map<CcdpTaskRequest, SimCcdpTaskRunner> tasks = new HashMap<>();
   /**
    * Indicates whether or not to remove the tasks when they are done 
    */
@@ -93,7 +93,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * 
    * @param type the type of node to create
    */
-  public MockVirtualMachine(CcdpNodeType type)
+  public SimVirtualMachine(CcdpNodeType type)
   {
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
@@ -446,7 +446,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     {
       try
       {
-        MockCcdpTaskRunner ccdpTask = new MockCcdpTaskRunner(task, this);
+        SimCcdpTaskRunner ccdpTask = new SimCcdpTaskRunner(task, this);
         this.tasks.put(task, ccdpTask);
         this.vmInfo.addTask(task);
         

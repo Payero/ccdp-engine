@@ -1,4 +1,4 @@
-package com.axios.ccdp.test.unittest.mock;
+package com.axios.ccdp.test.unittest.sim;
 
 import org.apache.log4j.Logger;
 import org.junit.After;
@@ -8,7 +8,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.axios.ccdp.cloud.mock.MockVirtualMachine;
+import com.axios.ccdp.cloud.sim.SimVirtualMachine;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -34,13 +34,13 @@ import java.util.List;
 import java.util.UUID;
 
 
-public class MockVirtualMachineUnitTest implements CcdpMessageConsumerIntf
+public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(MockVirtualMachineUnitTest.class.getName());
+  private Logger logger = Logger.getLogger(SimVirtualMachineUnitTest.class.getName());
   /**
    * Object used to send and receive messages 
    */
@@ -48,7 +48,7 @@ public class MockVirtualMachineUnitTest implements CcdpMessageConsumerIntf
   /**
    * Stores the actual object to test
    */
-  private MockVirtualMachine node = null;
+  private SimVirtualMachine node = null;
   /**
    * Stores all incoming messages other than heartbeats
    */
@@ -59,7 +59,7 @@ public class MockVirtualMachineUnitTest implements CcdpMessageConsumerIntf
   private List<CcdpMessage> heartbeats = null;
   
   
-  public MockVirtualMachineUnitTest()
+  public SimVirtualMachineUnitTest()
   {
     this.logger.debug("Initializing Controller Mock Unit Test");
   }
@@ -101,7 +101,7 @@ public class MockVirtualMachineUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
-    this.node = new MockVirtualMachine(CcdpNodeType.EC2);
+    this.node = new SimVirtualMachine(CcdpNodeType.EC2);
     this.node.setRemoveTask(false);
     
     assertNotNull("Could not instantiate a new MockVirtualMachine", this.node);

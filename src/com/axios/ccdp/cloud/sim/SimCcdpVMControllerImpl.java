@@ -1,4 +1,4 @@
-package com.axios.ccdp.cloud.mock;
+package com.axios.ccdp.cloud.sim;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,27 +16,27 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
+public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger
-      .getLogger(MockCcdpVMControllerImpl.class.getName());
+      .getLogger(SimCcdpVMControllerImpl.class.getName());
 
   /**
    * Stores all the Virtual Machines based on the Session they are running.
    * Each session id has a list of VMs assigned to it
    */
-  Map<String, List<MockVirtualMachine>> nodes = new HashMap<>();
+  Map<String, List<SimVirtualMachine>> nodes = new HashMap<>();
 
   /**
    * Stores the object's configuration parameters
    */
   private ObjectNode config = null;
   
-  public MockCcdpVMControllerImpl()
+  public SimCcdpVMControllerImpl()
   {
     this.logger.debug("Creating a new Mock VM Controller");
   }
@@ -88,7 +88,7 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
     List<String> launched = new ArrayList<>();
     for(int i = 0; i < max; i++ )
     {
-      MockVirtualMachine node = new MockVirtualMachine( type );
+      SimVirtualMachine node = new SimVirtualMachine( type );
       node.setTags(imgCfg.getTags());
       node.setSessionId(imgCfg.getSessionId());
       
@@ -96,7 +96,7 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       if( !this.nodes.containsKey(typeStr) )
       {
         this.logger.info("Creating a new List for " + typeStr);
-        List<MockVirtualMachine> vms = new ArrayList<>();
+        List<SimVirtualMachine> vms = new ArrayList<>();
         this.nodes.put(typeStr, vms);
       }
       this.nodes.get(typeStr).add(node);
@@ -156,9 +156,9 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       for( String nodeType : this.nodes.keySet() )
       {
         this.logger.debug("Working on Node Type " + nodeType);
-        List<MockVirtualMachine> vms = this.nodes.get(nodeType);
+        List<SimVirtualMachine> vms = this.nodes.get(nodeType);
         // for each list, get all the host ids and compare
-        for( MockVirtualMachine vm : vms )
+        for( SimVirtualMachine vm : vms )
         {
           String hostId = vm.getVirtualMachineInfo().getInstanceId();
           this.logger.debug("Checking host " + hostId);
@@ -203,9 +203,9 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       // first we need to get all the lists
       for( String nodeType : this.nodes.keySet() )
       {
-        List<MockVirtualMachine> vms = this.nodes.get(nodeType);
+        List<SimVirtualMachine> vms = this.nodes.get(nodeType);
         // for each list, get all the host ids and compare
-        for( MockVirtualMachine vm : vms )
+        for( SimVirtualMachine vm : vms )
         {
           resources.add( vm.getVirtualMachineInfo() );
         }
@@ -235,9 +235,9 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       // first we need to get all the lists
       for( String nodeType : this.nodes.keySet() )
       {
-        List<MockVirtualMachine> vms = this.nodes.get(nodeType);
+        List<SimVirtualMachine> vms = this.nodes.get(nodeType);
         // for each list, get all the host ids and compare
-        for( MockVirtualMachine vm : vms )
+        for( SimVirtualMachine vm : vms )
         {
           CcdpVMResource res = vm.getVirtualMachineInfo(); 
           String hostId = res.getInstanceId();
@@ -367,8 +367,8 @@ public class MockCcdpVMControllerImpl implements CcdpVMControllerIntf
       buf.append(type);
       buf.append("\n\tInstance Id\t\tSession ID\t\tState\n");
       buf.append("--------------------------------------------------------------------------------\n");
-      List<MockVirtualMachine> vms = this.nodes.get(type);
-      for( MockVirtualMachine vm : vms )
+      List<SimVirtualMachine> vms = this.nodes.get(type);
+      for( SimVirtualMachine vm : vms )
       {
         CcdpVMResource info = vm.getVirtualMachineInfo();
         String id = info.getInstanceId();

@@ -1,4 +1,4 @@
-package com.axios.ccdp.cloud.mock;
+package com.axios.ccdp.cloud.sim;
 
 import java.io.File;
 import java.io.InputStream;
@@ -9,16 +9,16 @@ import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class MockCcdpStorageControllerImpl implements CcdpStorageControllerIntf
+public class SimCcdpStorageControllerImpl implements CcdpStorageControllerIntf
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger
-      .getLogger(MockCcdpStorageControllerImpl.class.getName());
+      .getLogger(SimCcdpStorageControllerImpl.class.getName());
 
-  public MockCcdpStorageControllerImpl()
+  public SimCcdpStorageControllerImpl()
   {
 
   }

@@ -119,7 +119,6 @@ public class TaskLauncherTest implements CcdpTaskLauncher
    * setMessage() method in the TaskStatus.Builder object
    * 
    * @param task the task to send updates to the main application
-   * @param message a message (optional) to be sent back to the ExecutorDriver
    */
   public void statusUpdate(CcdpTaskRequest task)
   {

@@ -1,4 +1,4 @@
-package com.axios.ccdp.test.unittest.mock;
+package com.axios.ccdp.test.unittest.sim;
 
 import static org.junit.Assert.*;
 
@@ -16,7 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import com.axios.ccdp.cloud.mock.MockCcdpVMControllerImpl;
+import com.axios.ccdp.cloud.sim.SimCcdpVMControllerImpl;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -35,14 +35,14 @@ import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
+public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = 
-      Logger.getLogger(MockVMControllerUnitTest.class.getName());
+      Logger.getLogger(SimVMControllerUnitTest.class.getName());
   /**
    * Object used to send and receive messages 
    */
@@ -58,9 +58,9 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * The actual object to test
    */
-  private MockCcdpVMControllerImpl controller = null;
+  private SimCcdpVMControllerImpl controller = null;
   
-  public MockVMControllerUnitTest()
+  public SimVMControllerUnitTest()
   {
     this.logger.debug("Initializing Controller Mock Unit Test");
   }
@@ -83,7 +83,7 @@ public class MockVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Before
   public void setUpTest()
   {
-    this.controller = new MockCcdpVMControllerImpl();
+    this.controller = new SimCcdpVMControllerImpl();
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     

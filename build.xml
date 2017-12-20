@@ -1,11 +1,9 @@
-<project name="Mesos Framework" default="main" basedir=".">
+<project name="CCDP Framework" default="main" basedir=".">
 	<description>
 		Create a Java Project (JAR) with Ant build script
 	</description>
 
-	<property name="executor.name" value="mesos-ccdp-exec" />
-	<property name="agent.name" value="ccdp-agent" />
- 	<property name="engine.name" value="ccdp-engine" />
+	<property name="engine.name" value="ccdp-engine" />
   <property name="client.name" value="ccdp-client" />
   <property name="connection.name" value="ccdp-client-connection" />
 
@@ -196,16 +194,6 @@
     <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
   </jar>
 
-  <jar destfile="${dist.dir}/lib/${executor.name}.jar" >
-    <manifest>
-      <attribute name="Main-Class" 
-                 value="com.axios.ccdp.mesos.fmwk.CcdpCommandExecutor"/>
-    </manifest>
-    <fileset dir="${main.dir}" includes="*.properties" />
-    <fileset dir="${main.dir}"/>
-
-    <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
-  </jar>
 
   <jar destfile="${base.dist.dir}/${client.name}.jar" >
     <fileset dir="${main.dir}"/>

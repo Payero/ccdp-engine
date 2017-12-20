@@ -30,6 +30,7 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
+import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;

@@ -25,33 +25,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * 
  * Simple class used to store information of a single task or job to execute.
- * The following is an example of the JSON structure used to defined this 
- * object:
  * 
- * {
- *   "task-id" : "csv_reader",
- *   "name" : "Csv File Reader",
- *   "description" : null,
- *   "state" : "PENDING",
- *   "class-name" : "tasks.csv_demo.CsvReader",
- *   "node-type" : "ec2",
- *   "reply-to" : "The Sender",
- *   "agent-id" : null,
- *   "session-id" : null,
- *   "retries" : 3,
- *   "submitted" : false,
- *   "launched-time" : 0,
- *   "cpu" : 10.0,
- *   "mem" : 128.0,
- *   "command" : "[python, /opt/modules/CsvReader.python]",
- *   "configuration" : "{filename=${CCDP_HOME}/data/csv_test_file.csv}",
- *   "input-ports" : [ {
- *     "port-id" : "from-exterior",
- *     "input-ports" : [ "source-1", "source-2" ],
- *     "output-ports" : [ "dest-1", "dest-2" ]
- *   } ],
- *   "output-ports" : [ ]
- * }
  * 
  * @author Oscar E. Ganteaume
  *

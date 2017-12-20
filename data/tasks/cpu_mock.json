@@ -4,7 +4,7 @@
       {
         "session-id":"test-1", 
         "node-type": "DEFAULT", 
-        "command": [ "MOCK_PAUSE", "30" ]
+        "command": [ "MOCK_CPU", "60" ]
        }
     ]
 }

@@ -77,36 +77,48 @@ public class CcdpTaskRunner extends Thread
   @Override
   public void run()
   {
-    this.logger.info("Executing the Task");
+    String tid = this.task.getTaskId();
+    this.logger.info("Executing the Task " + tid);
+    
     try
     {
-      this.process = this.startProcess();
-
-      int exitCode;
-      try
+      CcdpTaskState state = this.task.getState();
+      int exitCode = -10;
+      // Tasks have number of retries so need to do that
+      while( !CcdpTaskState.FAILED.equals(state) )
       {
-        exitCode = this.process.waitFor();
-      }
-      catch (Exception e)
-      {
-        this.logger.error("Message: " + e.getMessage(), e);
-        exitCode = -99;
+        this.process = this.startProcess();
+        
+        try
+        {
+          exitCode = this.process.waitFor();
+          if( exitCode == 0 )
+          {
+            this.logger.info("Task " + tid + " executed successfully");
+            break;
+          }
+          else
+          {
+            String msg = "Task " + tid + " failed to execute, retrying";
+            this.launcher.onTaskError(this.task, msg);
+            this.task.fail();
+          }
+        }
+        catch (Exception e)
+        {
+          this.logger.error("Message: " + e.getMessage(), e);
+          exitCode = -99;
+        }  
       }
       
       synchronized( this )
       {
-        if ( this.process == null )
-        {
-          this.logger.info("The process is null");
-          return;
-        }
-        this.process = null;
         if( exitCode == 0 )
         {
           this.task.setState(CcdpTaskState.SUCCESSFUL);
           this.logger.info("Task Finished properly, State: " + 
                             this.task.getState());
-          this.launcher.statusUpdate(this.task, null);
+          this.launcher.statusUpdate(this.task);
         }
         else
         {
@@ -114,7 +126,7 @@ public class CcdpTaskRunner extends Thread
           String msg = "Task finished with a non-zero value (" + 
                        exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
-          this.launcher.statusUpdate(this.task, msg);
+          this.launcher.onTaskError(this.task, msg);
         }
       }
     }
@@ -122,7 +134,7 @@ public class CcdpTaskRunner extends Thread
     {
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, e.getMessage());
+      this.launcher.onTaskError(this.task, e.getMessage());
     }
   }
   
@@ -176,7 +188,7 @@ public class CcdpTaskRunner extends Thread
     {
       this.process.destroy();
       this.task.setState(CcdpTaskState.KILLED);
-      this.launcher.statusUpdate( this.task, null );
+      this.launcher.statusUpdate( this.task );
       this.process = null;
     }
   }

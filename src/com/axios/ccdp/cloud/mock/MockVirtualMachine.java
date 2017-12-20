@@ -305,9 +305,8 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * is provided back to the caller.
    * 
    * @param task the task to send updates to the main application
-   * @param message a message describing the error if a tasks fails to execute
    */
-  public void statusUpdate(CcdpTaskRequest task, String message)
+  public void statusUpdate(CcdpTaskRequest task)
   {
     CcdpTaskState state = task.getState();
     task.setHostName(this.vmInfo.getHostname());
@@ -321,16 +320,22 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       this.vmInfo.removeTask(task);
     }
     
-    if( message != null )
-    {
-      ErrorMessage msg = new ErrorMessage();
-      msg.setErrorMessage(message);
-      this.connection.sendCcdpMessage(this.toMain, msg);
-    }
-    
     this.logger.info("Have " + this.tasks.size() + " tasks remaining");
   }
   
+  /**
+   * Notifies the launcher that an error has occurred while executing the given
+   * task.  The error message is provided as a separate argument
+   * 
+   * @param task the task to send updates to the main application
+   * @param message a message describing the error if a tasks fails to execute
+   */
+  public void onTaskError(CcdpTaskRequest task, String message)
+  {
+    ErrorMessage msg = new ErrorMessage();
+    msg.setErrorMessage(message);
+    this.connection.sendCcdpMessage(this.toMain, msg);
+  }
 
   /**
    * Assigns a session-id to this agent.
@@ -366,7 +371,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
           this.vmInfo.removeTask(task);
         }
         task.setState(CcdpTaskState.KILLED);
-        this.statusUpdate( task, null );
+        this.statusUpdate( task );
       }
     }
     catch( Exception e )
@@ -374,9 +379,8 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       String txt = "Task " + task.getTaskId() + " could not be killed.  " +
         "Got an exception with the following errror message " + e.getMessage();
       this.logger.error(txt, e);
-      ErrorMessage msg = new ErrorMessage();
-      msg.setErrorMessage(txt);
-      this.connection.sendCcdpMessage(this.toMain, msg);
+      
+      this.onTaskError(task, txt);
     }
   }
 
@@ -448,7 +452,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
         
         task.setState(CcdpTaskState.STAGING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
-        this.statusUpdate(task, null);
+        this.statusUpdate(task);
         
         ccdpTask.start();
         
@@ -458,7 +462,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
         
         task.setState(CcdpTaskState.RUNNING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
-        this.statusUpdate(task, null);
+        this.statusUpdate(task);
       }
       catch( Exception e )
       {
@@ -468,7 +472,7 @@ public class MockVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
         String txt = "Task " + task.getTaskId() + " failed to execute.  " +
          "Got an exception with the following errror message " + e.getMessage();
         this.logger.warn(txt);        
-        this.statusUpdate(task, txt);
+        this.onTaskError(task, txt);
       }
     }
   }

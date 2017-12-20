@@ -10,8 +10,8 @@ import org.apache.log4j.Logger;
 import org.junit.Test;
 
 import com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
-import com.axios.ccdp.utils.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;

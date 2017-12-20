@@ -1,0 +1,11 @@
+{
+  "jobs": 
+    [
+      {
+	"cpu":	      "100",
+        "session-id": "test-1", 
+        "node-type":  "DEFAULT", 
+        "command":    [ "MOCK_CPU", "60" ]
+       }
+    ]
+}

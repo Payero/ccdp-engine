@@ -9,6 +9,7 @@ import java.util.Random;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
+import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -156,7 +157,7 @@ public class MockCcdpTaskRunner extends Thread
       this.logger.debug("Pausing for " + secs + " seconds");
       CcdpUtils.pause(secs);
       this.task.setState(CcdpTaskState.SUCCESSFUL);
-      this.launcher.statusUpdate(this.task, null);
+      this.launcher.statusUpdate(this.task);
     }
     catch( Exception e )
     {
@@ -164,7 +165,7 @@ public class MockCcdpTaskRunner extends Thread
       String txt = "Could not pause the task.  Got the following " +
           "error message " + e.getMessage();
       this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, txt);
+      this.launcher.onTaskError(this.task, txt);
     }
   }
   
@@ -213,7 +214,7 @@ public class MockCcdpTaskRunner extends Thread
         threads[i].join();
       
       this.task.setState(CcdpTaskState.SUCCESSFUL);
-      this.launcher.statusUpdate(this.task, null);
+      this.launcher.statusUpdate(this.task);
     } 
     catch ( Exception e) 
     {
@@ -221,7 +222,7 @@ public class MockCcdpTaskRunner extends Thread
       String txt = "Could not load CPU to desired value.  Got the following " +
           "error message " + e.getMessage();
       this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, txt);
+      this.launcher.onTaskError(this.task, txt);
     }
   }
   
@@ -242,10 +243,18 @@ public class MockCcdpTaskRunner extends Thread
       if( secs == 0 )
         secs = 1;
       
-      this.logger.debug("Pausing for " + secs + " seconds");
-      CcdpUtils.pause(secs);
-      this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, null);
+      CcdpTaskState state = this.task.getState();
+      while( !CcdpTaskState.FAILED.equals( state ) ) 
+      {
+        state = this.task.getState();
+        this.logger.debug("Pausing for " + secs + " seconds, State " + state);
+        CcdpUtils.pause(secs);
+        this.task.fail();
+        String msg = "Task " + this.task.getTaskId() + " failed to execute, retrying";
+        this.launcher.onTaskError(this.task, msg);
+      }
+      
+      this.launcher.statusUpdate(this.task);
     }
     catch( Exception e )
     {
@@ -253,7 +262,7 @@ public class MockCcdpTaskRunner extends Thread
       String txt = "Could not pause the task.  Got the following " +
           "error message " + e.getMessage();
       this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, txt);
+      this.launcher.onTaskError(this.task, txt);
     }
   }
   

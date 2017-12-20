@@ -129,14 +129,14 @@ public class CcdpTaskRunnerTest extends Thread
         {
           this.task.setState(CcdpTaskState.SUCCESSFUL);
           this.logger.info("Task Finished properly, State: " + this.task.getState());
-          this.launcher.statusUpdate(this.task, null);
+          this.launcher.statusUpdate(this.task);
         }
         else
         {
           this.task.setState(CcdpTaskState.FAILED);
           String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
-          this.launcher.statusUpdate(this.task, msg);
+          this.launcher.onTaskError(this.task, msg);
         }
       }
       
@@ -190,14 +190,14 @@ public class CcdpTaskRunnerTest extends Thread
         {
           this.task.setState(CcdpTaskState.SUCCESSFUL);
           this.logger.info("Task Finished properly, State: " + this.task.getState());
-          this.launcher.statusUpdate(this.task, null);
+          this.launcher.statusUpdate(this.task);
         }
         else
         {
           this.task.setState(CcdpTaskState.FAILED);
           String msg = "Task finished with a non-zero value (" + exitCode + "), State: " + this.task.getState();
           this.logger.info(msg);
-          this.launcher.statusUpdate(this.task, msg);
+          this.launcher.statusUpdate(this.task);
         }
       }
     }
@@ -206,7 +206,7 @@ public class CcdpTaskRunnerTest extends Thread
       System.out.println("STATE WAS SET TO FAILEEEEEED :oooooooo");
       this.logger.error("Message: " + e.getMessage(), e);
       this.task.setState(CcdpTaskState.FAILED);
-      this.launcher.statusUpdate(this.task, e.getMessage());
+      this.launcher.onTaskError(this.task, e.getMessage());
     }
   }
   
@@ -277,7 +277,7 @@ public class CcdpTaskRunnerTest extends Thread
     {
       this.process.destroy();
       this.task.setState(CcdpTaskState.KILLED);
-      this.launcher.statusUpdate( this.task, null );
+      this.launcher.statusUpdate( this.task );
       this.process = null;
     }
   }

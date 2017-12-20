@@ -24,52 +24,10 @@ import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- * Class used to represent a resource that can be used for data processing.  The
- * structure of this class looks as follow:
- * 
- * {
- *  "instance-id" : "8716229f-1f00-4132-853a-a5ab37d61d50",
- *  "agent-id" : "d1e90c35-e0c4-482a-9c4f-cb610407caa1",
- *  "session-id" : "user-session-2",
- *  "cpu" : 4.0,
- *  "assigned-cpu" : 0.25,
- *  "mem" : 8000.0,
- *  "assigned-mem" : 2048.0,
- *  "disk" : 2000.0,
- *  "disk-mem" : 500.0,
- *  "status" : "RUNNING",
- *  "tasks" : [ 
- *  
- *      {
- *        "task-id" : "csv_reader",
- *        "name" : "Csv File Reader",
- *        "description" : null,
- *        "state" : "PENDING",
- *        "class-name" : "tasks.csv_demo.CsvReader",
- *        "node-type" : "ec2",
- *        "reply-to" : "The Sender",
- *        "agent-id" : null,
- *        "session-id" : null,
- *        "retries" : 3,
- *        "submitted" : false,
- *        "launched-time" : 0,
- *        "cpu" : 10.0,
- *        "mem" : 128.0,
- *        "command" : "[python, /opt/modules/CsvReader.python]",
- *        "configuration" : "{filename=${CCDP_HOME}/data/csv_test_file.csv}",
- *        "input-ports" : [ {
- *            "port-id" : "from-exterior",
- *            "input-ports" : [ "source-1", "source-2" ],
- *            "output-ports" : [ "dest-1", "dest-2" ]
- *          } ],
- *          "output-ports" : [ ]
- *      }
- *    ]
- * }
+ * Class used to represent a resource that can be used for data processing.  
  * 
  * @author Oscar E. Ganteaume
  *

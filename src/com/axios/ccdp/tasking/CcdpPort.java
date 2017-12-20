@@ -13,13 +13,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
- *  Class representing a port or connection for data flow.  The JSON structure
- *  looks as follow:
- *  {
- *    "port-id" : "from-exterior",
- *    "input-ports" : [ "source-1", "source-2" ],
- *    "output-ports" : [ "dest-1", "dest-2" ]
- *  } 
+ *  Class representing a port or connection for data flow.  
  *                     
  * @author Oscar E. Ganteaume
  *

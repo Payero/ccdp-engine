@@ -19,42 +19,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 /**
  * Class used to store a list of associated tasks to be ran sequentially.  It
  * helps coordinating the launching of Tasks and to keep track of its 
- * execution.  The following is an example of the JSON structure:
+ * execution.  
  * 
- * {
- *   "thread-id" : "fcd6dc6d-3eaa-4caa-9e8a-632a85403552",
- *   "session-id" : null,
- *   "name" : null,
- *   "description" : null,
- *   "reply-to" : "",
- *   "tasks-running-mode" : "PARALLEL",
- *   "tasks-submitted" : false,
- *   "use-single-node" : false,
- *   "tasks" : [ {
- *     "task-id" : "csv_reader",
- *     "name" : "Csv File Reader",
- *     "description" : null,
- *     "state" : "PENDING",
- *     "class-name" : "tasks.csv_demo.CsvReader",
- *     "node-type" : "ec2",
- *     "reply-to" : "The Sender",
- *     "agent-id" : null,
- *     "session-id" : null,
- *     "retries" : 3,
- *     "submitted" : false,
- *     "launched-time" : 0,
- *     "cpu" : 10.0,
- *     "mem" : 128.0,
- *     "command" : "[python, /opt/modules/CsvReader.python]",
- *     "configuration" : "{filename=${CCDP_HOME}/data/csv_test_file.csv}",
- *     "input-ports" : [ {
- *       "port-id" : "from-exterior",
- *       "input-ports" : [ "source-1", "source-2" ],
- *       "output-ports" : [ "dest-1", "dest-2" ]
- *     } ],
- *     "output-ports" : [ ]
- *   } ]
- * }
  * 
  * @author Oscar E. Ganteaume
  *
@@ -380,7 +346,7 @@ public class CcdpThreadRequest implements Serializable
    * @return the tasksSubmitted
    */
   @JsonGetter("tasks-submitted")
-  public boolean isTasksSubmitted()
+  public boolean areTasksSubmitted()
   {
     return tasksSubmitted;
   }

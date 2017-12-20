@@ -85,13 +85,13 @@ public class TaskLauncherTest implements CcdpTaskLauncher
       
       task.setState(CcdpTaskState.STAGING);
       //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());de
-      this.statusUpdate(task, null);
+      this.statusUpdate(task);
       
      ccdpTask.start();
       
       task.setState(CcdpTaskState.RUNNING);
       //this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
-      this.statusUpdate(task, null);
+      this.statusUpdate(task);
     }
     catch( Exception e )
     {
@@ -121,7 +121,7 @@ public class TaskLauncherTest implements CcdpTaskLauncher
    * @param task the task to send updates to the main application
    * @param message a message (optional) to be sent back to the ExecutorDriver
    */
-  public void statusUpdate(CcdpTaskRequest task, String message)
+  public void statusUpdate(CcdpTaskRequest task)
   {
     StringBuffer buff = new StringBuffer("\n\nStatus Update:\n");
     buff.append("\tTask Id: ");
@@ -131,15 +131,22 @@ public class TaskLauncherTest implements CcdpTaskLauncher
     buff.append(task.getState());
     buff.append("\n");
     
-    if( message != null )
-    {
-      buff.append("--------------------------------------------------------\n");
-      buff.append(message);
-      buff.append("\n--------------------------------------------------------\n");
-    }
     this.logger.debug( buff.toString() );
   }
 
+  /**
+   * Notifies the launcher that an error has occurred while executing the given
+   * task.  The error message is provided as a separate argument
+   * 
+   * @param task the task to send updates to the main application
+   * @param message a message describing the error if a tasks fails to execute
+   */
+  public void onTaskError(CcdpTaskRequest task, String message)
+  {
+    String tid = task.getTaskId();
+    this.logger.error("Got an error message for " + tid + " " + message);
+  }
+  
   public static void main(String[] args) throws Exception
   {
     // building all the options available

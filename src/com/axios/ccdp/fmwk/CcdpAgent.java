@@ -30,7 +30,6 @@ import com.axios.ccdp.messages.RunTaskMessage;
 import com.axios.ccdp.messages.ShutdownMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
-import com.axios.ccdp.messages.CcdpMessageException;
 import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -255,14 +254,12 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   
   
   /**
-   * Sends an update to the ExecutorDriver with the status change provided
-   * as an argument.  If there was an error executing the task then a message
-   * is provided back to the caller.
+   * Sends an update to the Main Application with the status change provided
+   * as an argument.  
    * 
    * @param task the task to send updates to the main application
-   * @param message a message describing the error if a tasks fails to execute
    */
-  public void statusUpdate(CcdpTaskRequest task, String message)
+  public void statusUpdate(CcdpTaskRequest task)
   {
     CcdpTaskState state = task.getState();
     task.setHostName(this.vmInfo.getHostname());
@@ -276,14 +273,21 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       this.vmInfo.removeTask(task);
     }
     
-    if( message != null )
-    {
-      ErrorMessage msg = new ErrorMessage();
-      msg.setErrorMessage(message);
-      this.connection.sendCcdpMessage(this.toMain, msg);
-    }
-    
     this.logger.info("Have " + this.tasks.size() + " tasks remaining");
+  }
+  
+  /**
+   * Notifies the launcher that an error has occurred while executing the given
+   * task.  The error message is provided as a separate argument
+   * 
+   * @param task the task to send updates to the main application
+   * @param message a message describing the error if a tasks fails to execute
+   */
+  public void onTaskError(CcdpTaskRequest task, String message)
+  {
+    ErrorMessage msg = new ErrorMessage();
+    msg.setErrorMessage(message);
+    this.connection.sendCcdpMessage(this.toMain, msg);
   }
   
   /**
@@ -416,7 +420,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         
         task.setState(CcdpTaskState.STAGING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
-        this.statusUpdate(task, null);
+        this.statusUpdate(task);
         
         ccdpTask.start();
         
@@ -426,7 +430,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         
         task.setState(CcdpTaskState.RUNNING);
         this.logger.info("Task " + task.getTaskId() + " set to " + task.getState());
-        this.statusUpdate(task, null);
+        this.statusUpdate(task);
       }
       catch( Exception e )
       {
@@ -436,7 +440,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         String txt = "Task " + task.getTaskId() + " failed to execute.  " +
          "Got an exception with the following errror message " + e.getMessage();
         this.logger.warn(txt);        
-        this.statusUpdate(task, txt);
+        this.onTaskError(task, txt);
       }
     }
   }

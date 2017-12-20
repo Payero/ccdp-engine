@@ -86,7 +86,8 @@ public abstract class CcdpMessage implements Cloneable
    * Creates a new CcdpMessage object of the appropriate class. It instantiates
    * an object of the given clazz type and populates it with the contents of 
    * the txtMsg.
-   * 
+   *
+   * @param <T> The actual object type to generate
    * @param txtMsg the message with the desired information
    * @param clazz the actual object type to create
    * @return a populated instance of the desired class
@@ -125,6 +126,7 @@ public abstract class CcdpMessage implements Cloneable
    * an object of the message type stored in the message itself.  After the 
    * object is created then it populates it with the contents of the txtMsg.
    * 
+   * @param <T> The actual object type to generate
    * @param txtMsg the message with the desired information
    * @return a populated instance of the desired class
    * 

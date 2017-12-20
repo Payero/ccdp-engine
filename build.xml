@@ -116,17 +116,17 @@
 	  </antcall>
 	 </target>
 
-  <!-- Runs all the unit tests to the Mock Virtual Machine-->
-  <target name="MockVirtualMachine" depends="test-compile">
+  <!-- Runs all the unit tests to the Sim Virtual Machine-->
+  <target name="SimVirtualMachine" depends="test-compile">
     <antcall target="junit.testing">
-      <param name="test.pattern" value="MockVirtualMachineUnitTest" />
+      <param name="test.pattern" value="SimVirtualMachineUnitTest" />
     </antcall>
    </target>
 
-  <!-- Runs all the unit tests to the Mock Controller-->
-  <target name="MockVMController" depends="test-compile">
+  <!-- Runs all the unit tests to the Sim Controller-->
+  <target name="SimVMController" depends="test-compile">
     <antcall target="junit.testing">
-      <param name="test.pattern" value="MockVMControllerUnitTest" />
+      <param name="test.pattern" value="SimVMControllerUnitTest" />
     </antcall>
    </target>
 

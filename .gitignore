@@ -1,6 +1,9 @@
 .classpath
 .settings
 
+# SonarQube results, don't think I need it
+.scannerwork/
+
 logs
 build
 dist

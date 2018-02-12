@@ -268,6 +268,7 @@
   <target name="javadocs" depends="javadoc" 
           description="Generates the JavaDoc for the whole project" />
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
+    <mkdir dir="${doc.dir}"/>
     <javadoc sourcepath="${src.dir}" 
              destdir="${doc.dir}">
       <classpath>

@@ -7,7 +7,7 @@
         "command": 
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
-              "-a", "testRandomTime" , 
+              "-a", "testRandomTime", 
               "-p", "min=10,max=20"
             ]
        }

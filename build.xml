@@ -81,14 +81,16 @@
 
 	
   <!-- Shows a message with the names of all the unitests available -->
-<target name="test.names">
+<target name="test.names" 
+        description="Displays the unittest files or tests to execute">
   <exec executable="${basedir}/python/find_unittest.py" >
   </exec>
 </target>
 	
 
   <!-- Runs ALL Unit Tests -->
-  <target name="test" depends="test-compile">
+  <target name="test" depends="test-compile"
+          description="Runs a single test if a name is provided or all otherwise">
     <antcall target="junit.testing">
       <param name="test.pattern" value="**/**UnitTest" />
     </antcall>

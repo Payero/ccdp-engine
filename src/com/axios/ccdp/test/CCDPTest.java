@@ -1,6 +1,7 @@
 package com.axios.ccdp.test;
 
 
+import java.io.File;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -60,75 +61,29 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    String task_filename = "/nishome/oegante/workspace/ccdp-engine/data/rand_time.json";
+    ObjectMapper mapper = new ObjectMapper();
     
-    Map<Integer, List<TestContainer>> map = new HashMap<>();
-    map.put(new Integer(1), new ArrayList<TestContainer>());
-    map.put(new Integer(2), new ArrayList<TestContainer>());
+    if( task_filename != null )
+    {
+      this.logger.info("Sending KillTaskMessage: " + task_filename);
+      File file = new File(task_filename);
+      if( file != null && file.isFile() )
+      {
+        byte[] data = Files.readAllBytes(Paths.get( file.getAbsolutePath()));
+        JsonNode node = mapper.readTree( data );
+        this.logger.debug("The Node " + node.toString());
+      }
+      else
+      {
+        this.logger.error("The file " + task_filename + " is invalid");
+      }
+    }
     
-    TestContainer t1 = new TestContainer(1, "T1", "The First Container");
-    TestContainer t2 = new TestContainer(2, "T2", "The Second Container");
-    TestContainer t3 = new TestContainer(3, "T3", "The Third Container");
-    TestContainer t4 = new TestContainer(4, "T4", "The Fourth Container");
-    TestContainer t5 = new TestContainer(5, "T5", "The Fith Container");
     
-    List<TestContainer> l1 = map.get(1);
-    l1.add(t1);
-    l1.add(t2);
-    this.printChanges(map);
   }
   
-  private void printChanges(Map<Integer, List<TestContainer>> map )
-  {
-    
-    StringBuffer buf = new StringBuffer();
-    buf.append("\nNode:\n");
-    
-    for( Integer type : map.keySet() )
-    {
-      buf.append(type);
-      buf.append("\n\tInstance Id\t\tName\t\tDescription\n");
-      buf.append("--------------------------------------------------------------------------------\n");
-      List<TestContainer> vms = map.get(type);
-      for( TestContainer info : vms )
-      {
-        
-        int id = info.number;
-        String name = info.name;
-        String desc = info.desc;
-        buf.append("\t" + id + "\t" + name + "\t\t\t" + desc + "\t\t\tTasks\n");
-        List<String> tasks = info.tasks;
-        for( String task : tasks )
-        {
-          buf.append("\t\t\t\t\t\t\t\t\t * " + task + "\n");
-        } // end of the tasks
-        buf.append("\n");
-        
-      }// end of the VMs
-    }// end of the Node Types
-    
-    
-    this.logger.debug( buf.toString() );
-  }
-
-  private class TestContainer
-  {
-    public int number = 0;
-    public String name = null;
-    public String desc = null;
-    public List<String> tasks = new ArrayList<>();
-    
-    public TestContainer(int num, String name, String desc)
-    {
-      this.number = num;
-      this.name = name;
-      this.desc = desc;
-    }
-    
-    public String toString()
-    {
-      return String.format("Number %d, Name %s, Desc: %s", number, name, desc);
-    }
-  }
+  
   
   public static void main( String[] args ) throws Exception
   {

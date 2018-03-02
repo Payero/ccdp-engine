@@ -4,7 +4,7 @@ import os, sys, glob
 
 
 def find_unittest():
-  if os.environ.has_key('CCDP_HOMES'):
+  if os.environ.has_key('CCDP_HOME'):
     path = os.environ['CCDP_HOME']
   else:
     path = os.path.realpath(__file__)

@@ -396,8 +396,8 @@ def handler(event, context):
     #print("Received event: " + json.dumps(event, indent=2))
     #print("Context: %s" % str(type(context)))
     #pprint(dir(context))
-    args = urllib.base64.standard_b64decode( event )
-    args = ast.literal_eval(args)
+    #args = urllib.base64.standard_b64decode( event )
+    args = ast.literal_eval(json.dumps(event))
 
     runner = TaskRunner(args['verb_level'])
     return "%s" % runner.runTask(args)

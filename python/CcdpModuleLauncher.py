@@ -233,11 +233,14 @@ class ModuleRunner:
     
     bkt_name = params['bkt_name']
     zip_mod  = params['zip_file']
+    # TODO The following options are used, but not defined in the options parser, as they are in
+    # CcdpLambdaTaskRunner.py: mod_name, res_file, out_file, keep_files.
     mod_name = params['mod_name']
 
     msg = None
     if zip_mod == None:
       msg = "The zipped module name needs to be provided"
+      sys.exit(-3)
     bkt = self.__s3.Bucket(bkt_name)
     
     _root = "/tmp"
@@ -271,6 +274,7 @@ class ModuleRunner:
     if params.has_key('out_file') and params['out_file'] != None:
       out = os.path.join(_root, params['out_file'])
       print("Redirecting to %s" % out)
+      # This class is defined in CcdpLambdaTaskRunner, but not here.
       with RedirectStdStreams(stdout=out, stderr=out):
         if args != None:
           res = runTask(ast.literal_eval(args))
@@ -360,13 +364,13 @@ if __name__ == '__main__':
   
   parser.add_option("-z", "--zipped-module",
             dest="zip_file",
-            help="The name of the zip file containing the module")
+            help="The name of the zip file containing the module. It will be downloaded from the specified S3 bucket.")
 
 
   parser.add_option("-f", "--file-name",
             dest="file_name",
             default=None,
-            help="The name of the bucket containing zip file with runTask")
+            help="The name of the file containing the module.")
 
   
   parser.add_option("-c", "--class-name",

@@ -5,6 +5,8 @@ from __future__ import print_function
 import boto3, botocore
 import json
 
+import subprocess
+
 from optparse import OptionParser, Option, OptionValueError
 from copy import copy
 
@@ -119,11 +121,15 @@ class ModuleRunner:
     self.__logger.debug("Logging Done")
 
     self.__s3 = boto3.resource('s3')
+    self.__files = []
     self.__get_ccdp_gui_fmwk()
 
     self.__logger.info("Running with arguments: %s" % pformat(cli_args))
     
     if cli_args['file_name'] is None:
+      if cli_args['bkt_name'] is None or cli_args['mod_name'] is None or cli_args['zip_file'] is None:
+        self.__logger.error("Neither a file name nor S3 info (bucket, module, and zip file name) were provided")
+        sys.exit(-3)
       self.__logger.debug('Using a bucket rather than a file')
       self.__runS3Task(cli_args)
     else:
@@ -138,13 +144,15 @@ class ModuleRunner:
 
       """
       self.__logger.debug("Running from file using %s" % pformat(params) )
-
+      
       file_name = os.path.expandvars(params['file_name'])
-      class_name = params['class_name']
-
       if file_name == None:
         self.__logger.error("The file name needs to be provided")
         sys.exit(-1)
+
+      class_name = None
+      if params.has_key('class_name'):
+        class_name = params['class_name']
 
       if not os.path.isfile(file_name):
         self.__logger.error("The file %s was not found " % file_name)
@@ -155,25 +163,56 @@ class ModuleRunner:
 
       path, name = os.path.split(file_name)
       name, ext = os.path.splitext(name)
-      self.__logger.info("Importing %s from %s" % (class_name, name))
       sys.path.append(path)
       sys.path.append(file_name)
-      exec( "from %s import %s" % (name, class_name))
-
-      args = ""
-      if params.has_key('arguments'):
+      
+      args = None
+      if params.has_key('arguments') and params['arguments'] is not None:
         args = params['arguments']
-
       self.__logger.info("Arguments: %s" % str(args))
+      
+      if class_name:
+        self.__logger.info("Importing %s from %s" % (class_name, name))
+        if params.has_key('arguments') and params['arguments'] is not None:
+          if type(params['arguments']) in [list, dict]:
+            args = params['arguments']
+          else:
+            args =[params['arguments']]
+        exec( "from %s import %s" % (name, class_name))
+      else:
+        args = [file_name]
+        if params.has_key('arguments') and params['arguments'] is not None:
+          if type(params['arguments']) in [list, dict]:
+            args.extend(params['arguments'])
+          else:
+            args.append(params['arguments'])
+        print("ARGS", args)
+        sys.argv = args
+        self.__logger.info("Importing %s" % (name))
+        exec( "import %s" % name)
 
-      clazz = self.__get_class(name, class_name)
-      #self.__logger.debug("The Arguments ", ast.literal_eval(args) )
+      clazz = None
+      if class_name:
+        clazz = self.__get_class(name, class_name)
+        #self.__logger.debug("The Arguments ", ast.literal_eval(args) )
 
       if args != None:
-        clazz(args)
+        if clazz:
+          clazz(*args)
+        else:
+          sp_args = [file_name];
+          sp_args.extend(args)
+          p = subprocess.Popen(args=sp_args, executable="python")
+          p.wait()
       else:
-        #eval("%s()" % class_name )
-        clazz()
+        if clazz:
+          #eval("%s()" % class_name )
+          print("invoking class")
+          clazz()
+        else:
+          sp_args = [file_name];
+          p = subprocess.Popen(args=sp_args, executable="python")
+          p.wait()
 
 
   def __get_class(self, module_name, class_name):
@@ -289,7 +328,7 @@ class ModuleRunner:
         res = runTask()
     
     res_file = None
-    if params.has_key('res_file'):
+    if params.has_key('res_file') and params['res_file'] is not None:
       res_file = os.path.join(_root, params['res_file'])
     
     
@@ -329,12 +368,34 @@ class ModuleRunner:
       self.__logger.info("Removing %s" % f)
       os.remove(f)
 
+class RedirectStdStreams(object):
+  '''
+  Class used to redirect the stdout and stderr to a file that can be then 
+  uploaded into the same S3 bucket 
+  '''
+  def __init__(self, stdout=None, stderr=None):
+    if stdout != None:
+      stdObj = open(stdout, 'w')
+      self._stdout = stdObj
+    else:
+      self._stdout = sys.stdout
 
+    if stderr != None:
+      steObj = open(stderr, 'w')
+      self._stderr = steObj
+    else:
+      self._stderr = sys.stderr
+
+  def __enter__(self):
+    self.old_stdout, self.old_stderr = sys.stdout, sys.stderr
+    self.old_stdout.flush(); self.old_stderr.flush()
+    sys.stdout, sys.stderr = self._stdout, self._stderr
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    self._stdout.flush(); self._stderr.flush()
+    sys.stdout = self.old_stdout
+    sys.stderr = self.old_stderr
   
-
-
-
-
 """
   Runs the application by instantiating a new object and passing all the
   command line arguments
@@ -349,13 +410,9 @@ if __name__ == '__main__':
             description=desc,
             option_class=CcdpArgOption)
   
-  parser.add_option('-v', '--verbosity-level',
-            type='choice',
-            action='store',
-            dest='verb_level',
-            choices=['debug', 'info', 'warning','error',],
-            default='debug',
-            help='The verbosity level of the logging',)
+  ############################################################
+  # Options for running a lambda module from an S3 bucket    #
+  ############################################################
     
   parser.add_option("-b", "--s3-bucket",
             dest="bkt_name",
@@ -364,24 +421,58 @@ if __name__ == '__main__':
   
   parser.add_option("-z", "--zipped-module",
             dest="zip_file",
-            help="The name of the zip file containing the module. It will be downloaded from the specified S3 bucket.")
+            help="The name of the zip file containing the module. It will be downloaded"
+              + " from the specified S3 bucket.")
+   
+  parser.add_option("-m", "--module",
+            dest="mod_name",
+            help="The name of the lambda module to run. It must be a file in the zip"
+              + " archive with a runTask function")
+  
+  parser.add_option("-r", "--results",
+            dest="res_file",
+            help="The name of the file to store resutls from the runTask call")
 
+  parser.add_option("-o", "--output",
+            dest="out_file",
+            help="The name of the file to store the stdout and stderr")
 
+  parser.add_option("-k", "--keep-files",
+            action="store_true", dest="keep_files", default=False,
+            help="It does not delete any file after execution")
+  
+  ############################################################
+  # Options for running a python class from the file system  #
+  ############################################################
+  
   parser.add_option("-f", "--file-name",
             dest="file_name",
             default=None,
-            help="The name of the file containing the module.")
-
+            help="The name of the file containing the module. If set, the S3 options" +
+              " will be ignored. If -c is not set, the module will be invoked as a script." +
+              " Otherwise, the constructor of the class specified by -c will be invoked.")
   
   parser.add_option("-c", "--class-name",
             dest="class_name",
-            help="The name of the class to run")
+            help="The name of the class to invoke. Ignored unless -f is set.")
+  
+  ############################################################
+  # Common options applicable to running a file or a Lambda  #
+  ############################################################
 
   parser.add_option("-a", "--arguments",
             dest="arguments",
             type="ccdp_args", 
             default=None,
             help="The arguments to provide to the runModule method ")
+  
+  parser.add_option('-v', '--verbosity-level',
+            type='choice',
+            action='store',
+            dest='verb_level',
+            choices=['debug', 'info', 'warning','error',],
+            default='debug',
+            help='The verbosity level of the logging',)
 
   (options, args) = parser.parse_args()
   # it expects a dictionary 

@@ -186,7 +186,6 @@ class ModuleRunner:
             args.extend(params['arguments'])
           else:
             args.append(params['arguments'])
-        print("ARGS", args)
         sys.argv = args
         self.__logger.info("Importing %s" % (name))
         exec( "import %s" % name)
@@ -207,7 +206,6 @@ class ModuleRunner:
       else:
         if clazz:
           #eval("%s()" % class_name )
-          print("invoking class")
           clazz()
         else:
           sp_args = [file_name];

@@ -97,6 +97,13 @@ public class CcdpStatusSender implements TaskEventIntf
     
   }
   
+  @Override
+  public void onEvent()
+  {
+    // TODO Auto-generated method stub
+    
+  }
+  
   /**
    * Prints a message indicating how to use this framework and then quits
    * 

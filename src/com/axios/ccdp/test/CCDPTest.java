@@ -61,26 +61,7 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    String task_filename = "/nishome/oegante/workspace/ccdp-engine/data/rand_time.json";
-    ObjectMapper mapper = new ObjectMapper();
-    
-    if( task_filename != null )
-    {
-      this.logger.info("Sending KillTaskMessage: " + task_filename);
-      File file = new File(task_filename);
-      if( file != null && file.isFile() )
-      {
-        byte[] data = Files.readAllBytes(Paths.get( file.getAbsolutePath()));
-        JsonNode node = mapper.readTree( data );
-        this.logger.debug("The Node " + node.toString());
-      }
-      else
-      {
-        this.logger.error("The file " + task_filename + " is invalid");
-      }
-    }
-    
-    
+
   }
   
   

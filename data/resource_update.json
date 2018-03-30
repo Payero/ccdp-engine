@@ -1,0 +1,13 @@
+{
+  "how-long-min": 5,
+  "how-often-sec": 30, 
+  "sessions": [
+    {
+      "session": "DEFAULT",
+      "cpu": { "min": 10, "max": 25 },
+      "mem": { "min": 1000, "max": 4000 },
+      "tasks": { "min": 0, "max": 100 },
+      "nodes":{ "min": 0, "max": 100 }
+    }
+  ]
+}

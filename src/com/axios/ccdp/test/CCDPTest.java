@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.cloud.sim.SimCcdpTaskRunner.BusyThread;
+import com.axios.ccdp.cloud.sim.SimVirtualMachine;
 import com.axios.ccdp.connections.amq.AmqSender;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpImageInfo;
@@ -61,7 +62,12 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-
+    Properties props = System.getProperties();
+    String val = props.getProperty(SimVirtualMachine.CPU_INC_PROP_NAME);
+    val = "25";
+    this.logger.debug("CPU Increment by " + val);
+    double test = Double.parseDouble(val);
+    
   }
   
   

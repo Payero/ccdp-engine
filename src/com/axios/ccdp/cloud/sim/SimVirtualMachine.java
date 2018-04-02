@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
 
 import javax.jms.TextMessage;
@@ -49,6 +50,17 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
                                   TaskEventIntf, CcdpTaskLauncher
 {
   /**
+   * Stores the name of the property to use to increase the CPU per each task
+   * added to the simulated virtual machine
+   */
+  public static final String CPU_INC_PROP_NAME = "cpu.increment.by";
+  /**
+   * Stores the name of the property to use to increase the memory per each
+   * task added to the simulated virtual machine
+   */
+  public static final String MEM_INC_PROP_NAME = "mem.increment.by";
+  
+  /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(SimVirtualMachine.class.getName());
@@ -87,6 +99,16 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * Indicates whether or not to remove the tasks when they are done 
    */
   private boolean remove_tasks = true;
+  /**
+   * The amount of CPU percentage to increment per each task assigned to this
+   * virtual VM
+   */
+  private double cpu_increment = 0;
+  /**
+   * The amount of memory to increment per each task assigned to this
+   * virtual VM
+   */
+  private long mem_increment = 0;
   
   /**
    * Instantiates a new object and establishes all the required connections
@@ -135,6 +157,30 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       }
     }
     this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
+    Properties props = System.getProperties();
+    
+    try
+    {
+     double val = Double.parseDouble(props.getProperty(CPU_INC_PROP_NAME));
+     this.cpu_increment = val;
+     this.logger.info("Incrementing CPU by " + this.cpu_increment);
+    }
+    catch (Exception e)
+    {
+      this.logger.info("CPU Increment was not set");
+    }
+    
+    try
+    {
+     long val = Long.parseLong(props.getProperty(MEM_INC_PROP_NAME));
+     this.mem_increment = val;
+     this.logger.info("Incrementing MEM by " + this.mem_increment);
+    }
+    catch (Exception e)
+    {
+      this.logger.info("MEM Increment was not set");
+    }
+    
     this.vmInfo = new CcdpVMResource(hostId);
     this.vmInfo.setHostname(hostname);
     this.vmInfo.setNodeType(type);
@@ -214,15 +260,58 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   
   /**
    * Updates the resource information by getting the CPU, Memory, and Disk space
-   * currently used by the system.
+   * currently used by the system.  The amount of CPU and memory load can be 
+   * overwritten using system properties.  To overwrite it set the following 
+   * property keys: 
+   * 
+   *  cpu.increment.by: Increment the CPU load by this value per assigned task
+   *  mem.increment.by: Increment the MEM load by this value per assigned task
+   * 
+   * For instance, if a simulated VM has 2 tasks assigned and CPU and MEM 
+   * increment by assigned values of 10 and 512 respectively then the VM will 
+   * report:
+   * 
+   *  CPU load = (2 * 10) = 20 %
+   *  Free Mem = ( 8196 - ( 2 * 512 ) ) = 7172MB
+   *  
+   *  The free memory is assuming the system has a total of 8GB of memory.
+   *  
+   *  If the system properties are not assigned then the simulated VM uses the
+   *  actual system load and reports is.
+   *  
    */
   private void updateResourceInfo()
   {
-    this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
+    int num_tasks = this.vmInfo.getNumberTasks();
+    // if we have an assigned increment use it rather than the actual load
+    if( this.cpu_increment > 0 )
+      this.vmInfo.setCPULoad( num_tasks * this.cpu_increment);
+    else
+      this.vmInfo.setCPULoad( this.monitor.getSystemCpuLoad() );
+    
+    // If the memory increment is set then we need to calculate
+    if( this.mem_increment > 0 )
+    {
+      long total = this.monitor.getTotalPhysicalMemorySize();
+      long used = num_tasks * this.mem_increment;
+      long free = total - used;
+      // Making sure we don't send negative numbers
+      if( free < 0 )
+      {
+        this.vmInfo.setFreeMemory( 0 );
+        this.vmInfo.setMemLoad(total);
+      }
+      else
+      {
+        this.vmInfo.setFreeMemory( free );
+        this.vmInfo.setMemLoad( used );
+      }
+    }
+    else
+      this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
+    
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-    this.vmInfo.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
     this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
-    this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
   }

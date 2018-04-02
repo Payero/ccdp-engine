@@ -1,13 +1,22 @@
 {
-  "how-long-min": 5,
-  "how-often-sec": 30, 
+  "how-long-mins": 1,
+  "max-random-send-secs": 2, 
   "sessions": [
     {
-      "session": "DEFAULT",
+      "session-name": "DEFAULT",
       "cpu": { "min": 10, "max": 25 },
-      "mem": { "min": 1000, "max": 4000 },
-      "tasks": { "min": 0, "max": 100 },
-      "nodes":{ "min": 0, "max": 100 }
+      "mem": { "min": 1024, "max": 8196 },
+      "tasks": { "min": 0, "max": 10 },
+      "nodes": 2
     }
-  ]
+  ],
+  "comments": {
+    "how-long-mins": "the number of minutes to run, if less than 0 then forever",
+    "max-random-send-secs": "random number between 0 and max to wait between sending messages (def 2) KEEP IT LOW", 
+    "session-name": "The name of the session to use (def DEFAULT)",
+    "cpu": "A range to generate values for simulation (def 0 - 100)",
+    "mem": "A range to generate values for simulation (def 1024 - 8196)",
+    "tasks": "A range to generate values for simulation (def 0 - 100)",
+    "nodes": "The number of nodes to simulate for this session (def 5)"
+  }
 }

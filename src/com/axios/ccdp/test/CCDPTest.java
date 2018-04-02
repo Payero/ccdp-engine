@@ -20,6 +20,7 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.services.devicefarm.model.ArgumentException;
 import com.axios.ccdp.cloud.sim.SimCcdpTaskRunner.BusyThread;
 import com.axios.ccdp.connections.amq.AmqSender;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
@@ -61,9 +62,21 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-
+    ObjectNode json = new ObjectMapper().createObjectNode();
+    json.put("min", 10);
+    json.put("max", 100);
+    this.logger.debug("Waiting for " + this.getRandom( json )) ;
   }
   
+  private double getRandom(JsonNode node)
+  {
+    if( !node.has("min") || !node.has("min") )
+      throw new ArgumentException("The JSON object needs a min and a max");
+    
+    double min = node.get("min").asDouble();
+    double max = node.get("max").asDouble();
+    return (Math.random() * (max - min)) + min;
+  }
   
   
   public static void main( String[] args ) throws Exception

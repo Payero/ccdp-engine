@@ -322,11 +322,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       try
       {
         // we only care for those running
-        if( !vm.getStatus().equals(ResourceStatus.RUNNING) )
+        if( !ResourceStatus.RUNNING.equals(vm.getStatus()) )
         {
           String id = vm.getInstanceId();
-          String st = vm.getStatus().toString();
-          this.logger.trace("Ignoring unresponsive VM " + id + ", Status: " + st);
+          //String st = vm.getStatus().toString();
+          //this.logger.trace("Ignoring unresponsive VM " + id + ", Status: " + st);
           continue;
         }
         long now = System.currentTimeMillis();
@@ -342,7 +342,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }
       catch( Exception e)
       {
-        this.logger.warn("unresponsive VM caused exception, removing it");
+        this.logger.warn("unresponsive VM caused exception, removing it " + e.getMessage() );
+        e.printStackTrace();
         remove.add(vm);
       }
     }
@@ -637,7 +638,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
-    this.logger.trace("Updating " + vm.getInstanceId() + " Session ID " + sid +
+    this.logger.debug("Updating " + vm.getInstanceId() + " Session ID " + sid +
                      " status " + vm.getStatus() );
 
     if( sid == null )
@@ -693,7 +694,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
-          if( res.getStatus().equals(ResourceStatus.LAUNCHED) )
+          
+          if( ResourceStatus.LAUNCHED.equals(res.getStatus() ) )
           {
             this.logger.info("Changing Status from LAUNCHED to RUNNING");
             res.setStatus(ResourceStatus.RUNNING);

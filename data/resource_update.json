@@ -1,5 +1,5 @@
 {
-  "how-long-mins": 1,
+  "how-long-mins": 10,
   "max-random-send-secs": 2, 
   "sessions": [
     {

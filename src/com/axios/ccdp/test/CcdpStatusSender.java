@@ -199,7 +199,10 @@ public class CcdpStatusSender implements TaskEventIntf
           res.setStatus(ResourceStatus.RUNNING);
           
           res.setAssignedSession(sid);
-          res.setCPU(cpu);
+          this.logger.debug("Setting CPU to " + cpu);
+          this.logger.debug("Setting MEM to " + mem);
+          this.logger.debug("Setting TSK to " + tasks);
+          res.setCPULoad(cpu);
           res.setMemLoad(mem);
           for( int i = 0; i < tasks; i++ )
             res.addTask( new CcdpTaskRequest() );
@@ -230,7 +233,9 @@ public class CcdpStatusSender implements TaskEventIntf
     double min = node.get("min").asDouble();
     double max = node.get("max").asDouble();
     this.logger.debug("Min " + min + " Max " +  max);
-    return (Math.random() * (max - min)) + min;
+    double res = (Math.random() * (max - min)) + min;
+    this.logger.debug("Returning " + res);
+    return res;
   }
   
   /**

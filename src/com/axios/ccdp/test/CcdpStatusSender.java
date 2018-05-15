@@ -90,10 +90,8 @@ public class CcdpStatusSender implements TaskEventIntf
   /**
    * Instantiates a new Message Sender and performs different operations
    * 
-   * @param channel the name of the channel to send the task and/or message
-   * @param jobs a JSON file with a job to execute
-   * @param task_filename a JSON file with a task to kill
-   * @param reply_to the name of a channel to wait for replies
+   * @param data a String representation of a JSON object containing all the 
+   *        required information to send
    */
   public CcdpStatusSender( String data )
   {
@@ -374,7 +372,8 @@ public class CcdpStatusSender implements TaskEventIntf
    * Runs the show...
    * 
    * @param args all the different command line arguments
-   * @throws Exception
+   * @throws Exception an exception is thrown if the instance cannot send 
+   *         status
    */
   public static void main(String[] args) throws Exception
   {

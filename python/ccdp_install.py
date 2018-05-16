@@ -125,7 +125,7 @@ class CcdpInstaller:
           msg = "The target directory %s does not exists" % loc
 
       if msg is not None:
-        self.logger.error(msg)
+        self.__logger.error(msg)
         sys.exit(-1)
 
       self.__perform_upload( cli_args )

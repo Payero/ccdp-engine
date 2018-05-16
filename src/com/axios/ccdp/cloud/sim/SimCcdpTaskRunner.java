@@ -13,6 +13,7 @@ import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.ThreadController;
 
 
 /**
@@ -35,7 +36,12 @@ public class SimCcdpTaskRunner extends Thread
 	 * The default upper limit to bound the time to pause
 	 */
 	public static final int UPPER_LIMIT = 30;
-
+	
+	/**
+	 * Tells the thread when to stop processing gracefully
+	 */
+	private ThreadController controller = new ThreadController();
+	
 	/**
 	 * All the different actions this task runner can perform
 	 *
@@ -144,24 +150,38 @@ public class SimCcdpTaskRunner extends Thread
 			this.logger.info("Running a Pause Task");
 			int sz = this.cmdArgs.size();
 			int secs = SimCcdpTaskRunner.UPPER_LIMIT;
-
-			try
+			double cpu = this.task.getCPU();
+			
+			if( cpu < 100 )
 			{
-				if( sz >= 2 )
-					secs = Integer.valueOf( this.cmdArgs.get(1) );
+			  this.logger.debug("CPU is not set tp 100, simulating waiting time");
+  			try
+  			{
+  				if( sz >= 2 )
+  					secs = Integer.valueOf( this.cmdArgs.get(1) );
+  			}
+  			catch( Exception e )
+  			{
+  				this.logger.warn("Could not parse integer using UPPER_LIMIT");
+  			}
+  
+  			if( secs == 0 )
+  				secs = 1;
+  
+  			this.logger.debug("Pausing for " + secs + " seconds");
+  			CcdpUtils.pause(secs);
+  			this.task.setState(CcdpTaskState.SUCCESSFUL);
+  			this.launcher.statusUpdate(this.task);
 			}
-			catch( Exception e )
+			else
 			{
-				this.logger.warn("Could not parse integer using UPPER_LIMIT");
+			  this.logger.info("CPU set to 100, waiting forever!");
+			  while( !this.controller.isSet() )
+			  {
+			    CcdpUtils.pause(1);
+			  }
 			}
-
-			if( secs == 0 )
-				secs = 1;
-
-			this.logger.debug("Pausing for " + secs + " seconds");
-			CcdpUtils.pause(secs);
-			this.task.setState(CcdpTaskState.SUCCESSFUL);
-			this.launcher.statusUpdate(this.task);
+			
 		}
 		catch( Exception e )
 		{

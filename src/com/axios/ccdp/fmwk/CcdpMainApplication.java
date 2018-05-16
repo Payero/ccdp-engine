@@ -289,7 +289,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         if( !this.skip_hb )
         {
           // removes all resources that have failed to update
-          this.removeUnresponsiveResources(sid);
+          //this.removeUnresponsiveResources(sid);
         }
 
         // don't need to check allocation or deallocation for free agents
@@ -337,6 +337,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           String txt = "The Agent " + vm.getInstanceId() + " Status " + vm.getStatus() +
                        " has not sent updates since " + this.formatter.format(new Date(resTime));
           this.logger.warn(txt);
+          this.logger.warn("It has been " + (diff/1000) + " seconds since we got last heartbeat");
           remove.add(vm);
         }
       }
@@ -1323,7 +1324,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             {
               for (int i = 0; i < need; i++)
               {
-                this.logger.info("Starting vm number: " + i  + " free agents to meet the minreq of " + free_vms);
+                this.logger.info("Starting vm number: " + i  + 
+                            " free agents to meet the minreq of " + free_vms);
                 this.startInstances(imgCfg);
               }
             }// need to deploy agents

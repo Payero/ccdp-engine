@@ -375,7 +375,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       return false;
     }
     
-    boolean test = false;
+    boolean test = true;
     if( test )
     {
       logger.error("\nTESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");

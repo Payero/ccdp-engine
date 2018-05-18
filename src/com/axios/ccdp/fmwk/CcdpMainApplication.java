@@ -949,8 +949,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               //Check on node type for resources and give it one if available
               CcdpVMResource vm =
                     this.giveAvailableResource(type, request.getSessionId());
-              if( vm != null )
-                list.add(vm);
+              //if( vm != null )
+                //list.add(vm);
             }
 
             for( CcdpVMResource vm : list )
@@ -1467,16 +1467,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           ResourceStatus.RUNNING.equals(stat))
       {
         this.logger.info("Success: Assigning VM " + res.getInstanceId() + " to " + sid);
-        res.setAssignedSession(sid);
+        //res.setAssignedSession(sid);
         //temporarily commented out since we're not using REASSIGNED
         //res.setStatus(ResourceStatus.REASSIGNED);
         synchronized( this.resources )
         {
-          this.printResources();
           this.logger.debug("Adding " + res.getInstanceId() + " to " + sid);
           // need to remove it from the free pool otherwise is just a copy
-          CcdpVMResource removed = this.resources.get(typeStr).remove(0);
-          this.resources.get(sid).add(removed);
+          //CcdpVMResource removed = this.resources.get(typeStr).remove(0);
+          //this.resources.get(sid).add(removed);
+          this.changeSession(res, sid);
+          this.printResources();
         }
         // took one resource, check minimum requirement again
         this.checkFreeVMRequirements();

@@ -310,7 +310,8 @@ class CcdpInstaller:
       src = os.path.join(params.tgt_location, cfg_file)
       shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
       os.system("systemctl daemon-reload")
-      os.system("systemctl enable ccdp-agent.service")      
+      os.system("systemctl enable ccdp-agent.service")  
+      os.system("systemctl stop ccdp-agent")    
       os.system("systemctl start ccdp-agent")
 
 

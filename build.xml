@@ -7,6 +7,8 @@
   <property name="client.name" value="ccdp-client" />
   <property name="connection.name" value="ccdp-client-connection" />
 
+  <property name="bucket-name" value="ccdp-settings" />
+
   <!-- Determines whether to compile as 1.7 or 1.8 
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
@@ -284,6 +286,32 @@
 <!-- Default, run this -->
 <target name="main" depends="clean,compile,ccdp.engine.dist,javadoc,gen.tar" 
         description="Runs all the targets" />
+
+
+<!-- Uploads the distribution file onto the S3 bucket -->
+<target name="upload" depends="ccdp.engine.dist" >
+  <exec  executable="${basedir}/python/ccdp_install.py">
+    <arg value="-a"/>
+    <arg value="upload"/>
+    <arg value="-d"/>
+    <arg value="${basedir}/dist/ccdp-engine.tgz"/>
+    <arg value="-t"/>
+    <arg value="s3://${bucket-name}"/>
+  </exec>
+</target>
+
+<!-- Downloads the distribution file from the S3 bucket and installs it -->
+<target name="download">
+  <exec  executable="${basedir}/python/ccdp_install.py">
+    <arg value="-a"/>
+    <arg value="download"/>
+    <arg value="-d"/>
+    <arg value="s3://${bucket-name}/ccdp-engine.tgz"/>
+    <arg value="-t"/>
+    <arg value="/tmp"/>
+    <arg value="-w" />
+  </exec>
+</target>
 
 
 </project>

@@ -1314,6 +1314,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
           CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
           int free_vms = imgCfg.getMinReq();
+          this.logger.debug("The number of free required vm for " + typeStr + " is " + free_vms);
+          
           List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
 
           int available = avails.size();

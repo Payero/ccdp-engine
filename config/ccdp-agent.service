@@ -13,7 +13,7 @@ After=network.target
 [Service]
 User=root
 Restart=always
-Type=forking
+Type=simple
 ExecStart=/data/ccdp/ccdp-engine/bin/ccdp_agent.sh start
 ExecStop=/data/ccdp/ccdp-engine/bin/ccdp_agent.sh stop
 

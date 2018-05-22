@@ -962,6 +962,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 vm.setSingleTask(tid);
                 vm.setAssignedSession(task.getSessionId());
                 task.setHostId( iid );
+                this.logger.debug("The task HostID was set to " + task.getHostId());
                 if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
                     vm.getStatus().equals(ResourceStatus.LAUNCHED))
                 {
@@ -979,20 +980,24 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             if (fail)
             {
               CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
-              imgCfg.setSessionId( task.getSessionId() );
-              list = this.allocateResource(imgCfg); //updated list
+              //imgCfg.setSessionId( task.getSessionId() );
+              list = this.allocateResource(imgCfg,task.getSessionId() ); //updated list
+              this.logger.debug("The size of the list after allocating Resources is " + list.size());
               //get the new resource we created
               for( CcdpVMResource vm : list )
               {
+                this.logger.debug("The vm NodeType is " + vm.getNodeType() + "the task type is " + type);
                 // need to make sure we are running on the appropriate node
                 if( !vm.getNodeType().equals( type ) )
                   continue;
                 // It has not been assigned yet and there is nothing running
+                this.logger.debug("The vm " + vm.getInstanceId() + "is running " + vm.getNumberTasks() + "taks and is single tasked =  " + vm.isSingleTasked());
                 if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
                 {
                   String iid = vm.getInstanceId();
                   vm.setSingleTask(tid);
                   task.setHostId( iid );
+                  this.logger.debug("The task HostID was set to " + task.getHostId());
                   if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
                       vm.getStatus().equals(ResourceStatus.LAUNCHED))
                   {
@@ -1286,8 +1291,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     CcdpImageInfo imgCfg = this.tasker.allocateResources(listByNode);
     if ( imgCfg != null  )
     {
-      imgCfg.setSessionId(sid);
-      list = this.allocateResource(imgCfg);
+      //imgCfg.setSessionId(sid);
+      list = this.allocateResource(imgCfg, sid);
     }
     this.logger.info("Returning a list of resources size " + list.size());
     // Getting all the resources for this session
@@ -1314,7 +1319,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
           CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
           int free_vms = imgCfg.getMinReq();
-          this.logger.debug("The number of free required vm for " + typeStr + " is " + free_vms);
           
           List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
 
@@ -1328,6 +1332,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               {
                 this.logger.info("Starting vm number: " + i  + 
                             " free agents to meet the minreq of " + free_vms);
+                this.logger.debug("The node type is " + typeStr + " and the image session is " + imgCfg.getSessionId());
                 this.startInstances(imgCfg);
               }
             }// need to deploy agents
@@ -1439,7 +1444,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     if( imgCfg != null )
     {
       imgCfg.setSessionId(sid);
-      this.allocateResource(imgCfg);
+      this.allocateResource(imgCfg, sid);
     }
   }
 
@@ -1450,10 +1455,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * @param req the request that needs resources
    * @return the updated list of resources assigned to the session
    */
-  private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg )
+  private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg , String sid)
   {
-    String sid = imgCfg.getSessionId();
+    //String sid = imgCfg.getSessionId();
     String typeStr = imgCfg.getNodeTypeAsString();
+    this.logger.debug("the node type is " + typeStr );
     //Changing sid null to DEFAULT type
     if (sid == null)
       sid = typeStr;
@@ -1463,7 +1469,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     if( free_vms.size() > 0 )
     {
       CcdpVMResource res = free_vms.get(0);
-
       ResourceStatus stat = res.getStatus();
       if( ResourceStatus.LAUNCHED.equals(stat) ||
           ResourceStatus.RUNNING.equals(stat))
@@ -1474,15 +1479,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         //res.setStatus(ResourceStatus.REASSIGNED);
         synchronized( this.resources )
         {
+          this.printResources();
           this.logger.debug("Adding " + res.getInstanceId() + " to " + sid);
           // need to remove it from the free pool otherwise is just a copy
           //CcdpVMResource removed = this.resources.get(typeStr).remove(0);
           //this.resources.get(sid).add(removed);
+          
           this.changeSession(res, sid);
-          this.printResources();
         }
         // took one resource, check minimum requirement again
-        this.checkFreeVMRequirements();
+        //this.checkFreeVMRequirements();
       }
       else
         this.logger.info("Resource was not assigned due to: " + stat);
@@ -1534,6 +1540,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       CcdpVMResource resource = new CcdpVMResource(id);
       resource.setStatus(ResourceStatus.LAUNCHED);
       resource.setAssignedSession(sid);
+      resource.setNodeType(typeStr);
       this.connection.registerProducer(resource.getInstanceId());
 
       // assign the session

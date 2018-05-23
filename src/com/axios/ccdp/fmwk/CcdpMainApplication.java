@@ -64,7 +64,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * The number of cycles to wait before declaring an agent missing.  A cycle
    * is the time to wait between checking for allocation/deallocation
    */
-  public static int NUMBER_OF_CYCLES = 4;
+  public static int NUMBER_OF_CYCLES = 10;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -132,10 +132,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private ThreadedTimerTask timer = null;
   /**
-   * How many seconds before an agent is considered missing or no longer
+   * How many milliseconds before an agent is considered missing or no longer
    * reachable
    */
-  private int agent_time_limit = 20;
+  private int agent_time_limit = 50000; //50 sec
   /**
    * Flag indicating whether or not heartbeats are being ignored
    */
@@ -289,7 +289,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         if( !this.skip_hb )
         {
           // removes all resources that have failed to update
-          //this.removeUnresponsiveResources(sid);
+          this.removeUnresponsiveResources(sid);
         }
 
         // don't need to check allocation or deallocation for free agents
@@ -336,8 +336,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         {
           String txt = "The Agent " + vm.getInstanceId() + " Status " + vm.getStatus() +
                        " has not sent updates since " + this.formatter.format(new Date(resTime));
-          this.logger.warn(txt);
-          this.logger.warn("It has been " + (diff/1000) + " seconds since we got last heartbeat");
+          this.logger.debug(txt);
+          this.logger.debug("It has been " + (diff/1000) + " seconds since we got last heartbeat");
           remove.add(vm);
         }
       }

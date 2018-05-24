@@ -64,7 +64,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * The number of cycles to wait before declaring an agent missing.  A cycle
    * is the time to wait between checking for allocation/deallocation
    */
-  public static int NUMBER_OF_CYCLES = 10;
+  public static int NUMBER_OF_CYCLES = 16;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -135,7 +135,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * How many milliseconds before an agent is considered missing or no longer
    * reachable
    */
-  private int agent_time_limit = 50000; //50 sec
+  private int agent_time_limit = 80000; //1 min 20 sec
   /**
    * Flag indicating whether or not heartbeats are being ignored
    */
@@ -943,19 +943,25 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             this.logger.info("Allocating whole VM to Task " + tid);
             List<CcdpVMResource> list = this.getResources(request);
+            String requestSID = request.getSessionId();
             //check if list is empty or not
             if (list.size() == 0)
             {
               //Check on node type for resources and give it one if available
               CcdpVMResource vm =
-                    this.giveAvailableResource(type, request.getSessionId());
-              //if( vm != null )
-                //list.add(vm);
+                    this.giveAvailableResource(type, requestSID);
+              //For some reason when trying to add the vm to list. the vm is added twice to the session list in this.resources
+              //But this changes does not reflects in the actual variable list. 
+              //For this reason the issue is resolve by assigning list equals to the list in the resources.
+              if( vm != null )
+                list = this.resources.get(requestSID);
             }
 
             for( CcdpVMResource vm : list )
             {
               // It has not been assigned yet and there is nothing running
+              this.logger.debug("The number of task in the vm is " + vm.getNumberTasks());
+              this.logger.debug("The vm is single tasked: " + vm.isSingleTasked());
               if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
               {
                 String iid = vm.getInstanceId();

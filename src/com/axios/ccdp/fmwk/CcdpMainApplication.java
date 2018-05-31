@@ -530,6 +530,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         }// end of the tasks loop
       }// end of the requests loop
     }// end of the sync block
+    
+    this.updateTaskStatus(task);
   }
 
   /**
@@ -760,7 +762,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           {
             case STAGING:
               break;
-            case RUNNING:
+            case RUNNING:  
               task.started();
               this.sendUpdateMessage(task);
               break;
@@ -777,6 +779,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               }
 
               this.logger.info("Job (" + task.getTaskId() + ") Finished");
+              break;
+            case KILLED:
+              delTask = true;
               break;
             case FAILED:
               task.fail();

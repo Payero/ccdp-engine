@@ -837,6 +837,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 //If there are no more tasks, mark the resource as available again
                 if (vm.getNumberTasks() == 0)
                 {
+                  //if there are not more task and vm was single tasked 
+                  // make sure to change the vm to not being single tasked
+                  if(vm.isSingleTasked()) {
+                    vm.isSingleTasked(false);
+                  }
                   update.add(vm);
                 }
               }

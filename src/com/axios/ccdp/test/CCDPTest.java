@@ -2,10 +2,12 @@ package com.axios.ccdp.test;
 
 
 import java.io.File;
+import java.math.RoundingMode;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -63,6 +65,11 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    double number = 1*100;
+    this.logger.debug("The Original Number: " + number);
+    DecimalFormat df = new DecimalFormat("###.###");
+    this.logger.debug("The CPU " + df.format(number));
+    
   }  
   
   public static void main( String[] args ) throws Exception

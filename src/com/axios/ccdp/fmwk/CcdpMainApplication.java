@@ -2,6 +2,7 @@ package com.axios.ccdp.fmwk;
 
 import java.io.File;
 import java.net.URL;
+import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -140,6 +141,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Flag indicating whether or not heartbeats are being ignored
    */
   private boolean skip_hb = false;
+  /**
+   * Formats a double to show only three decimal places
+   */
+  private DecimalFormat decFmt = new DecimalFormat("###.##");
 
   /**
    * Instantiates a new object and if the 'jobs' argument is not null then
@@ -639,8 +644,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void updateResource( CcdpVMResource vm )
   {
     String sid = vm.getAssignedSession();
+    String cpu = this.decFmt.format( vm.getCPULoad() * 100 );
+    
     this.logger.debug("Updating " + vm.getInstanceId() + " Session ID " + sid +
-                     " status " + vm.getStatus() );
+                     " status " + vm.getStatus() + " CPU: " + cpu + 
+                     "% MEM: " + vm.getMemLoad() );
 
     if( sid == null )
     {
@@ -829,6 +837,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 //If there are no more tasks, mark the resource as available again
                 if (vm.getNumberTasks() == 0)
                 {
+                  //if there are not more task and vm was single tasked 
+                  // make sure to change the vm to not being single tasked
+                  if(vm.isSingleTasked()) {
+                    vm.isSingleTasked(false);
+                  }
                   update.add(vm);
                 }
               }

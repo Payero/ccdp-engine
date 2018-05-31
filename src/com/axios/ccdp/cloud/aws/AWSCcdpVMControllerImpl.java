@@ -375,17 +375,17 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       return false;
     }
     
-    boolean test = true;
-    if( test )
-    {
-      logger.error("\nTESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
-      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
-      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
-      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK\n");
-      for(String id : instIDs)
-        logger.error("Terminating Instance: " + id);
-      return true;
-    }
+//    boolean test = true;
+//    if( test )
+//    {
+//      logger.error("\nTESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+//      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+//      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK");
+//      logger.error("TESTING, SKIPPING TERMINATION PLEASE PUT IT BACK\n");
+//      for(String id : instIDs)
+//        logger.error("Terminating Instance: " + id);
+//      return true;
+//    }
     logger.info("Terminating Instances");
     boolean terminated = false;
     TerminateInstancesRequest request = new TerminateInstancesRequest(instIDs);

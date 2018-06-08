@@ -65,7 +65,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * The number of cycles to wait before declaring an agent missing.  A cycle
    * is the time to wait between checking for allocation/deallocation
    */
-  public static int NUMBER_OF_CYCLES = 16;
+  public static int NUMBER_OF_CYCLES = 4;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -136,7 +136,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * How many milliseconds before an agent is considered missing or no longer
    * reachable
    */
-  private int agent_time_limit = 80000; //1 min 20 sec
+  private int agent_time_limit = 20000; //20 sec
   /**
    * Flag indicating whether or not heartbeats are being ignored
    */
@@ -321,17 +321,19 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
     List<CcdpVMResource> list = this.getResourcesBySessionId(sid);
     List<CcdpVMResource> remove = new ArrayList<>();
+    List<String> terminate = new ArrayList<>();
+    
     // check the last time each VM was updated
     for( CcdpVMResource vm : list )
     {
+      String id = vm.getInstanceId();
       try
       {
         // we only care for those running
         if( !ResourceStatus.RUNNING.equals(vm.getStatus()) )
         {
-          String id = vm.getInstanceId();
           //String st = vm.getStatus().toString();
-          //this.logger.trace("Ignoring unresponsive VM " + id + ", Status: " + st);
+          //this.logger.debug("Ignoring unresponsive VM " + id + ", Status: " + st);
           continue;
         }
         long now = System.currentTimeMillis();
@@ -343,7 +345,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                        " has not sent updates since " + this.formatter.format(new Date(resTime));
           this.logger.debug(txt);
           this.logger.debug("It has been " + (diff/1000) + " seconds since we got last heartbeat");
+          this.logger.debug("Removing unresponsive instance " + id );
           remove.add(vm);
+          //if the intance is not in the do not terminate list and is unresponsive
+          //add it to the terminate list to send the shut_down command to aws
+          if( !this.skipTermination.contains(id) )
+          {
+            terminate.add(vm.getInstanceId());
+          }
         }
       }
       catch( Exception e)
@@ -354,11 +363,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }
     }
 
-    // now we remove all the resources that are not responding and update the
+    // now we remove and terminate all the resources that are not responding and update the
     // corresponding list
+    int numberOfUnresponsiveVMs = remove.size();
     list.removeAll(remove);
     this.resources.put(sid, list);
-
+    
+    if( numberOfUnresponsiveVMs > 0) {
+      this.logger.info("Terminating " + terminate.toString() );
+      this.controller.terminateInstances(terminate);
+    }
   }
 
   /**
@@ -1665,10 +1679,18 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         {
           //Updates the status if the resource (from pending to running)
           String iid = res.getInstanceId();
-          if( !iid.startsWith( CcdpMainApplication.VM_TEST_PREFIX ) )
-            res.setStatus(this.controller.getInstanceState( iid ));
-          else
+          if( !iid.startsWith( CcdpMainApplication.VM_TEST_PREFIX ) ) {
+            ResourceStatus vm_state = this.controller.getInstanceState( iid );
+            //Only set the state if the instance is shutting down otherwise let the state
+            //to be update when heartbeats arrive  
+            if(ResourceStatus.SHUTTING_DOWN.equals(vm_state)){
+              res.setStatus( vm_state );
+              this.logger.debug("Changin the state of the resource to " + res.getStatus() );
+            }
+          }
+          else {
             res.setStatus(ResourceStatus.RUNNING);
+          }
 
           if( !ResourceStatus.SHUTTING_DOWN.equals(res.getStatus() ) )
           {

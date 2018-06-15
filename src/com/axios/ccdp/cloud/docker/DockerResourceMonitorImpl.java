@@ -1,4 +1,4 @@
-package com.axios.ccdp.utils;
+package com.axios.ccdp.cloud.docker;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
@@ -9,7 +9,11 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
+import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf.UNITS;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -24,34 +28,19 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class SystemResourceMonitor
+public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
 {
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(SystemResourceMonitor.class
+  private Logger logger = Logger.getLogger(DockerResourceMonitorImpl.class
       .getName());
-  /**
-   * Stores the units to return some of the values such as memory and disk space
-   * 
-   * @author Oscar E. Ganteaume
-   *
-   */
-  public static enum UNITS { BYTE, KB, MB, GB };
-  /**
-   * The Operating System implementation used to get all the resources
-   * 
-   */
-  private OperatingSystemMXBean os;
   
   /**
    * Used to generate all the JSON structure objects
    */
   private ObjectMapper mapper = new ObjectMapper();
-  /**
-   * Stores all the values in to divide the memory based on the UNITS
-   */
-  private Map<UNITS, Long> divisors = new HashMap<>();
+
   /**
    * Stores the default units base to use
    */
@@ -60,13 +49,48 @@ public class SystemResourceMonitor
    * The Root directory of the filesystem
    */
   private File filesystem = null;
+  /**
+   * Stores the total number of cores for this resource
+   */
+  private int cores;
+  /**
+   * Stores the total amount of memory for this resource
+   */
+  private long memory ;
   
   /**
    * Instantiates a new resource monitor
    */
-  public SystemResourceMonitor()
+  public DockerResourceMonitorImpl()
   {
     this(UNITS.KB);
+  }
+  
+  /**
+   * Configures the running environment and/or connections required to perform
+   * the operations.  The JSON Object contains all the different fields 
+   * necessary to operate.  These fields might change on each actual 
+   * implementation
+   * 
+   * @param config a JSON Object containing all the necessary fields required 
+   *        to operate
+   */
+  public void configure( ObjectNode config )
+  {
+    String units = UNITS.KB.toString();
+    JsonNode node = config.get("units");
+    
+    if( node != null )
+      units = node.asText();
+    else
+      this.logger.warn("The units was not defined using default (KB)");
+    
+    this.setUnits( units );
+    if( config.has("cores") )
+      this.cores = config.get("cores").asInt();
+    if( config.has("mem") )
+      this.memory = config.get("mem").asLong();
+    
   }
   
   /**
@@ -74,7 +98,7 @@ public class SystemResourceMonitor
    * 
    * @param units the units to use when displaying some of the values
    */
-  public SystemResourceMonitor( String units )
+  public DockerResourceMonitorImpl( String units )
   {
     this(UNITS.valueOf(units));
   }
@@ -84,13 +108,34 @@ public class SystemResourceMonitor
    * 
    * @param units the units to use when displaying some of the values
    */
-  public SystemResourceMonitor( UNITS units)
+  public DockerResourceMonitorImpl( UNITS units)
   {
     this.logger.debug("Initiating new Monitor");
-    this.divisors.put( UNITS.BYTE, new Long(1) );
-    this.divisors.put( UNITS.KB, new Long(1024) );
-    this.divisors.put( UNITS.MB, new Long(1024*1024) );
-    this.divisors.put( UNITS.GB, new Long(1024*1024*1024) );
+    this.setUnits( units );
+  }
+  
+  /**
+   * Sets the units to used to represent the resources such as BYTE, KB, MB, 
+   * and GB.  The string is a representation of an actual value of the enum 
+   * class
+   * 
+   * @param units the string representation of the units to use to measure the 
+   *        resources
+   */
+  public void setUnits( String units )
+  {
+    this.setUnits( UNITS.valueOf(units));
+  }
+  
+  /**
+   * Sets the units to used to represent the resources such as BYTE, KB, MB, 
+   * and GB.  
+   * 
+   * @param units units to use to measure the resources
+   */
+  public void setUnits( UNITS units )
+  {
+    this.logger.debug("Initiating new Monitor");
     
     this.filesystem = new File("/");
     // if is not Linux or Mac, Windows?
@@ -101,8 +146,7 @@ public class SystemResourceMonitor
     if( !this.filesystem.isDirectory() )
       this.filesystem = null;
     
-    this.units = this.divisors.get(units);
-    this.os = ManagementFactory.getOperatingSystemMXBean();
+    this.units = SystemResourceMonitorIntf.getDivisor(units);
   }
   
   /**
@@ -115,17 +159,7 @@ public class SystemResourceMonitor
    */
   public long getCommittedVirtualMemorySize()
   {
-    Object obj = this.getResource("getCommittedVirtualMemorySize");
-    if( obj != null )
-    {
-      return ( new Long((long)obj) ) / this.units;
-    }
-    else
-    {
-      this.logger.error("Could not get Committed Virtual Memory Size");
-    }
-    
-    return -1L;
+    return this.memory;
   }
   
   /**
@@ -136,18 +170,8 @@ public class SystemResourceMonitor
    *         be obtained
    */
   public long getTotalSwapSpaceSize()
-  {
-    Object obj = this.getResource("getTotalSwapSpaceSize");
-    if( obj != null )
-    {
-      return ( new Long((long)obj) ) / this.units;
-    }
-    else
-    {
-      this.logger.error("Could not get Total Swap Space Size");
-    }
-    
-    return -1L;    
+  {    
+    return 2 * this.memory;    
   }
   
   /**
@@ -159,17 +183,7 @@ public class SystemResourceMonitor
    */
   public long getFreeSwapSpaceSize()
   {
-    Object obj = this.getResource("getFreeSwapSpaceSize");
-    if( obj != null )
-    {
-      return ( new Long((long)obj) ) / this.units;
-    }
-    else
-    {
-      this.logger.error("Could not get Free Swap Space Size");
-    }
-    
-    return -1L;     
+    return 2 * this.memory;
   }
   
   /**
@@ -466,19 +480,20 @@ public class SystemResourceMonitor
    */
   private Object getResource( String methodName )
   {
-    try
-    {
-      // first let's get the method and make it accessible
-      Method method = this.os.getClass().getMethod(methodName);
-      method.setAccessible(true);
-      // now get the value
-      return method.invoke(this.os);
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Got an error " + e.getMessage());
-      return null;
-    }
+    return null;
+//    try
+//    {
+//      // first let's get the method and make it accessible
+//      Method method = this.os.getClass().getMethod(methodName);
+//      method.setAccessible(true);
+//      // now get the value
+//      return method.invoke(this.os);
+//    }
+//    catch( Exception e )
+//    {
+//      this.logger.error("Got an error " + e.getMessage());
+//      return null;
+//    }
   }
   
   /**
@@ -568,7 +583,7 @@ public class SystemResourceMonitor
   {
     CcdpUtils.configLogger();
     
-    SystemResourceMonitor srm = new SystemResourceMonitor(UNITS.KB);
+    DockerResourceMonitorImpl srm = new DockerResourceMonitorImpl(UNITS.KB);
     
     
 //    while( true )

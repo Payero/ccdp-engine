@@ -22,6 +22,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
+import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
@@ -37,7 +38,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -75,8 +75,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitor monitor = 
-            new SystemResourceMonitor(SystemResourceMonitor.UNITS.MB);
+  private SystemResourceMonitorIntf monitor = null; 
+//            new SystemResourceMonitorImpl(SystemResourceMonitorImpl.UNITS.MB);
   /**
    * Object used to send and receive messages such as incoming tasks to process
    * and sending heartbeats and tasks updates
@@ -107,6 +107,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     ObjectNode task_msg_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    
+    ObjectNode res_mon_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
+    
+    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);

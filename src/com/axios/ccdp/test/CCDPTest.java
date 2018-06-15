@@ -26,6 +26,7 @@ import com.amazonaws.services.devicefarm.model.ArgumentException;
 import com.axios.ccdp.cloud.sim.SimCcdpTaskRunner.BusyThread;
 import com.axios.ccdp.cloud.sim.SimVirtualMachine;
 import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
@@ -65,10 +66,7 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    double number = 1*100;
-    this.logger.debug("The Original Number: " + number);
-    DecimalFormat df = new DecimalFormat("###.###");
-    this.logger.debug("The CPU " + df.format(number));
+    
     
   }  
   

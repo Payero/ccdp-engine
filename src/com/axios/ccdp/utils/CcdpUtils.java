@@ -91,6 +91,9 @@ public class CcdpUtils
   public static final String CFG_KEY_RESOURCE = "resourceIntf";
   /** Properties used by the storage controller object */
   public static final String CFG_KEY_STORAGE = "storageIntf";
+  /** Properties used by the resource monitor object */
+  public static final String CFG_KEY_RES_MON = "res.mon.intf";
+ 
   
   /** Class handling connection to external entities */
   public static final String CFG_KEY_CONNECTION_CLASSNAME = "connection.intf.classname";
@@ -102,6 +105,8 @@ public class CcdpUtils
   public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
   /** Class used to interact with the storage solution */
   public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
+  /** Class used to measure resource utilization */
+  public static final String CFG_KEY_RES_MON_CLASSNAME = "res.mon.intf.classname";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";

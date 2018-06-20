@@ -37,3 +37,16 @@ docker system prune -a
 
 The command line to get stats from docker stats
 docker stats --no-stream --format '{"container": "{{.Container}}","container-name": "{{.Name}}","container-id": "{{.ID}}","container-cpu": "{{.CPUPerc}}","container-mem": "{{.MemUsage}}","container-net": "{{.NetIO}}","container-block": "{{.BlockIO}}","container-mem-perc": "{{.MemPerc}}","container-pids": "{{.PIDs}}",}'
+
+
+# You can modify dockerd behavior by adding the options to the 
+# /usr/lib/systemd/system/docker.service file.  
+# ExecStart=/usr/bin/docker -d -H tcp://127.0.0.1:4243 -H fd:// $OPTIONS
+#
+
+# To get IP Address
+docker inspect <container id> | grep IPAddress
+
+
+# To post a file (http1.json) using curl: 
+curl -X PUT --data-binary @http1.json http://localhost:8500/v1/agent/service/register

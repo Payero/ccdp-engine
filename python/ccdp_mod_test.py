@@ -102,6 +102,45 @@ class Test():
     self.__logger.debug("Done running test")
     self.__setEvent()
         
+        
+  def testMemUsage(self, params="megabytes=512,secs=10"):
+    """
+      Runs a test that forces the system to consume a given number of megabytes
+      for a number of seconds
+    """
+    self.__logger.debug("Running a mem Test")
+    
+    megabytes=512
+    secs=10
+
+    vals = params.split(',')
+    for item in vals:
+      val = item.split('=')
+      if val[0] == 'megabytes':
+        megabytes = int(val[1])
+      if val[0] == 'secs':
+        secs = int(val[1])
+
+    self.__logger.debug("Consuming %d MB for %d seconds" % (megabytes,secs))
+
+    # It just performs a dumb data storage
+    def runTest():
+      self.__logger.debug("Running Mem Test")
+      a = []
+      while not self.__event.isSet():
+        if len(a) >= megabytes:
+          time.sleep(0.1)
+        else:
+          a.append(' ' * 10**6 )
+
+    thread = threading.Thread(target=runTest, args=())
+    thread.daemon = True
+    thread.start()
+    time.sleep(float(secs))
+    
+
+    self.__logger.debug("Done running test")
+    self.__setEvent()
 
 
   def testRandomTime(self, params="min=0,max=10"):

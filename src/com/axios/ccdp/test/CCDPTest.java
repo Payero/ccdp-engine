@@ -1,9 +1,15 @@
 package com.axios.ccdp.test;
 
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.math.RoundingMode;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.URI;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -23,6 +29,7 @@ import java.util.UUID;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.services.devicefarm.model.ArgumentException;
+import com.amazonaws.services.rds.model.DBClusterOptionGroupStatus;
 import com.axios.ccdp.cloud.sim.SimCcdpTaskRunner.BusyThread;
 import com.axios.ccdp.cloud.sim.SimVirtualMachine;
 import com.axios.ccdp.connections.amq.AmqSender;
@@ -37,8 +44,8 @@ import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+
+
 
 public class CCDPTest 
 {
@@ -67,8 +74,49 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
+    this.logger.debug("The data " + this.sendData() );
     
   }  
+  
+  public String sendData() throws IOException 
+  {
+    // curl_init and url
+    URL url = new URL("http://172.17.0.1:2375");
+    HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+    //  CURLOPT_POST
+    con.setRequestMethod("GET");
+
+    // CURLOPT_FOLLOWLOCATION
+    con.setInstanceFollowRedirects(true);
+
+    String postData = "containers/json?all=1";
+    con.setRequestProperty("Content-length", String.valueOf(postData.length()));
+
+    con.setDoOutput(true);
+    con.setDoInput(true);
+
+    DataOutputStream output = new DataOutputStream(con.getOutputStream());
+    output.writeBytes(postData);
+    output.close();
+
+    // "Post data send ... waiting for reply");
+    int code = con.getResponseCode(); // 200 = HTTP_OK
+    System.out.println("Response    (Code):" + code);
+    System.out.println("Response (Message):" + con.getResponseMessage());
+
+    // read the response
+    DataInputStream input = new DataInputStream(con.getInputStream());
+    int c;
+    StringBuilder resultBuf = new StringBuilder();
+    while ( (c = input.read()) != -1) 
+    {
+      resultBuf.append((char) c);
+    }
+    input.close();
+
+    return resultBuf.toString();
+}
   
   public static void main( String[] args ) throws Exception
   {

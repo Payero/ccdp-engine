@@ -13,6 +13,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest.TasksRunningMode;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 
 import junit.framework.TestCase;
 
@@ -256,7 +257,7 @@ public class ThreadRequestsGeneratorUnitTest extends TestCase
       task.setSubmitted(true);
       assertEquals(task.getTaskId(), "csv_reader");
       assertEquals(task.getClassName(), "tasks.csv_demo.CsvReader");
-      assertEquals(task.getNodeType(), "ec2");
+      assertEquals(task.getNodeType(), CcdpNodeType.EC2);
       
       assertEquals(task.getCPU(), 10.0, 0.01);
       assertEquals(task.getMEM(), 128.0, 0.01);
@@ -287,7 +288,7 @@ public class ThreadRequestsGeneratorUnitTest extends TestCase
       task.setSubmitted(true);
       assertEquals(task.getTaskId(), "csv_reader");
       assertEquals(task.getName(), "Csv File Reader");
-      assertEquals(task.getNodeType(), "ec2");
+      assertEquals(task.getNodeType(), CcdpNodeType.EC2);
       
       assertEquals(task.getCPU(), 0.0, 0.1);
       assertEquals(task.getMEM(), 0.0, 0.1);
@@ -318,7 +319,7 @@ public class ThreadRequestsGeneratorUnitTest extends TestCase
       assertEquals(3, req.getTasks().size());
       for( CcdpTaskRequest task : req.getTasks() )
       {
-        assertEquals(task.getNodeType(), "emr");
+        assertEquals(task.getNodeType(),CcdpNodeType.EMS);
         assertEquals(task.getCPU(), 0.0, 0.01);
         assertEquals(task.getMEM(), 0.0, 0.01);
         task.setSubmitted(true);

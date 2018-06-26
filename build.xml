@@ -133,12 +133,26 @@
       <param name="test.pattern" value="SimVMControllerUnitTest" />
     </antcall>
    </target>
-
+	
+  <!-- Runs all the unit tests to test Engine with AWS-->
+  <target name="TestEngineWithAWS" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
+    </antcall>
+  </target>
+	
+  <!-- Runs all the unit tests to test Engine with Sim-->
+  <target name="TestEngineWithSim" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="TestEngineWithSimUnitTest" />
+    </antcall>
+  </target>
+	
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">
     <junit printsummary="yes" haltonfailure="no" fork="true">
 
-    	<sysproperty key="ccdp.config.file" value="${ccdp.cfg.file}" />
+    	<sysproperty key="ccdp.config.file" value="${ccdp.config.file}" />
     	
         <classpath>
           <path refid="classpath.test"/>

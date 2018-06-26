@@ -36,6 +36,7 @@ public class AWSControlerUnitTest
   
   public AWSControlerUnitTest()
   {
+    JUnitTestHelper.initialize(); 
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();

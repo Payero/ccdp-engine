@@ -629,4 +629,8 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     
     this.logger.info("Virtual Machine Status set to " + this.vmInfo.getStatus() );
   }
+  
+  public void stopVMTimer() {
+    this.timer.stop();
+  }
 }

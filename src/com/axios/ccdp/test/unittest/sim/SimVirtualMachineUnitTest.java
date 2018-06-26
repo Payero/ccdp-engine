@@ -82,6 +82,7 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
   @Before
   public void setUpTest()
   {
+    System.out.println("****************************************************************************** \n");
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     
@@ -248,6 +249,7 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
   public void runFailedTaskTest()
   {
     int time = 5;
+    int checktime = 25; // have to check for fail status after the application did retries
     CcdpTaskRequest task = this.sendTaskRequest("MOCK_FAIL", time);
     String taskId = task.getTaskId();
     
@@ -261,7 +263,7 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
     
     CcdpTaskRequest myT = tasks.get(0);
     assertTrue("Got a different Task", taskId.equals(myT.getTaskId()));
-    boolean found = this.gotMessageWithState(CcdpTaskState.FAILED, time);
+    boolean found = this.gotMessageWithState(CcdpTaskState.FAILED, checktime);
     assertTrue("The Task did not finish on time", found);
   }
   
@@ -420,7 +422,7 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
   {
     this.logger.debug("Cleaning up after the test");
     this.node.shutdown("Done with test");
-    CcdpUtils.pause(0.25);;
+    CcdpUtils.pause(3);;
     
     this.connection.disconnect();
     this.messages.clear();

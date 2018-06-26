@@ -49,6 +49,11 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.dockerjava.api.DockerClient;
+import com.github.dockerjava.api.command.InspectContainerResponse;
+import com.github.dockerjava.api.command.StatsCmd;
+import com.github.dockerjava.api.model.Container;
+import com.github.dockerjava.core.DockerClientBuilder;
 
 
 
@@ -79,6 +84,68 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
+    String data = this.startContainer();
+    this.logger.debug("The Data " + data);
+    
+    
+  }  
+  
+  public String startContainer()  throws IOException
+  {
+    // docker run -it --net=host -e  --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp
+    
+    DockerClient dockerClient
+        = DockerClientBuilder.getInstance("tcp://172.17.0.1:2375").build();
+    
+    List<Container> containers = dockerClient.listContainersCmd().exec();
+    for( Container c : containers )
+    {
+      this.logger.debug("Container Info " + c.getId());
+      StatsCmd stats = dockerClient.statsCmd(c.getId());
+      stats.
+      
+      this.logger.debug("The Container " + stats.toString());
+      
+    }
+    
+    return "Good Stuff";
+    
+//    
+//    JSONObject obj = new JSONObject();
+//    JSONArray envs = new JSONArray();
+//    envs.put("DOCKER_HOST=172.17.0.1:2375");
+//    obj.append("Env", envs);
+//    
+//    
+//    obj.append("Image", "payero/centos-7:ccdp");
+//    obj.append("NetworkDisabled", false);
+//    JSONObject vol = new JSONObject();
+//    vol.append("/data/ccdp", new JSONObject());
+//    obj.append("Volumes", vol);
+//    obj.append("WorkingDir",  "/data/ccdp");
+//    
+//    String post = "http://172.17.0.1:2375/containers/create?" + obj.toString();
+//    this.logger.debug("Sending " + post );
+//    
+//    URL url = new URL(post); 
+//    JSONObject res = null;
+//    try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), "UTF-8"))) 
+//    {
+//        for (String line; (line = reader.readLine()) != null;) 
+//        {
+//          this.logger.debug("Parsing Line " + line);
+//          obj = new JSONObject(line);
+//        }
+//        if( obj != null )
+//          this.logger.debug("Object " + obj.toString(2));
+//    }
+//    
+//    return obj.toString();
+  }
+  
+  
+  public void testStats() throws IOException
+  {
     JSONObject prev = this.getStats();
     JSONObject prevCpuStats = prev.getJSONObject("cpu_stats");
     JSONObject prevCpuUsage =  prevCpuStats.getJSONObject("cpu_usage");
@@ -105,8 +172,8 @@ public class CCDPTest
       cpuPercent = ( cpuDelta / sysDelta) * ( (double)currCpuUsage.getJSONArray("percpu_usage").length() * 100.0 );
     
     this.logger.debug("The Percentage " + cpuPercent );
-    
-  }  
+  }
+  
   
   public JSONObject getStats() throws IOException 
   {

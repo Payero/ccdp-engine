@@ -71,7 +71,7 @@ https://github.com/moby/moby/issues/29306
 
 # --net=host exposes the ports from the host to the conainer
 # -e passes the environment variable to the docker container where the docker engine is
-# docker run -it --net=host -e DOCKER_HOST=172.17.0.1:2375 --rm -v /data/ccdp:/data/ccdp payero/centos-7:test
+# docker run -it --net=host -e DOCKER_HOST=172.17.0.1:2375 --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp
 
 # after that I can run docker stats and  should see the docker engine running on my host
 

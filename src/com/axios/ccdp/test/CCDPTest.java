@@ -1,10 +1,12 @@
 package com.axios.ccdp.test;
 
 
+import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.RoundingMode;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
@@ -27,6 +29,8 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.apache.log4j.Logger;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.amazonaws.services.devicefarm.model.ArgumentException;
 import com.amazonaws.services.rds.model.DBClusterOptionGroupStatus;
@@ -44,6 +48,7 @@ import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 
 
@@ -74,48 +79,50 @@ public class CCDPTest
   {
     this.logger.debug("Running the Test");
     
-    this.logger.debug("The data " + this.sendData() );
+    JSONObject prev = this.getStats();
+    JSONObject prevCpuStats = prev.getJSONObject("cpu_stats");
+    JSONObject prevCpuUsage =  prevCpuStats.getJSONObject("cpu_usage");
+    
+    CcdpUtils.pause(2);
+    
+    JSONObject curr = this.getStats();
+    JSONObject currCpuStats = curr.getJSONObject("cpu_stats");
+    JSONObject currCpuUsage =  currCpuStats.getJSONObject("cpu_usage");
+    
+    double prevCPU = prevCpuUsage.getDouble("total_usage");
+    double currCPU = currCpuUsage.getDouble("total_usage");
+    double cpuDelta = currCPU - prevCPU;
+    this.logger.debug("The CPU Delta " + cpuDelta);
+    
+    double prevSysUsg = prevCpuStats.getDouble("system_cpu_usage");
+    double currSysUsg = currCpuStats.getDouble("system_cpu_usage");
+    double sysDelta = currSysUsg - prevSysUsg;
+    this.logger.debug("The System Delta " + sysDelta);
+    
+    
+    double cpuPercent = 0;
+    if( sysDelta > 0.0 && cpuDelta > 0.0 )
+      cpuPercent = ( cpuDelta / sysDelta) * ( (double)currCpuUsage.getJSONArray("percpu_usage").length() * 100.0 );
+    
+    this.logger.debug("The Percentage " + cpuPercent );
     
   }  
   
-  public String sendData() throws IOException 
+  public JSONObject getStats() throws IOException 
   {
-    // curl_init and url
-    URL url = new URL("http://172.17.0.1:2375");
-    HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-    //  CURLOPT_POST
-    con.setRequestMethod("GET");
-
-    // CURLOPT_FOLLOWLOCATION
-    con.setInstanceFollowRedirects(true);
-
-    String postData = "containers/json?all=1";
-    con.setRequestProperty("Content-length", String.valueOf(postData.length()));
-
-    con.setDoOutput(true);
-    con.setDoInput(true);
-
-    DataOutputStream output = new DataOutputStream(con.getOutputStream());
-    output.writeBytes(postData);
-    output.close();
-
-    // "Post data send ... waiting for reply");
-    int code = con.getResponseCode(); // 200 = HTTP_OK
-    System.out.println("Response    (Code):" + code);
-    System.out.println("Response (Message):" + con.getResponseMessage());
-
-    // read the response
-    DataInputStream input = new DataInputStream(con.getInputStream());
-    int c;
-    StringBuilder resultBuf = new StringBuilder();
-    while ( (c = input.read()) != -1) 
+    URL url = new URL("http://172.17.0.1:2375/containers/1b6c5ae96bcd/stats?stream=0"); 
+    JSONObject obj = null;
+    try (BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), "UTF-8"))) 
     {
-      resultBuf.append((char) c);
+        for (String line; (line = reader.readLine()) != null;) 
+        {
+          this.logger.debug("Parsing Line " + line);
+          obj = new JSONObject(line);
+        }
+        if( obj != null )
+          this.logger.debug("Object " + obj.toString(2));
     }
-    input.close();
-
-    return resultBuf.toString();
+    return obj;
 }
   
   public static void main( String[] args ) throws Exception

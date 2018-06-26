@@ -34,7 +34,11 @@ CMD sh -c "curl -L $SITE_URL > /data/results"
 docker system prune -a
 
 #
-# You can configure dockerd by changing the file /etc/docker/daemon.json 
+# You can configure dockerd by changing the file /etc/docker/daemon.json to:
+# {
+#   "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"]
+# }
+
 # followed by sudo service docker restart
 #
 
@@ -58,6 +62,9 @@ docker run -it --memory=512mb --rm -v /data/ccdp:/data/ccdp payero/ccdp:test bas
 # Resource files can be found on host machine at
 /sys/fs/cgroup/memory|cpuacct/docker will contain all the container files
 
+
+# Getting the percent 
+https://github.com/moby/moby/issues/29306
 
 
 # CONNECTING TO REMOTE DOCKER ENGINE docker -H=172.17.0.1:2375 stats
@@ -97,3 +104,13 @@ docker push payero/<base name>:<tag>
 DOCKER HTTP API(https://docs.docker.com/engine/api/v1.21/#21-containers)
 # get containers 
 curl http://172.17.0.1:2375/containers/json?all=1
+
+# get the actual stats based on the container id
+http://172.17.0.1:2375/containers/< CONTAINER ID >/stats?stream=0
+
+
+
+# Get specific container
+curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://172.17.0.1:2375/containers/< CONTAINER ID >/json
+
+curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X GET http://hostname/resource

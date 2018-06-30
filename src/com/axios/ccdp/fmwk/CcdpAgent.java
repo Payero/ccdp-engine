@@ -119,20 +119,16 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.logger.debug("Done with the connections: " + task_msg_node.toString());
 
     
-    String hostId = null;
+    String hostId = this.monitor.getUniqueHostId();
     String hostname = null;
     
     try
     {
-      this.logger.debug("Retrieving Instance ID");
-      hostId = CcdpUtils.retrieveEC2InstanceId();
       hostname = CcdpUtils.retrieveEC2Info("public-ipv4");
     }
     catch( Exception e )
     {
-      this.logger.error("Could not retrieve Instance ID");
-      String[] uid = UUID.randomUUID().toString().split("-");
-      hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
+      this.logger.warn("Could not retrieve hostname from EC2");
       try
       {
         InetAddress addr = CcdpUtils.getLocalHostAddress();

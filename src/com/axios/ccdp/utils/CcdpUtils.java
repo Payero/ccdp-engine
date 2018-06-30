@@ -1031,4 +1031,27 @@ public class CcdpUtils
     }
   }
   
+  /**
+   * Gets the configuration value stored either as an environment variable or
+   * as a property.  First it tries to see if it was set as a system property, 
+   * if it does not exists then it tries to get it as an environment 
+   * variable.  It returns null if it is not in any of the two storages 
+   * mentioned before
+   * 
+   * @param key the name of the key to look in the environment variable or the
+   *        system property
+   * @return the string representation of what is stored in that key or null if
+   *         not found
+   */
+  public static String getConfigValue(String key )
+  {
+    String val = CcdpUtils.getProperty(key);
+    
+    if( val == null )
+      val = System.getenv(key);
+    
+    return val;
+    
+  }
+  
 }

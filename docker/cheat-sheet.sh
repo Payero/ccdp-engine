@@ -46,10 +46,10 @@ Running the Test:
 
 sudo systemctl start docker
 # Where Dockerfile is run
-docker build -t payero/ccdp:test .
+docker build -t payero/centos-7:ccdp .
 
 # then to run the container
-docker run -it --memory=512mb --rm -v /data/ccdp:/data/ccdp payero/ccdp:test bash
+docker run -it --memory=512mb --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp bash
 
 # to stress the CPU
 /data/ccdp/python/ccdp_mod_test.py -a testCpuUsage -p 10
@@ -64,7 +64,13 @@ docker run -it --memory=512mb --rm -v /data/ccdp:/data/ccdp payero/ccdp:test bas
 
 # --net=host exposes the ports from the host to the conainer
 # -e passes the environment variable to the docker container where the docker engine is
-# docker run -it --net=host -e DOCKER_HOST=172.17.0.1:2375 --rm -v /data/ccdp:/data/ccdp payero/centos-7:test
+docker run -it --rm --net=host \
+     -e DOCKER_HOST=172.17.0.1:2375 \
+     -e AWS_ACCESS_KEY_ID=AKIAILDTHAKOE7G3SFGA \
+     -e AWS_SECRET_ACCESS_KEY=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 \
+     -e AWS_DEFAULT_REGION=us-east-1 \
+     -v /data/ccdp:/data/ccdp \
+     payero/centos-7:ccdp
 
 # after that I can run docker stats and  should see the docker engine running on my host
 

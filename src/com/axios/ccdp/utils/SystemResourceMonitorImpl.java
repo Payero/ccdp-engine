@@ -4,12 +4,16 @@ import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
+import com.axios.ccdp.fmwk.CcdpMainApplication;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -597,6 +601,39 @@ public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
   }
   
   /**
+   * Does not perform any action
+   */
+  public void close()
+  {
+    this.logger.debug("Nothing to close or clean");
+  }
+  
+  /**
+   * Gets the unique id identifying this node.
+   * 
+   * @return the unique id identifying this node.
+   */
+  public String getUniqueHostId()
+  {
+    String hostId = null;
+    
+    try
+    {
+      this.logger.debug("Retrieving Instance ID");
+      hostId = CcdpUtils.retrieveEC2InstanceId();
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Could not retrieve Instance ID");
+      String[] uid = UUID.randomUUID().toString().split("-");
+      hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
+    }
+    
+    return hostId;
+  }
+  
+  /**
+   * 
    * Runs the show, used only as a quick way to test the methods.
    * 
    * @param args the command line arguments, not used

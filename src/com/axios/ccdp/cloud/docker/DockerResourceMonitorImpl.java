@@ -1,21 +1,26 @@
 package com.axios.ccdp.cloud.docker;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.lang.management.ManagementFactory;
-import java.lang.management.OperatingSystemMXBean;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.FileReader;
+import java.io.IOException;
 
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf.UNITS;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.exceptions.DockerException;
+import com.spotify.docker.client.messages.ContainerStats;
+import com.spotify.docker.client.messages.CpuStats;
+import com.spotify.docker.client.messages.MemoryStats;
+import com.spotify.docker.client.messages.CpuStats.CpuUsage;
+import com.spotify.docker.client.messages.MemoryStats.Stats;
 
 /**
  * Simple utility class used to obtain some of the resource utilization 
@@ -30,6 +35,17 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
 {
+  /**
+   * The default URL to reach the Docker engine to get resource statistics for
+   * this container
+   */
+  public static String DEFAULT_DOCKER_HOST = "http://172.17.0.1:2375";
+  /**
+   * The default file with the container id in the same line as the word 
+   * 'docker'.  This is used to actually extract the container id
+   */
+  public static String DEFAULT_CGROUP_FILE = "/proc/self/cgroup";
+  
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -50,14 +66,23 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   private File filesystem = null;
   /**
-   * Stores the total number of cores for this resource
+   * Stores the container id in the long form
    */
-  private int cores;
+  private String longCid;
   /**
-   * Stores the total amount of memory for this resource
+   * Stores the container id in the short form; the first 12 characters of the
+   * long container id
    */
-  private long memory ;
-  
+  private String shortCid;
+  /**
+   * Stores the object that actually talks to the docker engine to get 
+   * statistic data about the containers
+   */
+  private DockerClient docker = null;
+  /**
+   * Stores the previous stats value to generate statistics and percentages
+   */
+  private ContainerStats prevStats = null;
   /**
    * Instantiates a new resource monitor
    */
@@ -78,6 +103,8 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
   public void configure( ObjectNode config )
   {
     String units = UNITS.KB.toString();
+    String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
+    String fname = DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE;
     JsonNode node = config.get("units");
     
     if( node != null )
@@ -86,10 +113,40 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
       this.logger.warn("The units was not defined using default (KB)");
     
     this.setUnits( units );
-    if( config.has("cores") )
-      this.cores = config.get("cores").asInt();
-    if( config.has("mem") )
-      this.memory = config.get("mem").asLong();
+    
+    if( config.has("docker.url") && config.get("docker.url") != null )
+    {
+      JsonNode obj = config.get("docker.url");
+      url = obj.asText();
+    }
+    else
+      this.logger.warn("The docker host was not defined " +
+                       "using default (http://172.17.0.1:2375)");      
+    
+    if( config.has("cgroup.file") && config.get("cgroup.file") != null )
+    {
+      JsonNode obj = config.get("cgroup.file");
+      fname = obj.asText();
+    }
+    else
+      this.logger.warn("The cgroup file was not defined " +
+                       "using default (/proc/self/cgroup)");      
+
+    this.logger.debug("Connecting to Docker engine: " + url);
+    this.logger.debug("cgroup file: " + fname);
+    
+    try
+    {
+      this.longCid = this.getContainerID(fname);
+      this.shortCid = this.longCid.substring(0, 12);
+
+      this.docker = new DefaultDockerClient(url);
+      this.prevStats = this.docker.stats(this.longCid);
+    }
+    catch( Exception ioe )
+    {
+      this.logger.error("Message: " + ioe.getMessage(), ioe);
+    }
     
   }
   
@@ -159,7 +216,22 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getCommittedVirtualMemorySize()
   {
-    return this.memory;
+    long mem = -1;
+    try
+    {
+      ContainerStats stats = docker.stats(this.longCid);
+      MemoryStats memStats = stats.memoryStats();
+      this.logger.debug("The Mem Stats " + memStats.toString() );
+      Stats st = memStats.stats();
+      mem = st.cache();
+      mem = mem / this.units;
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+    
+    return mem;
   }
   
   /**
@@ -171,7 +243,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getTotalSwapSpaceSize()
   {    
-    return 2 * this.memory;    
+    return this.getCommittedVirtualMemorySize();
   }
   
   /**
@@ -183,7 +255,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getFreeSwapSpaceSize()
   {
-    return 2 * this.memory;
+    return this.getCommittedVirtualMemorySize();
   }
   
   /**
@@ -197,17 +269,8 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getProcessCpuTime()
   {
-    Object obj = this.getResource("c");
-    if( obj != null )
-    {
-      return new Long((long)obj);
-    }
-    else
-    {
-      this.logger.error("Could not get Process CPU Time");
-    }
-    
-    return -1L;
+    CpuUsage usg = this.prevStats.cpuStats().cpuUsage();
+    return usg.totalUsage() / this.units;
   }
   
   /**
@@ -219,17 +282,11 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getFreePhysicalMemorySize()
   {
-    Object obj = this.getResource("getFreePhysicalMemorySize");
-    if( obj != null )
-    {
-      return ( new Long((long)obj) ) / this.units;
-    }
-    else
-    {
-      this.logger.error("Could not get Free Physical Memory Size");
-    }
-    
-    return -1L;    
+    MemoryStats mem = this.prevStats.memoryStats();
+    // Got that the total memory used is the total_rss in 
+    // http://blog.scoutapp.com/articles/2015/06/22/monitoring-docker-containers-from-scratch
+    //
+    return (mem.limit() - mem.stats().totalRss() )  / this.units;
   }
   
   /**
@@ -241,17 +298,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getTotalPhysicalMemorySize()
   {
-    Object obj = this.getResource("getTotalPhysicalMemorySize");
-    if( obj != null )
-    {
-      return ( new Long((long)obj) ) / this.units;
-    }
-    else
-    {
-      this.logger.error("Could not get Total Physical Memory Size");
-    }
-    
-    return -1L;      
+    return this.prevStats.memoryStats().limit() / this.units;      
   }
   
   /**
@@ -263,32 +310,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getUsedPhysicalMemorySize()
   {
-    long total;
-    long free;
-    
-    Object obj = this.getResource("getTotalPhysicalMemorySize");
-    if( obj != null )
-    {
-      total =  (long)obj ;
-    }
-    else
-    {
-      this.logger.error("Could not get Total Physical Memory Size");
-      return -1L;
-    }
-    
-    obj = this.getResource("getFreePhysicalMemorySize");
-    if( obj != null )
-    {
-      free =  (long)obj ;
-    }
-    else
-    {
-      this.logger.error("Could not get Total Physical Memory Size");
-      return -1L;
-    }
-    
-    return ( total - free ) / this.units;
+    return this.prevStats.memoryStats().stats().totalRss() / this.units;
   }
   
   
@@ -301,16 +323,6 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getOpenFileDescriptorCount()
   {
-    Object obj = this.getResource("getOpenFileDescriptorCount");
-    if( obj != null )
-    {
-      return new Long((long)obj);
-    }
-    else
-    {
-      this.logger.error("Could not get Open File Descriptor Count");
-    }
-    
     return -1L;  
   }
   
@@ -323,44 +335,19 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public long getMaxFileDescriptorCount()
   {
-    Object obj = this.getResource("getMaxFileDescriptorCount");
-    if( obj != null )
-    {
-      return new Long((long)obj);
-    }
-    else
-    {
-      this.logger.error("Could not get Max File Descriptor Count");
-    }
-    
     return -1L;  
   }
   
   /**
-   * Returns the "recent cpu usage" for the whole system. This value is a 
-   * double in the [0.0,1.0] interval. A value of 0.0 means that all CPUs were 
-   * idle during the recent period of time observed, while a value of 1.0 means 
-   * that all CPUs were actively running 100% of the time during the recent 
-   * period being observed. All values betweens 0.0 and 1.0 are possible 
-   * depending of the activities going on in the system. If the system recent 
-   * cpu usage is not available, the method returns a negative value.
+   * Returns the percentage of CPU utilization by comparing a previous stats 
+   * against a new one
    * 
-   * @return the "recent cpu usage" for the whole system; a negative value if 
-   *         not available.
+   * @return the percentage of CPU utilization by comparing a previous stats 
+   *         against a new one; a negative value if not available.
    */
   public double getSystemCpuLoad()
   {
-    Object obj = this.getResource("getSystemCpuLoad");
-    if( obj != null )
-    {
-      return new Double((double)obj);
-    }
-    else
-    {
-      this.logger.error("Could not get System CPU Load");
-    }
-    
-    return -1L;  
+    return this.getSystemCpuPercent();
   }
   
   /**
@@ -380,17 +367,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public double getProcessCpuLoad()
   {
-    Object obj = this.getResource("getProcessCpuLoad");
-    if( obj != null )
-    {
-      return new Double((double)obj * 100);
-    }
-    else
-    {
-      this.logger.error("Could not get Process CPU Load");
-    }
-    
-    return -1L;
+    return this.getUserCpuPercent();
   }
   
   /**
@@ -400,7 +377,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public int getTotalNumberCpuCores()
   {
-    return Runtime.getRuntime().availableProcessors();
+    return this.prevStats.cpuStats().cpuUsage().percpuUsage().size();
   }
   
   /**
@@ -464,37 +441,6 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
       return -1L;
   }
   
-  
-  /**
-   * Gets the value of a given resource usage or availability.  Java does not 
-   * allow direct access to the sun.management.OperatingSystemImpl class so I 
-   * had to use reflection to invoke the different methods in this class.  The
-   * method name used in this class matches the ones used by the 
-   * OperatingSystemImpl class. If the method cannot be accessed or does not 
-   * exists it returns null.
-   * 
-   * @param methodName the name of the method to invoke
-   *  
-   * @return the value from calling the method or null if it does not exists or 
-   *         it cannot be invoked
-   */
-  private Object getResource( String methodName )
-  {
-    return null;
-//    try
-//    {
-//      // first let's get the method and make it accessible
-//      Method method = this.os.getClass().getMethod(methodName);
-//      method.setAccessible(true);
-//      // now get the value
-//      return method.invoke(this.os);
-//    }
-//    catch( Exception e )
-//    {
-//      this.logger.error("Got an error " + e.getMessage());
-//      return null;
-//    }
-  }
   
   /**
    * Returns a string representation of a JSON object where each key is the same
@@ -572,6 +518,175 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
         this.getProcessCpuLoad());
     
     return json;
+  }
+  
+  /**
+   * Gets the container id from the given filename by looking for the first 
+   * instance where the work docker is mentioned.  The file is a cgroup file
+   * containing information about the cluster.  Each line in the file has the 
+   * following format:
+   *    1:name=systemd:/docker/2f521bd5e4fbb0
+   *  
+   * @param filename the name of the file to parse and get the docker id
+   * 
+   * @return the docker id from the file or null if not found
+   * @throws IOException an IOException is thrown if there is a problem 
+   *         reading the file
+   */
+  public String getContainerID( String filename ) throws IOException
+  {
+    File file = new File(filename);
+    String cid = null;
+    
+    // does the file exists and can it be read?
+    if( file.isFile() && file.canRead() )
+    {
+      BufferedReader br = null;
+      FileReader fr = null;
+      try
+      {
+        fr = new FileReader(filename);
+        br = new BufferedReader(fr);
+        
+        String line;
+        // look for the word docker
+        while( (line = br.readLine() ) != null )
+        {
+          line = line.trim();
+          if( line.contains("docker") )
+          {
+            // found docker so let's get the id
+            this.logger.debug("Found Docker in " + line);
+            int start = line.lastIndexOf('/');
+            if( start >= 0 )
+            {
+              cid = line.substring(start + 1);
+              this.logger.debug("Returning " + cid);
+              break;
+            }
+          }
+        }
+      }
+      finally
+      {
+        // clean up
+        try
+        {
+         if ( br != null ) br.close();
+         if ( fr != null ) fr.close();
+        }
+        catch (Exception e)
+        {
+          this.logger.error("Message: " + e.getMessage(), e);
+        }
+      }
+    }
+    else
+    {
+      this.logger.error("Invalid filename (" + filename + 
+                        ") or do not have appropriate permissions");
+    }
+    
+    return cid;
+  }
+  
+  public double getSystemCpuPercent( )
+  {
+    try
+    {
+      return this.getCpuPercent(false);
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+    return -1;
+  }
+  
+  public double getUserCpuPercent( )
+  {
+    try
+    {
+      return this.getCpuPercent(true);
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Message: " + e.getMessage(), e);
+    }
+    return -1;
+  }
+  
+  public double getCpuPercent( boolean isUser  ) 
+                              throws InterruptedException, DockerException
+  {
+    ContainerStats curr = this.docker.stats(this.longCid);
+    
+    CpuStats prevCpuStats = this.prevStats.cpuStats();
+    CpuUsage prevCpuUsage = prevCpuStats.cpuUsage();
+    
+    CpuStats currCpuStats = curr.cpuStats();
+    CpuUsage currCpuUsage = currCpuStats.cpuUsage();
+    
+    double prevCPU =  prevCpuUsage.totalUsage();
+    double currCPU =  currCpuUsage.totalUsage();
+    double cpuDelta = currCPU - prevCPU;
+    
+    double prevSysUsg = prevCpuStats.systemCpuUsage();
+    double currSysUsg = currCpuStats.systemCpuUsage();
+    double delta = 0;
+    
+    if( !isUser )
+      delta = currSysUsg - prevSysUsg;
+    else
+      delta = currCpuUsage.usageInUsermode() - prevCpuUsage.usageInUsermode(); 
+    
+    double cpuPercent = 0;
+    if( delta > 0.0 && cpuDelta > 0.0 )
+      cpuPercent = ( cpuDelta / delta) * ( (double)currCpuUsage.percpuUsage().size() * 100.0 );
+    
+    // need to reset the previous stats
+    this.prevStats = curr;
+    
+    return cpuPercent;
+    
+  }
+  
+  /**
+   * Closes the DockerClient
+   */
+  public void close()
+  {
+    this.docker.close();
+  }
+  
+  /**
+   * Gets the unique id identifying this node.
+   * 
+   * @return the unique id identifying this node.
+   */
+  public String getUniqueHostId()
+  {
+    String hostId = "i-";
+    if( this.shortCid != null )
+    {
+      hostId += this.shortCid;
+    }
+    else
+    {
+      try
+      {
+        this.longCid = 
+          this.getContainerID(DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE);
+        this.shortCid = this.longCid.substring(0,  12);
+      }
+      catch( Exception e )
+      {
+        this.logger.error("Message: " + e.getMessage(), e);
+      }
+      
+    }
+    
+    return hostId;
   }
   
   /**

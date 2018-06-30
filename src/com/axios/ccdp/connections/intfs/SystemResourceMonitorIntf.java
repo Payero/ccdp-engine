@@ -256,4 +256,17 @@ public interface SystemResourceMonitorIntf
    */
   public ObjectNode toJSON();
   
+  /**
+   * Closes all the connections and cleans all the resources it needs to clean
+   * 
+   */
+  public void close();
+  
+  /**
+   * Gets the unique id identifying this node.
+   * 
+   * @return the unique id identifying this node.
+   */
+  public String getUniqueHostId();
+  
 }

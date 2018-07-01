@@ -137,7 +137,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     
     try
     {
-      this.longCid = this.getContainerID(fname);
+      this.longCid = DockerResourceMonitorImpl.getContainerID(fname);
       this.shortCid = this.longCid.substring(0, 12);
 
       this.docker = new DefaultDockerClient(url);
@@ -533,7 +533,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    * @throws IOException an IOException is thrown if there is a problem 
    *         reading the file
    */
-  public String getContainerID( String filename ) throws IOException
+  public static String getContainerID( String filename ) throws IOException
   {
     File file = new File(filename);
     String cid = null;
@@ -556,12 +556,12 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
           if( line.contains("docker") )
           {
             // found docker so let's get the id
-            this.logger.debug("Found Docker in " + line);
+//            this.logger.debug("Found Docker in " + line);
             int start = line.lastIndexOf('/');
             if( start >= 0 )
             {
               cid = line.substring(start + 1);
-              this.logger.debug("Returning " + cid);
+//              this.logger.debug("Returning " + cid);
               break;
             }
           }
@@ -577,18 +577,34 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
         }
         catch (Exception e)
         {
-          this.logger.error("Message: " + e.getMessage(), e);
+          e.printStackTrace();
         }
       }
     }
     else
     {
-      this.logger.error("Invalid filename (" + filename + 
-                        ") or do not have appropriate permissions");
+      System.err.println("Invalid filename (" + filename + 
+          ") or do not have appropriate permissions");
     }
     
     return cid;
   }
+
+  public static String getContainerID() 
+  {
+    try
+    {  
+      String fname = DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE;
+      return DockerResourceMonitorImpl.getContainerID(fname);
+    }
+    catch( IOException e )
+    {
+      System.err.println(e.getMessage());
+      e.printStackTrace();
+    }
+    return null;
+  }
+  
   
   public double getSystemCpuPercent( )
   {
@@ -666,27 +682,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public String getUniqueHostId()
   {
-    String hostId = "i-";
-    if( this.shortCid != null )
-    {
-      hostId += this.shortCid;
-    }
-    else
-    {
-      try
-      {
-        this.longCid = 
-          this.getContainerID(DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE);
-        this.shortCid = this.longCid.substring(0,  12);
-      }
-      catch( Exception e )
-      {
-        this.logger.error("Message: " + e.getMessage(), e);
-      }
-      
-    }
-    
-    return hostId;
+    return this.shortCid;
   }
   
   /**

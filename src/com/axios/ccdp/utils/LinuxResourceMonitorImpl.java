@@ -30,12 +30,12 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
+public class LinuxResourceMonitorImpl implements SystemResourceMonitorIntf
 {
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(SystemResourceMonitorImpl.class
+  private Logger logger = Logger.getLogger(LinuxResourceMonitorImpl.class
       .getName());
   
   /**
@@ -61,7 +61,7 @@ public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
   /**
    * Instantiates a new resource monitor
    */
-  public SystemResourceMonitorImpl()
+  public LinuxResourceMonitorImpl()
   {
     this(UNITS.KB);
   }
@@ -94,7 +94,7 @@ public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
    * 
    * @param units the units to use when displaying some of the values
    */
-  public SystemResourceMonitorImpl( String units )
+  public LinuxResourceMonitorImpl( String units )
   {
     this(UNITS.valueOf(units));
   }
@@ -104,7 +104,7 @@ public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
    * 
    * @param units the units to use when displaying some of the values
    */
-  public SystemResourceMonitorImpl( UNITS units)
+  public LinuxResourceMonitorImpl( UNITS units)
   {
     this.logger.debug("Initiating new Monitor");
     this.setUnits( units );
@@ -642,7 +642,7 @@ public class SystemResourceMonitorImpl implements SystemResourceMonitorIntf
   {
     CcdpUtils.configLogger();
     
-    SystemResourceMonitorImpl srm = new SystemResourceMonitorImpl(UNITS.KB);
+    LinuxResourceMonitorImpl srm = new LinuxResourceMonitorImpl(UNITS.KB);
     
     
 //    while( true )

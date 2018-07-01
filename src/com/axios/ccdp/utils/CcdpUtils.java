@@ -146,7 +146,7 @@ public class CcdpUtils
    *
    */
   public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
-                                    CUSTOM, OTHER, DEFAULT, UNKNOWN };
+                                    CUSTOM, OTHER, DEFAULT, DOCKER, UNKNOWN };
   
   /****************************************************************************/
   /**

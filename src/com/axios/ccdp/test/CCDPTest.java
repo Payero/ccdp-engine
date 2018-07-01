@@ -5,6 +5,7 @@ import java.io.BufferedReader;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.math.RoundingMode;
@@ -29,6 +30,7 @@ import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
 import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
@@ -40,6 +42,7 @@ import com.spotify.docker.client.messages.HostConfig;
 import com.spotify.docker.client.messages.HostConfig.Bind;
 import com.spotify.docker.client.messages.MemoryStats;
 import com.spotify.docker.client.messages.MemoryStats.Stats;
+import com.spotify.docker.client.messages.NetworkConfig;
 import com.spotify.docker.client.messages.Volume;
 
 
@@ -72,89 +75,102 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode res_mon_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
+    String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
+    DockerClient docker = new DefaultDockerClient(url);
+    docker.stopContainer("061918e23a25", 1);
+
     
-    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
-    
-    String hostId = this.monitor.getUniqueHostId();
-    String hostname = null;
-    
-    try
-    {
-      hostname = CcdpUtils.retrieveEC2Info("public-ipv4");
-    }
-    catch( Exception e )
-    {
-      this.logger.warn("Could not retrieve hostname from EC2");
-      try
-      {
-        InetAddress addr = CcdpUtils.getLocalHostAddress();
-        hostname = addr.getHostAddress();
-      }
-      catch(UnknownHostException uhe)
-      {
-        this.logger.warn("Could not get the IP address");
-      }
-    }
-    CcdpNodeType type = CcdpNodeType.EC2;
-    
-    this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
-    this.vmInfo = new CcdpVMResource(hostId);
-    this.vmInfo.setHostname(hostname);
-    this.vmInfo.setNodeType(type);
-    
-//    this.me.setAssignedSession("available");
-    this.vmInfo.setStatus(ResourceStatus.RUNNING);
-    this.updateResourceInfo();
-    
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
-    this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-    this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
-    
-    
-    
-    this.logger.debug("Got the Monitor");
-    int max = 10;
-    for(int i = 0; i < max; i++ )
-    {
-      this.updateResourceInfo();
-      CcdpUtils.pause(2);
-      this.logger.debug(this.vmInfo.toJSON().toString() );
-      
-    }
-    CcdpUtils.pause(1);
-    
-    monitor.close();
-    
+//    List<String> cmd_args = new ArrayList<>();
+//    
+//    String cmd_line = "/data/ccdp/ccdp_install.py -a download -t /data/ccdp -D -d /data/ccdp/dist.tgz";
+//    String[] items = cmd_line.split(" ");
+//    String dist_file = null;
+//    for( int i = 0; i < items.length; i++ )
+//    {
+//      String arg = items[i].trim();
+//      if( arg.equals("-d") && i < items.length - 1)
+//      {
+//        dist_file = items[i + 1];
+//        i += 1;
+//      }
+//      else
+//      {
+//        cmd_args.add(arg);
+//      }
+//    }
+//    this.logger.debug("The Distribution file " + dist_file);
+//    this.logger.debug("The Args " + cmd_args.toString() );
+//    boolean test = true;
+//    if( true )
+//      return;
+//    
+//    String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
+//    DockerClient docker = new DefaultDockerClient(url);
+//    
 //    List<String> envs = new ArrayList<>();
 //    envs.add("DOCKER_HOST=172.17.0.1:2375");
 //    
+//    
 //    List<String> cmd = new ArrayList<>();
-//    cmd.add("/data/ccdp/python/ccdp_mod_test.py");
-//    cmd.add("-a");
-//    cmd.add("testCpuUsage");
-//    cmd.add("-p");
-//    cmd.add("60");
+//    boolean is_aws = false;
+//    if( is_aws )
+//    {
+//      envs.add("AWS_DEFAULT_REGION=us-east-1");
+//      envs.add("AWS_SECRET_ACCESS_KEY=sP4V52RAc0zdq/FAY4yqbJPeQFahSyRHantOSjDf");
+//      envs.add("AWS_ACCESS_KEY_ID=AKIAILDTHAKOE7G3SFGA");
+//      
+//      cmd.add("/data/ccdp/ccdp_install.py"); 
+//      cmd.add("-a");
+//      cmd.add("download");
+//      cmd.add("-d");
+//      cmd.add("s3://ccdp-settings/ccdp-engine.tgz");
+//      cmd.add("-t");
+//      cmd.add("/data/ccdp");
+//      cmd.add("-D");
+//      cmd.add("-s");
+//      cmd.add("NIFI");
+//      
+//    }
+//    else
+//    {
+//      cmd.add("/data/ccdp/ccdp_install.py"); 
+//      cmd.add("-t");
+//      cmd.add("/data/ccdp");
+//      cmd.add("-D");
+//    }
 //    
 //    //docker run -it --net=host  --rm
-//    Volume vol = Volume.builder().name("/data/ccdp").build();
+////    Volume vol = Volume.builder().name("/data/ccdp").build();
 //    HostConfig hostCfg = HostConfig.builder()
-//        .binds(Bind.from(vol)
-//                   .to("/data/ccdp")
-//                   .build())
+//        .networkMode("host")
 //        .build();
+////        .binds(Bind.from(vol)
+////                   .to("/data/ccdp")
+////                   .build())
+////        .build();
+//    
 //    
 //    ContainerConfig cfg = ContainerConfig.builder()
 //        .env(envs)
+//        
 //        .hostConfig(hostCfg)
 //        .image("payero/centos-7:ccdp")
 //        .entrypoint(cmd)
 //        .build();
-//    ContainerCreation cc = this.docker.createContainer(cfg);
+//    ContainerCreation cc = docker.createContainer(cfg);
 //    this.logger.debug("Created Container " + cc.id() );
-//    this.docker.startContainer(cc.id() );
+//    if( !is_aws )
+//    {
+//      FileInputStream fis = new FileInputStream("/home/oeg/workspace/ccdp-engine/dist/ccdp-engine.tgz");
+//      docker.copyToContainer(fis, cc.id(), "/data/ccdp/");
+//    }
+//    
+//    CcdpUtils.pause(5);
+//    this.logger.debug("Starting Container");
+//    docker.startContainer(cc.id() );
+//    this.logger.debug("Done starting container");
+//    docker.close();
+    
 //    CcdpUtils.pause(5);
 //    this.logger.debug("\n\nStopping the Container\n\n");
 //    this.docker.stopContainer(cc.id(), 1);
@@ -177,18 +193,7 @@ public class CCDPTest
 //    
 //    this.docker.close();
   }  
-  
-  public void updateResourceInfo()
-  {
-    this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
-    this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-    this.vmInfo.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
-    this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
-    this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
-    this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
-    
-  }
+
   
   public static void main( String[] args ) throws Exception
   {

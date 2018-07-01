@@ -196,6 +196,8 @@ class CcdpInstaller:
 
         new_file.write("%s" % line)
       
+      os.chmod(agent_file, 0777)
+      
     except:
       traceback.print_exc()
 

@@ -66,7 +66,7 @@ class CcdpInstaller:
     execute the appropriate ant command to build the code prior uploading the
     necessary files
 
-  Session Id ( -s | --session-id ):
+  Node Type ( -n | --node-type ):
    Sets the session id as an atrribute and is interpreted by the ccdp agent
    
 

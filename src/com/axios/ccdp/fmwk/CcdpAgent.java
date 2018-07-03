@@ -583,6 +583,22 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         System.err.println("Invalid Node Type " + val + " using DEFAULT");
       }
     }
+    else  // attempting to get it from the environment variable
+    {
+      String env = System.getenv("CCDP_NODE_TYPE");
+      if( env != null )
+      {
+        try
+        {
+          CcdpNodeType temp = CcdpNodeType.valueOf( env );
+          type = temp;
+        }
+        catch( Exception e )
+        {
+          System.err.println("Invalid Node Type " + env + " using DEFAULT");
+        }
+      }
+    }
     
     if( !loaded )
       CcdpUtils.loadProperties(cfg_file);

@@ -31,6 +31,8 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    String env = System.getenv("CCDP_NODE_TYPE");
+    this.logger.debug("The Node Type " + env);
   }
   
   public static void main( String[] args ) throws Exception

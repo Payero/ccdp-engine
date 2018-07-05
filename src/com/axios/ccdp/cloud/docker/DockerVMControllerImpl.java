@@ -213,7 +213,11 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       logger.info("Starting VM of type " + type + " for session " + session_id ) ;
       // Setting all the environment variables
       List<String> envs = new ArrayList<>();
-      envs.add("DOCKER_HOST=" + this.config.get("docker.url").asText() );
+      
+      String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
+      logger.info("Connecting to docker enging at: " + url);
+      
+      envs.add("DOCKER_HOST=" + url );
       envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
       // Add AWS specific ones if we are using AWS S3 Bucket
       if( !this.use_fs )
@@ -416,7 +420,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         String cid = container.id().substring(0,  12);
         if( cid != null && cid.equals(id) )
         {
-          logger.debug("Found Container");
+          logger.trace("Found Container");
           String state = container.state();
           switch( state )
           {

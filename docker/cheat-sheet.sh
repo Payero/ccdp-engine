@@ -57,6 +57,7 @@ docker run -it --memory=512mb --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp
 
 # same args as in code
 docker run -it --rm --entrypoint /data/ccdp/ccdp_install.py payero/centos-7:ccdp -a download -d s3://ccdp-settings/ccdp-engine.tgz -t /data/ccdp/ -D
+docker run -it --rm --entrypoint /data/ccdp/ccdp_install.py payero/centos-7:ccdp -t /data/ccdp -D -n DOCKER
 
 # to stress the CPU
 /data/ccdp/python/ccdp_mod_test.py -a testCpuUsage -p 10

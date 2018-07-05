@@ -7,19 +7,6 @@ import java.util.Date;
 
 import org.apache.log4j.Logger;
 
-import com.amazonaws.AmazonClientException;
-import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.Bucket;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -42,10 +29,6 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
   private Logger logger = 
           Logger.getLogger(DockerStorageControllerImpl.class.getName());
 
-  /**
-   * Stores the object responsible for accessing the S3 resources
-   */
-  private AmazonS3Client s3 = null;
   /**
    * Formats the date in a specific way
    */
@@ -79,20 +62,7 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
       throw new IllegalArgumentException("The configuration cannot be null");
     
     this.logger.debug("Configuring object using: " + config.toString());
-    try
-    {
-      //AWSCredentials credentials = DockerVMControllerImpl.getAWSCredentials();
-      AWSCredentials credentials = null;
-      if( credentials != null )
-      {
-        this.s3 = new AmazonS3Client(credentials);
-      }
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
-  }
+   }
   
   /**
    * Creates a new bucket using the given argument.  If the bucket 
@@ -109,15 +79,6 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
   {
     this.logger.info("Creating Bucket: " + bucket);
     boolean created = false;
-    try
-    {
-      this.s3.createBucket(bucket);
-      created = true;
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
     
     return created;
   }
@@ -128,33 +89,17 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    * successful.  If the file name is of the form 'path/filename.txt' then it
    * will be stored in the appropriate location such as a sub-directory.
    * 
-   * @param bucket the name of the bucket where the file will be stored
+   * @param dir the name of the directory where the file will be stored
    * @param name the name of the file to store
    * @param file the actual file to store
    * 
    * @return true if the action was successful
    */
   @Override
-  public boolean storeElement(String bucket, String name, File file)
+  public boolean storeElement(String dir, String name, File file)
   {
-    this.logger.info("Creating File " + name + " in bucket: " + bucket);
-    try
-    {
-      if( !file.isFile() )
-      {
-        String e = String.format("File (%s) cannot be found", file.getName());
-        throw new IllegalArgumentException(e);
-      }
-      
-      PutObjectRequest request = new PutObjectRequest(bucket, name, file);
-      this.s3.putObject(request);
-      return true;
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-      return false;
-    }
+    this.logger.info("Creating File " + name + " in directory: " + dir);
+    return false;
   }
   
   /**
@@ -166,29 +111,17 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    * 
    * If the file is not found then the method returns null.
    * 
-   * @param bucket the initial path to begin the search for the file
+   * @param dir the initial path to begin the search for the file
    * @param filename the name of the file relative to the root
    * 
    * @return an InputStream object with the contents of the file or null if not
    *         found
    */
   @Override
-  public InputStream getElement(String bucket, String filename)
+  public InputStream getElement(String dir, String filename)
   {
     InputStream input = null;
-    try
-    {
-      this.logger.debug("Retrieving file " + filename + " from bucket " + bucket);
-      GetObjectRequest request = new GetObjectRequest(bucket, filename);
-      S3Object object = this.s3.getObject(request);
-      String ct = object.getObjectMetadata().getContentType();
-      this.logger.debug("Content-Type: "  + ct);
-      input = object.getObjectContent();
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
+    
     
     return input;
   }
@@ -207,27 +140,11 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
   @Override
   public ArrayNode listAllStorages()
   {
-    ArrayNode buckets = this.mapper.createArrayNode();
+    ArrayNode folders = this.mapper.createArrayNode();
     
-    this.logger.debug("Listing buckets");
-    try
-    {
-      for (Bucket bucket : s3.listBuckets()) 
-      {
-        String name = bucket.getName();
-        Date date = bucket.getCreationDate();
-        ObjectNode bkt = this.mapper.createObjectNode();
-        bkt.put("name", name);
-        bkt.put("creation-time", this.date_formatter.format(date));
-        buckets.add(bkt);
-      }
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
     
-    return buckets;
+    
+    return folders;
   }
   
   /**
@@ -252,49 +169,9 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
   @Override
   public ArrayNode listAllElements(String root)
   {
-    ArrayNode buckets = this.mapper.createArrayNode();
-    try
-    {
-      this.logger.debug("Listing buckets");
-      for (Bucket bucket : s3.listBuckets()) 
-      {
-        ObjectNode bkt = this.mapper.createObjectNode();
-        String name = bucket.getName();
-        Date date = bucket.getCreationDate();
-        
-        bkt.put("storage", name);
-        bkt.put("creation-time", this.date_formatter.format(date));
-        
-        ArrayNode files = this.mapper.createArrayNode();
-        final ListObjectsV2Request req = 
-                  new ListObjectsV2Request().withBucketName(name);
-        
-        ListObjectsV2Result result;
-        do 
-        {               
-           result = this.s3.listObjectsV2(req);
-           
-           for (S3ObjectSummary obj : result.getObjectSummaries()) 
-           {
-             ObjectNode json = this.mapper.createObjectNode();
-             
-             String key = obj.getKey();
-             Date fileDate = obj.getLastModified();
-             json.put("storage", key);
-             json.put("creation-time", this.date_formatter.format(fileDate));
-             files.add(json);
-           }
-           req.setContinuationToken(result.getNextContinuationToken());
-        } while(result.isTruncated() == true ); 
-        bkt.set("files", files);
-        buckets.add(bkt);
-      }
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
-    return buckets;
+    ArrayNode folders = this.mapper.createArrayNode();
+    
+    return folders;
   }
   
   /**
@@ -313,35 +190,13 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    *         the criteria and the creation time
    */
   @Override
-  public ArrayNode listAllElementsWithPrefix( String bucket, String prefix)
+  public ArrayNode listAllElementsWithPrefix( String folder, String prefix)
   {
-    String msg = "Getting all file from bucket " + bucket + 
+    String msg = "Getting all file from bucket " + folder + 
                  " starting with " + prefix;
     this.logger.debug(msg);
     ArrayNode files = this.mapper.createArrayNode();
     
-    try
-    {
-      ListObjectsRequest req = new ListObjectsRequest()
-                                            .withBucketName(bucket)
-                                            .withPrefix(prefix);
-                                            
-      ObjectListing objectListing = this.s3.listObjects(req);
-      
-      for (S3ObjectSummary obj : objectListing.getObjectSummaries()) 
-      {
-        String name = obj.getKey();
-        Date date = obj.getLastModified();
-        ObjectNode file = this.mapper.createObjectNode();
-        file.put("name", name);
-        file.put("creation-time", this.date_formatter.format(date));
-        files.add(file);
-      }
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-    }
     
     return files;
   }
@@ -350,23 +205,14 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    * Deletes a given bucket and all its contents.  It returns true if the
    * operation was successful or false otherwise
    * 
-   * @param bucket the name of the bucket to delete
+   * @param folder the name of the bucket to delete
    * @return true if the operation was successful or false otherwise
    */
   @Override
-  public boolean deleteStorage(String bucket)
+  public boolean deleteStorage(String folder)
   {
-    this.logger.info("Deleting Bucket " + bucket);
-    try
-    {
-      this.s3.deleteBucket(bucket);
-      return true;
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-      return false;
-    }
+    this.logger.info("Deleting Bucket " + folder);
+    return false;
   }
   
   /**
@@ -374,67 +220,15 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    * relative to the given bucket name.  It returns true if the operation was 
    * successful or false otherwise
    * 
-   * @param bucket the name of the bucket where the file resides
+   * @param folder the name of the folder where the file resides
    * @param filename the name of the file to to delete
    * @return true if the operation was successful or false otherwise
    */
   @Override
-  public boolean deleteElement(String bucket, String filename)
+  public boolean deleteElement(String folder, String filename)
   {
-    this.logger.info("Deleting file " + filename + " from bucket " +  bucket);
-    try
-    {
-      this.s3.deleteObject(bucket, filename);
-      return true;
-    }
-    catch( Exception e)
-    {
-      this.printException(e, true);
-      return false;
-    }
+    this.logger.info("Deleting file " + filename + " from folder " +  folder);
+    return false;
   }
   
-  /**
-   * Prints a descriptive error message based on the type of exception (Service
-   * or Client).
-   * 
-   * @param e the exception generated by the code
-   * @param add_stacktrace flag indicating whether to print the stacktrace or 
-   *        not
-   */
-  private void printException(Exception e, boolean add_stacktrace)
-  {
-    if( e instanceof AmazonServiceException )
-    {
-      AmazonServiceException ase = (AmazonServiceException)e;
-      String err = "Caught an AmazonServiceException, which means your "
-          + "request made it to Amazon S3, but was rejected with an error "
-          + "response for some reason.";
-      this.logger.error(err);
-      this.logger.error("Error Message:    " + ase.getMessage());
-      this.logger.error("HTTP Status Code: " + ase.getStatusCode());
-      this.logger.error("AWS Error Code:   " + ase.getErrorCode());
-      this.logger.error("Error Type:       " + ase.getErrorType());
-      this.logger.error("Request ID:       " + ase.getRequestId());
-    }
-    else if( e instanceof AmazonClientException )
-    {
-      AmazonClientException ace = (AmazonClientException)e;
-      String err = "Caught an AmazonClientException, which means the client "
-          + "encountered a serious internal problem while trying to "
-          + "communicate with S3, such as not being able to access the "
-          + "network.";
-      this.logger.error(err);
-      this.logger.error("Error Message: " + ace.getMessage());
-    }
-    else
-    {
-      String err = "Caught an exception so the operation might have failed. " +
-                   "The actual error message is: " + e.getMessage();
-      this.logger.error(err);
-    }
-    
-    if( add_stacktrace )
-      e.printStackTrace();
-  }
 }

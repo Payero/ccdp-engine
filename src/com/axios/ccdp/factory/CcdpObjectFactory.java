@@ -4,6 +4,7 @@ import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
+import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -102,7 +103,7 @@ public class CcdpObjectFactory
   }
   
   /**
-   * Gets the object that is used communicate among elements in the sustem.  
+   * Gets the object that is used communicate among elements in the system.  
    * The same interface is also used to send messages back to a specific 
    * destination
    * 
@@ -119,6 +120,22 @@ public class CcdpObjectFactory
     return impl;
   }
   
+  /**
+   * Gets the object that is used to measure the resources in the node where  
+   * the agent is running. 
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the agent 
+   *         get the resources
+   */
+  public SystemResourceMonitorIntf getResourceMonitorInterface(ObjectNode config)
+  {
+    String key = CcdpUtils.CFG_KEY_RES_MON_CLASSNAME;
+    Object obj = this.getNewInstance(key, SystemResourceMonitorIntf.class);
+    SystemResourceMonitorIntf impl = (SystemResourceMonitorIntf)obj;
+    impl.configure(config);
+    return impl;
+  }
   
   /**
    * Gets the object responsible for controlling the resources.  For instance, 

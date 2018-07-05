@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -22,6 +21,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
+import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
@@ -37,7 +37,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.SystemResourceMonitor;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -75,8 +74,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitor monitor = 
-            new SystemResourceMonitor(SystemResourceMonitor.UNITS.MB);
+  private SystemResourceMonitorIntf monitor = null; 
+//            new SystemResourceMonitorImpl(SystemResourceMonitorImpl.UNITS.MB);
   /**
    * Object used to send and receive messages such as incoming tasks to process
    * and sending heartbeats and tasks updates
@@ -108,26 +107,27 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     ObjectNode task_msg_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     
+    ObjectNode res_mon_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
+    
+    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
+    
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
     this.logger.debug("Done with the connections: " + task_msg_node.toString());
 
     
-    String hostId = null;
+    String hostId = this.monitor.getUniqueHostId();
     String hostname = null;
     
     try
     {
-      this.logger.debug("Retrieving Instance ID");
-      hostId = CcdpUtils.retrieveEC2InstanceId();
       hostname = CcdpUtils.retrieveEC2Info("public-ipv4");
     }
     catch( Exception e )
     {
-      this.logger.error("Could not retrieve Instance ID");
-      String[] uid = UUID.randomUUID().toString().split("-");
-      hostId = CcdpMainApplication.VM_TEST_PREFIX + "-" + uid[uid.length - 1];
+      this.logger.warn("Could not retrieve hostname from EC2");
       try
       {
         InetAddress addr = CcdpUtils.getLocalHostAddress();
@@ -579,6 +579,22 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       catch( Exception e )
       {
         System.err.println("Invalid Node Type " + val + " using DEFAULT");
+      }
+    }
+    else  // attempting to get it from the environment variable
+    {
+      String env = System.getenv("CCDP_NODE_TYPE");
+      if( env != null )
+      {
+        try
+        {
+          CcdpNodeType temp = CcdpNodeType.valueOf( env );
+          type = temp;
+        }
+        catch( Exception e )
+        {
+          System.err.println("Invalid Node Type " + env + " using DEFAULT");
+        }
       }
     }
     

@@ -91,6 +91,9 @@ public class CcdpUtils
   public static final String CFG_KEY_RESOURCE = "resourceIntf";
   /** Properties used by the storage controller object */
   public static final String CFG_KEY_STORAGE = "storageIntf";
+  /** Properties used by the resource monitor object */
+  public static final String CFG_KEY_RES_MON = "res.mon.intf";
+ 
   
   /** Class handling connection to external entities */
   public static final String CFG_KEY_CONNECTION_CLASSNAME = "connection.intf.classname";
@@ -102,6 +105,8 @@ public class CcdpUtils
   public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
   /** Class used to interact with the storage solution */
   public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
+  /** Class used to measure resource utilization */
+  public static final String CFG_KEY_RES_MON_CLASSNAME = "res.mon.intf.classname";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";
@@ -141,7 +146,7 @@ public class CcdpUtils
    *
    */
   public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
-                                    CUSTOM, OTHER, DEFAULT, UNKNOWN };
+                                    CUSTOM, OTHER, DEFAULT, DOCKER, UNKNOWN };
   
   /****************************************************************************/
   /**
@@ -1031,6 +1036,29 @@ public class CcdpUtils
       unknownHostException.initCause(e);
       throw unknownHostException;
     }
+  }
+  
+  /**
+   * Gets the configuration value stored either as an environment variable or
+   * as a property.  First it tries to see if it was set as a system property, 
+   * if it does not exists then it tries to get it as an environment 
+   * variable.  It returns null if it is not in any of the two storages 
+   * mentioned before
+   * 
+   * @param key the name of the key to look in the environment variable or the
+   *        system property
+   * @return the string representation of what is stored in that key or null if
+   *         not found
+   */
+  public static String getConfigValue(String key )
+  {
+    String val = CcdpUtils.getProperty(key);
+    
+    if( val == null )
+      val = System.getenv(key);
+    
+    return val;
+    
   }
   
 }

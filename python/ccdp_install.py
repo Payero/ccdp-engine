@@ -66,7 +66,7 @@ class CcdpInstaller:
     execute the appropriate ant command to build the code prior uploading the
     necessary files
 
-  Session Id ( -s | --session-id ):
+  Node Type ( -n | --node-type ):
    Sets the session id as an atrribute and is interpreted by the ccdp agent
    
 
@@ -132,6 +132,74 @@ class CcdpInstaller:
 
     elif cli_args.action == 'nickname':
       self.__set_nickname()
+
+
+    # Sets the environment variable with the node type
+    if cli_args.node_type:
+      self.__logger.info("Setting the node type")
+      bin_file = "ccdp-engine/bin/ccdp_agent.sh"
+      agent_file = os.path.join('/data/ccdp/', bin_file)
+      self.set_node_type(agent_file, cli_args.node_type)
+
+
+    # Runs an agent 
+    if cli_args.worker_agent:
+      self.__logger.info("Starting a ccdp-agent worker")
+      cfg_file = "ccdp-engine/config/ccdp-agent.service"
+      src = os.path.join(cli_args.tgt_location, cfg_file)
+      shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
+      os.system("systemctl daemon-reload")
+      os.system("systemctl enable ccdp-agent.service")  
+      os.system("systemctl stop ccdp-agent")    
+      os.system("systemctl start ccdp-agent")
+
+    # Runs an agent inside a docker container 
+    if cli_args.docker_container:
+      self.__logger.info("Starting a ccdp-agent worker inside a container")
+      bin_file = "ccdp-engine/bin/ccdp_agent.sh"
+      src = os.path.join(cli_args.tgt_location, bin_file)
+      self.__logger.info("Running %s start" % src)
+      os.system("%s start" % src)
+
+
+  def set_node_type(self, agent_file, node_type):
+    try:
+      src = os.path.join('/data/ccdp/', agent_file)
+      
+      if not os.path.isfile(src):
+        self.__logger.error("The file was not found")
+        return
+
+      self.__logger.info("modifying %s" % src)
+      base, ext = os.path.splitext(src)
+      prev_name = "%s.PREV" % base
+      os.rename(src, prev_name)
+      new_file = open(src, 'w')
+      pre_file = open(prev_name, 'r')
+      lines = pre_file.readlines()
+      n = len(lines)
+      i = 0
+      found_it = False
+
+      for line in lines:
+        i += 1
+        if line.find('CCDP_NODE_TYPE') >= 0:
+          self.__logger.debug("Modifying line: %s" % line)
+          line = "export CCDP_NODE_TYPE=%s\n" % node_type
+          found_it = True
+        
+        if i < n:
+          next_line = lines[i]
+          if not found_it and next_line.find('run_service.sh') >= 0:
+            self.__logger.debug("The Export statement was not there adding it")
+            new_file.write("export CCDP_NODE_TYPE=%s\n" % node_type)
+
+        new_file.write("%s" % line)
+      
+      os.chmod(agent_file, 0777)
+      
+    except:
+      traceback.print_exc()
 
 
   def __handle_files(self, params):
@@ -303,16 +371,24 @@ class CcdpInstaller:
       self.__logger.info("No distro file provided, skipping install")
 
 
-    # Runs an agent 
-    if params.worker_agent:
-      self.__logger.info("Starting a ccdp-agent worker")
-      cfg_file = "ccdp-engine/config/ccdp-agent.service"
-      src = os.path.join(params.tgt_location, cfg_file)
-      shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
-      os.system("systemctl daemon-reload")
-      os.system("systemctl enable ccdp-agent.service")  
-      os.system("systemctl stop ccdp-agent")    
-      os.system("systemctl start ccdp-agent")
+    # # Runs an agent 
+    # if params.worker_agent:
+    #   self.__logger.info("Starting a ccdp-agent worker")
+    #   cfg_file = "ccdp-engine/config/ccdp-agent.service"
+    #   src = os.path.join(params.tgt_location, cfg_file)
+    #   shutil.copyfile(src, '/etc/systemd/system/ccdp-agent.service')
+    #   os.system("systemctl daemon-reload")
+    #   os.system("systemctl enable ccdp-agent.service")  
+    #   os.system("systemctl stop ccdp-agent")    
+    #   os.system("systemctl start ccdp-agent")
+
+    # # Runs an agent inside a docker container 
+    # if params.docker_container:
+    #   self.__logger.info("Starting a ccdp-agent worker inside a container")
+    #   bin_file = "ccdp-engine/bin/ccdp_agent.sh"
+    #   src = os.path.join(params.tgt_location, bin_file)
+    #   self.__logger.info("Running %s start" src)
+    #   os.system("%s start" % src)
 
 
   def __perform_upload(self, params):
@@ -548,14 +624,18 @@ if __name__ == '__main__':
         action="store_true", dest="compile", default=False,
         help="Compiles the source code by using ant")
 
-  parser.add_option("-s", "--session-id",
-        dest="session_id",
+  parser.add_option("-n", "--node-type",
+        dest="node_type",
         default=None,
-        help="The session id this VM is assigned to ")
+        help="The node_type this VM is assigned to ")
 
   parser.add_option("-w", "--worker-agent",
         action="store_true", dest="worker_agent", default=False,
         help="Starts a ccdp-agent if this option is present")  
+
+  parser.add_option("-D", "--docker",
+        action="store_true", dest="docker_container", default=False,
+        help="Starts a ccdp-agent inside a container if this option is present")  
 
 
   (options, args) = parser.parse_args()

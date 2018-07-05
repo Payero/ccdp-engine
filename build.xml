@@ -253,7 +253,6 @@
 	<target name="clean" description="clean up">
 		<delete dir="${build.dir}" />
 		<delete dir="${base.dist.dir}" />
-    <delete dir="${classes.dir}" />
     <delete dir="${doc.dir}" />
 		<delete dir="${report.dir}" />
 		<!-- <delete dir="${classes.dir}" /> -->

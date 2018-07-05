@@ -146,8 +146,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
 //    this.me.setAssignedSession("available");
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
-    
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 
@@ -205,10 +203,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setFreeMemory(this.monitor.getFreePhysicalMemorySize());
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
     this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+    this.vmInfo.setCPU(100.0 - (this.vmInfo.getCPULoad()* 100));
   }
   
   /**

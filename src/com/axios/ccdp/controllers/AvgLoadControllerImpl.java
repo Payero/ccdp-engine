@@ -154,13 +154,13 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
       CcdpNodeType type = vm.getNodeType();
       types.put(type, CcdpUtils.getImageInfo(type));
       
-      double vm_cpu = vm.getCPULoad();
+      double vm_cpu = vm.getCPULoad() * 100;
       double vm_mem = vm.getMemLoad();
       double vm_tc = vm.getCPU();
       double vm_tm = vm.getTotalMemory();
       
       String iid = vm.getInstanceId();
-      this.logger.trace("Instance " + iid + " CPU: " + vm_cpu + " MEM " + vm_mem);
+      this.logger.trace("Instance " + iid + " CPU: " + vm_cpu + " MEM " + vm_mem );
       assignedCPU[i] = vm_cpu;
       assignedMEM[i] = vm_mem;
       
@@ -207,8 +207,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     }
     
     // Now let's check averages...
-    double avgCpu = this.getAverage(assignedCPU, availableCPU);
-    double avgMem = this.getAverage(assignedMEM, availableMEM);
+    double avgCpu = this.getAverageCPU(assignedCPU);
+    double avgMem = this.getAverageMem(assignedMEM, availableMEM);
     
     
     this.logger.debug("Average CPU Utilization: " + avgCpu);
@@ -303,16 +303,16 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
       {
         this.logger.debug("Adding resources to average lists");
         
-        assignedCPU[i] = vm.getAssignedCPU();
-        assignedMEM[i] = vm.getAssignedMemory();
+        assignedCPU[i] = vm.getCPULoad()*100;
+        assignedMEM[i] = vm.getMemLoad();
         availableCPU[i] = vm.getCPU();
         availableMEM[i] = vm.getTotalMemory();
       }
     }
     
     // Now let's check averages...
-    double avgCpu = this.getAverage(assignedCPU, availableCPU);
-    double avgMem = this.getAverage(assignedMEM, availableMEM);
+    double avgCpu = this.getAverageCPU(assignedCPU);
+    double avgMem = this.getAverageMem(assignedMEM, availableMEM);
     this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
     
     this.logger.debug("Dealloc: Avg CPU Utilization: " + avgCpu);
@@ -376,7 +376,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     * 
     * @return the average value of the given list
     */
-   private double getAverage( double[] assignedDbls, double[] availableDbls )
+   private double getAverageMem( double[] assignedDbls, double[] availableDbls )
    {
      double assignedTotal = 0;
      double availableTotal = 0;
@@ -386,11 +386,31 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
        assignedTotal += assignedDbls[i];
        availableTotal += availableDbls[i];
      }
-     
      double avgUsed = assignedTotal / sz;
      double avgTotal = availableTotal / sz;
      
-     return ( avgUsed * 100 ) / avgTotal;
+     return (avgUsed/avgTotal)*100;
+   }
+   
+   /**
+    * Gets the average of the given list.  This is obtain by simply adding all
+    * the values and dividing it by the size of the array
+    * 
+    * @param dbls the list of values to get the average
+    * 
+    * @return the average value of the given list
+    */
+   private double getAverageCPU( double[] assignedDbls)
+   {
+     double assignedTotal = 0;
+     int sz = assignedDbls.length;
+     for( int i = 0; i < sz; i++ )
+     {
+       assignedTotal += assignedDbls[i];
+     }
+     double avgUsed = assignedTotal / sz;
+     
+     return avgUsed;
    }
 }
 

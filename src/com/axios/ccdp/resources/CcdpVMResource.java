@@ -865,6 +865,8 @@ public class CcdpVMResource implements Serializable
     }
     
     return str;
+    
+    
   }
   
   /**
@@ -966,11 +968,10 @@ public class CcdpVMResource implements Serializable
     // comparing all the resources
     for( CcdpVMResource res : resources )
     {
-
-      // consider only running VMs
-      if( (onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus())) )
+      // consider only launched and running VMs
+      if( onlyRunning && (!ResourceStatus.RUNNING.equals(res.getStatus()) && !ResourceStatus.LAUNCHED.equals(res.getStatus())))
         continue;
-      
+    
       // if is just the first one, then just set it as the least one
       if( first )
       {
@@ -979,8 +980,8 @@ public class CcdpVMResource implements Serializable
         continue;
       }
       // get the difference of what it has minus what has been assigned
-      double currCPU = least.getCPU() - least.getAssignedCPU();
-      double cpu = res.getCPU() - res.getAssignedCPU();
+      double currCPU = least.getCPU() - (least.getCPULoad()  * 100);
+      double cpu = res.getCPU() - (res.getCPULoad()*100);
       
       // if the current least is less than the new one means the new one has
       // more unused resources.  If they are the same then let's check the 
@@ -988,13 +989,13 @@ public class CcdpVMResource implements Serializable
       //
       if( currCPU < cpu )
         least = res;
-      else if( least.getAssignedCPU() == res.getAssignedCPU() )
+      else if( least.getCPULoad() == res.getCPULoad() )
       {
-        double currMem = least.getTotalMemory() - least.getAssignedMemory();
-        double mem = res.getTotalMemory() - res.getAssignedMemory();
+        double currMem = least.getTotalMemory() - least.getMemLoad();
+        double mem = res.getTotalMemory() - res.getMemLoad();
         if( currMem < mem )
           least = res;
-        else if( least.getAssignedMemory() == res.getAssignedMemory() )
+        else if( least.getMemLoad() == res.getMemLoad())
         {
           if( res.getNumberTasks() < least.getNumberTasks() )
           least = res;
@@ -1005,7 +1006,6 @@ public class CcdpVMResource implements Serializable
     {
         System.out.println("ERROR:::: TRYING TO RETURN A NULL TARGET IN LEASTUSED()");
     }
-    
     return least;
   }
   

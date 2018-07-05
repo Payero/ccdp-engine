@@ -280,6 +280,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   /**
    * Function use to stop the engine
    * 
+   * @param terminateInstances to indicate if we want to terminate the instances or not
    */
   public void stopCCDPApplication(boolean terminateInstances) {
     this.logger.debug("Trying to close/stop the engine");
@@ -799,6 +800,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           res.setTotalMemory(vm.getTotalMemory());
           res.setMemLoad(vm.getMemLoad());
           res.setCPULoad(vm.getCPULoad());
+          res.setCPU(vm.getCPU());
 
           if( ResourceStatus.LAUNCHED.equals(res.getStatus() ) )
           {
@@ -1662,6 +1664,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       resource.setStatus(ResourceStatus.LAUNCHED);
       resource.setAssignedSession(sid);
       resource.setNodeType(typeStr);
+      resource.setCPU(100.0);
       this.connection.registerProducer(resource.getInstanceId());
 
       // assign the session

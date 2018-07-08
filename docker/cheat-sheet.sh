@@ -94,8 +94,6 @@ docker run -it --rm --net=host \
 # cat /proc/self/cgroup | grep "docker" | sed s/\\//\\n/g | tail -1 | cut -c1-12
 
 
-
-
 Modify an image and commit it/push it
 #create a container with an original image and start it
 docker run --name nginx-template-base -p 8080:80 -e TERM=xterm -d nginx

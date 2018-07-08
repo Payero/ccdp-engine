@@ -369,9 +369,10 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       
       for( Container container : containers )
       {
-        String cid = container.id();
-        String state = container.state();
+        String cid = container.id().substring(0,  12);
         
+        String state = container.state();
+        logger.debug("Setting the state " + state + " to " + cid);
         CcdpVMResource res = new CcdpVMResource(cid);
         
         switch( state )

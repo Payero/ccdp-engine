@@ -150,6 +150,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
+    // The default session id should it be the Node type?
+    this.vmInfo.setAssignedSession(type.toString());
 
     
     long hb = 3000;

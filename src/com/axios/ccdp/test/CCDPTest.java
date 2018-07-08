@@ -10,8 +10,11 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
+import com.spotify.docker.client.messages.Container;
 import com.spotify.docker.client.messages.ContainerConfig;
 import com.spotify.docker.client.messages.ContainerCreation;
+import com.spotify.docker.client.messages.ContainerInfo;
 import com.spotify.docker.client.messages.HostConfig;
 
 
@@ -44,39 +47,18 @@ public class CCDPTest
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     this.logger.debug("The URL " + url);
     DockerClient docker = new DefaultDockerClient(url);
+    ListContainersParam params = ListContainersParam.allContainers();
+    params = ListContainersParam.filter("status", "exited");
+    params = ListContainersParam.filter("ancestor", "centos");
     
-    List<String> envs = new ArrayList<>();
-    envs.add("DOCKER_HOST=" + url );
-    envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
-    
-    String cmdLine = "/data/ccdp/ccdp_install.py -t /data/ccdp -D -n DOCKER";
-    cmdLine = "watch -n 5 ls";
-    List<String> cmd = new ArrayList<>();
-    StringTokenizer st = new StringTokenizer(cmdLine,  " ");
-    while( st.hasMoreTokens() )
-      cmd.add(st.nextToken());
-    
-    HostConfig hostCfg = HostConfig.builder()
-        .networkMode("host")
-        .build();
-    
-    ContainerConfig cfg = ContainerConfig.builder()
-        .env(envs)
-        .hostConfig(hostCfg)
-        .image("payero/centos-7:ccdp")
-//        .entrypoint(cmd)
-        .cmd(cmd)
-        .build();
-    ContainerCreation cc = docker.createContainer(cfg);
-    String cid = cc.id();
-    // Translating from Container id to a hostId
-    String hostId = cid.substring(0,  12);
-    this.logger.debug("Container ID " + hostId);
-    String filename = CcdpUtils.getConfigValue("resourceIntf.dist.file");
-    this.logger.debug("Using File " + filename);
-    FileInputStream fis = new FileInputStream(filename);
-    //docker.copyToContainer(fis, cid, "/data/ccdp");
-    docker.startContainer( cid );
+    List<Container> ids = docker.listContainers(params);
+    for( Container c : ids )
+    {
+      String id = c.id();
+      this.logger.debug("The Container id " + id);
+//      docker.removeContainer(id);
+    }
+    docker.close();
     
   }
   

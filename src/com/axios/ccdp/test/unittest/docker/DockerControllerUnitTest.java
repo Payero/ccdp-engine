@@ -40,6 +40,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListContainersParam;
+import com.spotify.docker.client.messages.Container;
 
 public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
 {
@@ -395,7 +397,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start multiple instances and stopping just one
    */
-  @Test
+  //@Test
   public void checksTasksRunningOnVMTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
@@ -447,7 +449,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability of getting the instance id of a non-existing instance, 
    * a request with null, and a valid instance id
    */
-  @Test
+  //@Test
   public void getInstanceStateTest()
   {
     ResourceStatus state = this.docker.getInstanceState(null);
@@ -478,7 +480,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability to retrieve Status of the Remote resources based on the
    * tags associated with that server
    */
-  @Test
+  //@Test
   public void getStatusFilteredByTagsTest()
   {
     List<String> iids = new ArrayList<>();
@@ -576,7 +578,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to get a single instance based on the id.
    */
-  @Test
+  //@Test
   public void getStatusByIdTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
@@ -680,6 +682,22 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       this.running_vms = null;
     }
     
+    try
+    {
+      ListContainersParam params = ListContainersParam.filter("status", "exited");
+      List<Container> ids = dockerClient.listContainers(params);
+      for( Container c : ids )
+      {
+        String id = c.id();
+        logger.debug("Removing Container" + id);
+        dockerClient.removeContainer(id);
+      }
+    }
+    catch( Exception e )
+    {
+      logger.info("Could not remove all containers");
+    }
+    
   }
   
   /**
@@ -689,7 +707,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @AfterClass
   public static void terminate()
   {
-    
+    dockerClient.close();
   }
   
 }

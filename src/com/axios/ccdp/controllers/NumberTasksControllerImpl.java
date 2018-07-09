@@ -172,7 +172,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       String txt = "Need Resources: the Average Load " + avgLoad + 
           " is greater than allowed " + this.max_tasks;
       this.logger.info(txt);
-      imgCfg = CcdpUtils.getImageInfo(type);
+      imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
     }
     else
     {

@@ -241,8 +241,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( img_cmd != null && img_cmd.length() > 0 )
     {
       user_data = USER_DATA + img_cmd;
-      if ( session_id != null )
-        user_data += " -s " + session_id;
+      //Not need to send -s session id anymore because the nodeType is passed instead
+      //if ( session_id != null )
+        //user_data += " -s " + session_id;
       logger.info("Using User Data: " + user_data);
     }
     else

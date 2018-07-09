@@ -363,7 +363,18 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    protected CcdpVMResource 
      customTaskAssignment(CcdpTaskRequest task, List<CcdpVMResource> resources)
    { 
-     return CcdpVMResource.leastUsed(resources);
+     CcdpVMResource leastUsed = CcdpVMResource.leastUsed(resources);
+     
+     if(leastUsed == null || ((leastUsed.getCPULoad()*100) >= CcdpUtils.getIntegerProperty("taskContrIntf.allocate.avg.load.cpu"))) {
+       for( CcdpVMResource res : resources )
+       {
+         if(ResourceStatus.LAUNCHED.equals(res.getStatus())) {
+           return res;
+          
+         }
+       }
+     }
+     return leastUsed;
 
    }
 

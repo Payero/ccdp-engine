@@ -90,9 +90,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
    * The time to wait depending on which controller class is being run
    */
   protected static double  WAIT_TIME_LAUNCH_VM = 90.0;
-  
+
   protected static double  WAIT_TIME_SEND_TASK = 10.0;
-    
+
   @BeforeClass
   public static void initialization() {
     //load the config file before every test case
@@ -101,7 +101,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
   @Before
   public  void setUpTest()
   {
-  //making sure the name of the controller and storage are set
+    //making sure the name of the controller and storage are set
     assertNotNull("The name of thecontroller class shoud not be null",
         CcdpMainApplicationTests.CcdpVMcontroller);
     assertNotNull("The name of the storage class shoud not be null",
@@ -129,14 +129,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //setting the controller and storage properties to the appropriate name
     CcdpUtils.setProperty("resource.intf.classname", CcdpMainApplicationTests.CcdpVMcontroller);
     CcdpUtils.setProperty("storage.intf.classname", CcdpMainApplicationTests.CcdpVMStorageController);
-    
+
     //setting the free vm to 0 
     CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "0");
     CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "0");
     CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "0");
-    
+
     System.out.println("\n ***************************************************************************** \n");
-    
+
   }
 
   /**
@@ -148,7 +148,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
   public void ZeroFreeVMTest()
   {
     this.logger.info("Running ZeroFreeVMTest");
-    
+
     ccdpEngine= new CcdpMainApplication(null);
     assertNotNull("The application should not be null", ccdpEngine);
     //waiting for the engine to get settle and launch vms if need
@@ -176,7 +176,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the engine to get settle and launch vms if need
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-    
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
     for(String sid : resources.keySet()){
       int numberOfVM = resources.get(sid).size();
@@ -189,14 +189,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     waitForResourUpdate("DEFAULT",0);
     String vmStatus = resources.get("DEFAULT").get(0).getStatus().toString();
     assertEquals("RUNNING",vmStatus);
-     
+
   }
   /**
    * Testing the checkFreeVMRequirements() function
    * Making sure there is only one vm running and is of session EC2
    */
   @Ignore
-  @Test(timeout=120000)//test fails if it takes longer than 2 min
+  @Test (timeout=120000)//test fails if it takes longer than 2 min
   public void OneFreeVMforEC2()
   {
     this.logger.info("Running OneFreeVMforEC2");
@@ -206,7 +206,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the engine to get settle and launch vms if need
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-    
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
     for(String sid : resources.keySet()){
       int numberOfVM = resources.get(sid).size();
@@ -235,7 +235,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the engine to get settle and launch vms if need
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-    
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
     for(String sid : resources.keySet()){
       int numberOfVM = resources.get(sid).size();
@@ -245,12 +245,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
         assertEquals(0,numberOfVM);
       }
     }
-    
+
     waitForResourUpdate("NIFI",0);
     String vmStatus = resources.get("NIFI").get(0).getStatus().toString();
     assertEquals("RUNNING",vmStatus);
   }
-  
+
   /**
    * Testing that the engine launches free VMs when needed based on the config file
    * and that it terminate VMs when it has extra. 
@@ -273,26 +273,26 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     waitForResourUpdate("EC2",0);
     waitForResourUpdate("NIFI",0);
     waitForResourUpdate("DEFAULT",0);
-    
+
     CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "0");
     CcdpUtils.pause(pauseTime + 10);
     assertEquals(0,resources.get("DEFAULT").size());
     assertEquals(1,resources.get("EC2").size());
     assertEquals(1,resources.get("NIFI").size());
-    
+
     CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "0");
     CcdpUtils.pause(pauseTime + 10);
     assertEquals(0,resources.get("DEFAULT").size());
     assertEquals(1,resources.get("EC2").size());
     assertEquals(0,resources.get("NIFI").size());
-    
+
     CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "0");
     CcdpUtils.pause(pauseTime + 10);
     assertEquals(0,resources.get("DEFAULT").size());
     assertEquals(0,resources.get("EC2").size());
     assertEquals(0,resources.get("NIFI").size());
   }
-  
+
   /**
    * Test  removeUnresponsiveResources() function
    * test that when a single resource stops updating
@@ -307,7 +307,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     ObjectNode res_ctr_node =
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
     this.controller = factory.getCcdpResourceController(res_ctr_node);
-    
+
     CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
     CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
     imgCfg.setMinReq(1);
@@ -323,21 +323,21 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the onEvent function to be called 
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-  
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
     List<CcdpVMResource> vms = resources.get("DEFAULT");
     int numberOfVM = vms.size();
     assertEquals(1,numberOfVM);
-    
+
     assertEquals(InstanceID, vms.get(0).getInstanceId());
-   
+
     //Manually shutting down vm to test the removeUnresponsiveVM function
     List<String> vmList = new ArrayList<>();
     vmList.add(InstanceID);
     ShutdownMessage shutdownMsg = new ShutdownMessage();
     this.connection.sendCcdpMessage(InstanceID, shutdownMsg);
     this.controller.terminateInstances(vmList);
-    
+
     //wait for the onEvent function to be called and the new vm if need to be started
     pauseTime = ccdpEngine.getTimerPeriod()/1000 + 25;
     CcdpUtils.pause( pauseTime );
@@ -351,7 +351,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //new vm was launched
     assertNotEquals(InstanceID, newInstance);
   }
-  
+
   /**
    * Test  removeUnresponsiveResources() function
    * test that when multiple resource stops updating
@@ -361,46 +361,46 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
   @Ignore
   @Test
   public void TestRemoveMultipleUnresponsiceVM() {
-  CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-  CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
-  CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
-  ccdpEngine= new CcdpMainApplication(null);
-  //waiting for the onEvent function to be called 
-  double pauseTime = ccdpEngine.getTimerDelay()/1000;
-  CcdpUtils.pause(pauseTime + 10);
-  Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-  assertEquals(1,resources.get("DEFAULT").size());
-  assertEquals(1,resources.get("EC2").size());
-  assertEquals(1,resources.get("NIFI").size());
-  waitForResourUpdate("EC2",0);
-  waitForResourUpdate("NIFI",0);
-  waitForResourUpdate("DEFAULT",0);
-  
-  String defaultVMID = resources.get("DEFAULT").get(0).getInstanceId();
-  String ec2VMID = resources.get("EC2").get(0).getInstanceId();
-  String nifiVMID = resources.get("NIFI").get(0).getInstanceId();
-  
-  ShutdownMessage shutdownMsg = new ShutdownMessage();
-  this.connection.sendCcdpMessage(defaultVMID, shutdownMsg);
-  this.connection.sendCcdpMessage(ec2VMID, shutdownMsg);
-  this.connection.sendCcdpMessage(nifiVMID, shutdownMsg);
-  //waiting for the onEvent function to be called 
-  CcdpUtils.pause(pauseTime + 25);
-  
-  assertEquals(1,resources.get("DEFAULT").size());
-  assertEquals(1,resources.get("EC2").size());
-  assertEquals(1,resources.get("NIFI").size());
-  
-  waitForResourUpdate("EC2",0);
-  waitForResourUpdate("NIFI",0);
-  waitForResourUpdate("DEFAULT",0);
-  
-  assertNotEquals(defaultVMID,resources.get("DEFAULT").get(0).getInstanceId());
-  assertNotEquals(ec2VMID , resources.get("EC2").get(0).getInstanceId());
-  assertNotEquals(nifiVMID , resources.get("NIFI").get(0).getInstanceId());
-  
+    CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
+    CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
+    CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+    ccdpEngine= new CcdpMainApplication(null);
+    //waiting for the onEvent function to be called 
+    double pauseTime = ccdpEngine.getTimerDelay()/1000;
+    CcdpUtils.pause(pauseTime + 10);
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    assertEquals(1,resources.get("DEFAULT").size());
+    assertEquals(1,resources.get("EC2").size());
+    assertEquals(1,resources.get("NIFI").size());
+    waitForResourUpdate("EC2",0);
+    waitForResourUpdate("NIFI",0);
+    waitForResourUpdate("DEFAULT",0);
+
+    String defaultVMID = resources.get("DEFAULT").get(0).getInstanceId();
+    String ec2VMID = resources.get("EC2").get(0).getInstanceId();
+    String nifiVMID = resources.get("NIFI").get(0).getInstanceId();
+
+    ShutdownMessage shutdownMsg = new ShutdownMessage();
+    this.connection.sendCcdpMessage(defaultVMID, shutdownMsg);
+    this.connection.sendCcdpMessage(ec2VMID, shutdownMsg);
+    this.connection.sendCcdpMessage(nifiVMID, shutdownMsg);
+    //waiting for the onEvent function to be called 
+    CcdpUtils.pause(pauseTime + 25);
+
+    assertEquals(1,resources.get("DEFAULT").size());
+    assertEquals(1,resources.get("EC2").size());
+    assertEquals(1,resources.get("NIFI").size());
+
+    waitForResourUpdate("EC2",0);
+    waitForResourUpdate("NIFI",0);
+    waitForResourUpdate("DEFAULT",0);
+
+    assertNotEquals(defaultVMID,resources.get("DEFAULT").get(0).getInstanceId());
+    assertNotEquals(ec2VMID , resources.get("EC2").get(0).getInstanceId());
+    assertNotEquals(nifiVMID , resources.get("NIFI").get(0).getInstanceId());
+
   }
-  
+
   /**
    * Test that the engine receives a task and assigns it to a vm
    */
@@ -423,7 +423,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
       Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
       int numberOfVM = resources.get("DEFAULT").size();
       assertEquals(1,numberOfVM);
-      
+
       List<String> cmd = new ArrayList<String>();
       cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
       cmd.add("-a");
@@ -435,7 +435,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
       //wait for the task to be launched and the new vm if need to be started
       pauseTime = ccdpEngine.getTimerPeriod()/1000 + 10;
       CcdpUtils.pause( pauseTime );
-      
+
       numberOfVM = resources.get("DEFAULT").size();
       assertEquals(1, numberOfVM);
       numberOfVM = resources.get("Test1").size();
@@ -451,23 +451,23 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
       //wait for resources to be updated
       pauseTime = ccdpEngine.getTimerPeriod()/1000 + 10;
       CcdpUtils.pause( pauseTime );
-      
+
       //after the task is completed there should not be any request left
       assertEquals(0, ccdpEngine.getRequests().size());
-      
+
 
     }catch(Exception e) {
       System.out.println(e);
     }
   }
-   /**
+  /**
    * Test That the engine runs multiple task in a single vm when needed
    * and that it only running one task on a vm when needed. 
    */
   @Ignore 
   @Test(timeout=180000)//test fails if it takes longer than 3 min
   public void RunningMultipleTaskRequest() {
-    
+
     CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
     CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
 
@@ -475,18 +475,18 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the onEvent function to be called 
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-  
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-    
+
     //making sure there are two VMs running based on the config properties
     assertEquals(1,resources.get("DEFAULT").size());
     assertEquals(1,resources.get("NIFI").size());
     String defaultVMid = resources.get("DEFAULT").get(0).getInstanceId();
     String nifiVMid = resources.get("NIFI").get(0).getInstanceId();
-    
+
     //making sure that the two running VMs are not equals
     assertNotEquals(defaultVMid, nifiVMid);
-    
+
     //test sending new tast 
     List<String> cmd = new ArrayList<String>();
     cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
@@ -506,7 +506,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //wait for the task to be launched and the new vm if need to be started
     pauseTime = ccdpEngine.getTimerPeriod()/1000 + 10;
     CcdpUtils.pause( pauseTime );
-    
+
     //making sure each session only has one vm 
     assertEquals(1,resources.get("DEFAULT").size());
     assertEquals(1,resources.get("Test1").size());
@@ -517,31 +517,31 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
       CcdpUtils.pause( pauseTime );
     }
     assertEquals(1,resources.get("NIFI").size());
-    
+
     //making sure that the tasks are running on the appropriate session and VM
     assertEquals(2,  resources.get("Test1").get(0).getTasks().size());
     assertEquals(1,  resources.get("Test-nifi").get(0).getTasks().size());
-    
-    
+
+
     String defaultVM = resources.get("DEFAULT").get(0).getInstanceId();
     String test1VM = resources.get("Test1").get(0).getInstanceId();
     String nifiTestVM = resources.get("Test-nifi").get(0).getInstanceId();
     String nifiVM = resources.get("NIFI").get(0).getInstanceId();
-    
+
     //making sure that task were assigned to the existent VMs base on the Node-type required
     assertEquals(defaultVMid, test1VM);
     assertEquals(nifiVMid, nifiTestVM);
-    
+
     //making sure every instance running on the different session are different
     assertNotEquals(defaultVM,test1VM);
     assertNotEquals(defaultVM,nifiTestVM);
     assertNotEquals(nifiVM,test1VM);
     assertNotEquals(nifiVM,nifiTestVM);
     assertNotEquals(nifiTestVM,test1VM);
-    
+
     //there has to be three different request running 
     assertEquals(3,ccdpEngine.getRequests().size());
-   
+
     waitForTaskStatus("RUNNING", nifiTask);
     assertEquals(CcdpTaskState.RUNNING, taskMap.get(nifiTask).getState());
     waitForTaskStatus("SUCCESSFUL", taskId1);
@@ -549,9 +549,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     waitForTaskStatus("SUCCESSFUL", taskId2);
     assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId2).getState());
     CcdpUtils.pause( 3 );
-  //there has to be only one request running since taskId1 and taskId2 where successfully completed
+    //there has to be only one request running since taskId1 and taskId2 where successfully completed
     assertEquals(1,ccdpEngine.getRequests().size());
-    
+
     //testing the killTask function
     //killing/stopping the nifi process running on the Test-nifi session
     KillTaskMessage killTask = new KillTaskMessage();
@@ -561,14 +561,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     task.setCommand(nifi_cmd);
     killTask.setTask(task);
     connection.sendCcdpMessage(this.mainChannel, killTask);
-    
+
     //waiting until nifi task is killed and there should not be any 
     //request left in the queue 
     int request_Left = ccdpEngine.getRequests().size();
     while(request_Left > 0) {
       request_Left = ccdpEngine.getRequests().size();
     }
-    
+
     CcdpUtils.pause( pauseTime );
     //making sure there are two VMs running based on the config properties
     assertEquals(1,resources.get("DEFAULT").size());
@@ -580,10 +580,72 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
    * Test the task allocation based on the NumberTasksComtrollerImpl
    * if the task's CPU not equals 100 the engine should not assign more than
    *  taskContrIntf.allocate.no.more.than task in one vm 
+   *  
+   *  Test sending multiple task for a single session session
+   */
+  
+  @Test
+  public void TaskAllocationBasedOn_NumberTasksControllerImpl_1() {
+    CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
+    ccdpEngine= new CcdpMainApplication(null);
+    //waiting for the onEvent function to be called 
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
+    CcdpUtils.pause(pauseTime);
+
+    List<String> cmd = new ArrayList<String>();
+    cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testSignalTerm");
+    String taskId1 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(3);
+    
+    String taskId2 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(3);
+    
+    String taskId3 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(3);
+    
+    String taskId4 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(3);
+    
+    String taskId5 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(3);
+    
+    String taskId6 = sendTaskRequest("DEFAULT","Signal Term","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    CcdpUtils.pause(pauseTime);
+    
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    
+    assertEquals(4,resources.get("Test1").size());
+    
+    for (CcdpVMResource vm : resources.get("Test1")) {
+      boolean taskSize = vm.getTasks().size() == 2 || vm.getTasks().size()==0; 
+      assertTrue(taskSize);
+    }
+    
+   
+    CcdpUtils.pause(60);
+
+  }
+  
+  /**
+   * Test the task allocation based on the NumberTasksComtrollerImpl
+   * if the task's CPU not equals 100 the engine should not assign more than
+   *  taskContrIntf.allocate.no.more.than task in one vm 
+   *  
+   *  Test sending task to multiple sessions
    */
   @Ignore
   @Test
-  public void TaskAllocationBasedOn_NumberTasksControllerImpl() {
+  public void TaskAllocationBasedOn_NumberTasksControllerImpl_2() {
     CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
     CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
     CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
@@ -591,110 +653,338 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     //waiting for the onEvent function to be called 
     double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
     CcdpUtils.pause(pauseTime);
-  
-    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-   //making sure there are two VMs running based on the config properties
-    assertEquals(1,resources.get("DEFAULT").size());
-    
-    waitForResourUpdate("DEFAULT",0);
-    
+
     List<String> cmd = new ArrayList<String>();
     cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
     cmd.add("-a");
-    cmd.add("testCpuUsage");
-    cmd.add( "-p");
-    cmd.add("120");
-    String taskId1 = sendTaskRequest("NIFI","Test CPU","Test1",
+    cmd.add("testSignalTerm");
+    String taskId1 = sendTaskRequest("DEFAULT","Signal Term","Group1",
         testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
     
-    CcdpUtils.pause(30);
-    
-    String taskId2 = sendTaskRequest("NIFI","Test CPU","Test1",
+    String taskId2 = sendTaskRequest("DEFAULT","Signal Term","Group1",
         testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    String taskId3 = sendTaskRequest("DEFAULT","Signal Term","Group2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    String taskId4 = sendTaskRequest("DEFAULT","Signal Term","Group3",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    
+    CcdpUtils.pause(pauseTime);
+    
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    
+    assertEquals(2,resources.get("Group1").size());
+    assertEquals(1,resources.get("Group2").size());
+    assertEquals(1,resources.get("Group3").size());
+    
+    for (CcdpVMResource vm : resources.get("Group1")) {
+      boolean taskSize = vm.getTasks().size() == 2 || vm.getTasks().size()==0; 
+      assertTrue("The number of task in the vm must be 2 or 0 ", taskSize);
+    }
+    
+    assertTrue(resources.get("Group2").get(0).getTasks().size() ==1);
+    assertTrue(resources.get("Group3").get(0).getTasks().size() ==1);
+    
+    CcdpUtils.pause(60);
 
-    //waiting until nifi task is killed and there should not be any 
+  }
+  
+  /**
+   * Test the task allocation based on the NumberTasksComtrollerImpl
+   * if the task's CPU not equals 100 the engine should not assign more than
+   *  taskContrIntf.allocate.no.more.than task in one vm 
+   *  
+   *  Test sending task to multiple sessions and making sure task returns successfully
+   */
+  
+  @Test
+  public void TaskAllocationBasedOn_NumberTasksControllerImpl_3() {
+    CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
+    ccdpEngine= new CcdpMainApplication(null);
+    //waiting for the onEvent function to be called 
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
+    CcdpUtils.pause(pauseTime);
+
+    List<String> cmd = new ArrayList<String>();
+    cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testRandomTime");
+    cmd.add( "-p");
+    cmd.add("min=10,max=20");
+    String taskId1 = sendTaskRequest("DEFAULT","Signal Term","Group1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    String taskId2 = sendTaskRequest("DEFAULT","Signal Term","Group1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    String taskId3 = sendTaskRequest("DEFAULT","Signal Term","Group1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    CcdpUtils.pause(5);
+    
+    String taskId4 = sendTaskRequest("DEFAULT","Signal Term","Group2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    CcdpUtils.pause(5);
+    
+    String taskId5 = sendTaskRequest("DEFAULT","Signal Term","Group3",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    CcdpUtils.pause(pauseTime);
+    
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    
+    assertEquals(2,resources.get("Group1").size());
+    assertEquals(1,resources.get("Group2").size());
+    assertEquals(1,resources.get("Group3").size());
+    
+    for (CcdpVMResource vm : resources.get("Group1")) {
+      boolean taskSize = vm.getTasks().size() == 2 || vm.getTasks().size()==1; 
+      assertTrue("The number of task in the vm must be 2 or 0 ", taskSize);
+    }
+    
+    assertTrue(resources.get("Group2").get(0).getTasks().size() ==1);
+    assertTrue(resources.get("Group3").get(0).getTasks().size() ==1);
+    
+  //waiting until nifi task is killed and there should not be any 
     //request left in the queue 
     int request_Left = ccdpEngine.getRequests().size();
     while(request_Left > 0) {
       request_Left = ccdpEngine.getRequests().size();
     }
     
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId1).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId2).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId3).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId4).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId5).getState());
+    
     CcdpUtils.pause(pauseTime);
     
+    assertEquals(0,resources.get("Group1").size());
+    assertEquals(0,resources.get("Group2").size());
+    assertEquals(0,resources.get("Group3").size());
   }
   /**
    * Test the task allocation based on the AvgLoadControllerImpl
+   * Test sending one task at different time
    * if the task's the CPU not equals 100 the engine should not assign more task to a vm
    * if the mem usage greater or equals taskContrIntf.allocate.avg.load.mem or the 
    * cpuLoad usage greater or equals askContrIntf.allocate.avg.load.cpu
    * 
    */
-  
+  @Ignore
   @Test 
-  public void TaskAllocationBasedOn_AvgLoadControllerImpl() {
-    CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+  public void TaskAllocationBasedOn_AvgLoadControllerImpl_1() {
+    CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
     CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
     CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.cpu","75");
     CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.mem","15");
-    
+
     ccdpEngine= new CcdpMainApplication(null);
     //waiting for the onEvent function to be called 
-    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 10;
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 15;
     CcdpUtils.pause(pauseTime);
-  
+
     Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-   //making sure there are two VMs running based on the config properties
-    assertEquals(1,resources.get("NIFI").size());
-    
-    waitForResourUpdate("NIFI",0);
-    
+    //making sure there are two VMs running based on the config properties
+    assertEquals(1,resources.get("EC2").size());
+
+    waitForResourUpdate("EC2",0);
+
     List<String> cmd = new ArrayList<String>();
     cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
     cmd.add("-a");
     cmd.add("testCpuUsage");
     cmd.add( "-p");
-    cmd.add("90");
-    String taskId1 = sendTaskRequest("NIFI","Test CPU 1","Test1",
+    cmd.add("130");
+    String taskId1 = sendTaskRequest("EC2","Test CPU 1","Test1",
         testChannel, 0.0, cmd,null, this.mainChannel);
     
-    CcdpUtils.pause(25);
+    waitForTaskStatus("RUNNING", taskId1);
+    CcdpUtils.pause(pauseTime);
+    
     //because the task sent make the CPU go to 100% the AvgLoad controller
-    //should allocate a new vm to this session
-    assertEquals(2,resources.get("Test1").size() );
-    assertEquals(1,resources.get("NIFI").size());
-    
+    //should allocate a new vm to this session to keep the average cpu and mem low
+    assertTrue(resources.get("Test1").size()>=2);
+    assertEquals(1,resources.get("EC2").size());
+
     cmd.remove(4);
-    cmd.add("50");
-    String taskId2 = sendTaskRequest("NIFI","Test CPU 2","Test1",
+    cmd.add("80");
+    String taskId2 = sendTaskRequest("EC2","Test CPU 2","Test1",
         testChannel, 0.0, cmd,null, this.mainChannel);
-    
-    CcdpUtils.pause(30);
+
+    waitForTaskStatus("RUNNING", taskId2);
+    CcdpUtils.pause(pauseTime);
     
     //because the two tasks sent make the CPU go to 100% the AvgLoad controller
-    //should allocate a new vm to this session
-    assertEquals(3,resources.get("Test1").size() );
-    assertEquals(1,resources.get("NIFI").size());
-    
+    //should allocate a new vm to this session to keep the average cpu and mem low
+    assertTrue(resources.get("Test1").size()>=3);
+    assertEquals(1,resources.get("EC2").size());
+
     cmd.remove(4);
     cmd.add("30");
-    String taskId3 = sendTaskRequest("NIFI","Test CPU 3","Test1",
+    String taskId3 = sendTaskRequest("EC2","Test CPU 3","Test1",
         testChannel, 0.0, cmd,null, this.mainChannel);
-    
-    CcdpUtils.pause(25);
+
+    waitForTaskStatus("RUNNING", taskId3);
+    CcdpUtils.pause(pauseTime + 10);
     //because the three tasks sent make the CPU go to 100% the AvgLoad controller
-    //should allocate a new vm to this session
-    assertEquals(4,resources.get("Test1").size() );
-    assertEquals(1,resources.get("NIFI").size());
-    
-    //waiting until nifi task is killed and there should not be any 
-    //request left in the queue 
+    //should allocate a new vm to this session to keep the average cpu and mem low
+    assertTrue(resources.get("Test1").size()>=4);
+    assertEquals(1,resources.get("EC2").size());
+
+    //waiting until there no request left in the queue
+   
     int request_Left = ccdpEngine.getRequests().size();
     while(request_Left > 0) {
       request_Left = ccdpEngine.getRequests().size();
     }
     
-    CcdpUtils.pause(pauseTime);
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId1).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId2).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId3).getState());
+    waitForResourUpdate("EC2",0);
+
+  }
+
+  /**
+   * Test the task allocation based on the AvgLoadControllerImpl
+   * Test sending multiple task consecutively when there is only one VM available
+   * if the task's the CPU not equals 100 the engine should not assign more task to a vm
+   * if the mem usage greater or equals taskContrIntf.allocate.avg.load.mem or the 
+   * cpuLoad usage greater or equals askContrIntf.allocate.avg.load.cpu
+   * 
+   * Since task take time to launche all task will be assigned to the single vm
+   */
+  
+  @Test 
+  public void TaskAllocationBasedOn_AvgLoadControllerImpl_2() {
+    CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
+    CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
+    CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.cpu","75");
+    CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.mem","15");
+
+    ccdpEngine= new CcdpMainApplication(null);
     
+    //waiting for the onEvent function to be called 
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 15;
+    CcdpUtils.pause(pauseTime);
+
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    //making sure there are two VMs running based on the config properties
+    assertEquals(1,resources.get("EC2").size());
+
+    List<String> cmd = new ArrayList<String>();
+    cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testCpuUsage");
+    cmd.add( "-p");
+    cmd.add("60");
+    String taskId1 = sendTaskRequest("EC2","Test CPU 1","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+   
+    String taskId2 = sendTaskRequest("EC2","Test CPU 2","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+
+    String taskId3 = sendTaskRequest("EC2","Test CPU 3","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId4 = sendTaskRequest("EC2","Test CPU 4","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId5 = sendTaskRequest("EC2","Test CPU 5","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId6 = sendTaskRequest("EC2","Test CPU 6","Test1",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    CcdpUtils.pause(pauseTime);
+    assertTrue(resources.get("Test1").size()>=2);
+    
+  //waiting until there no request left in the queue
+    int request_Left = ccdpEngine.getRequests().size();
+    while(request_Left > 0) {
+      request_Left = ccdpEngine.getRequests().size();
+    }
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId1).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId2).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId3).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId4).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId5).getState());
+    assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId6).getState());
+    waitForResourUpdate("EC2",0);
+    assertEquals(1,resources.get("EC2").size());
+    assertEquals(0,resources.get("Test1").size());
+
+  }
+  
+  /**
+   * Test the task allocation based on the AvgLoadControllerImpl
+   * Test sending multiple task consecutively when there are multiple VMs available
+   * if the task's the CPU not equals 100 the engine should not assign more task to a vm
+   * if the mem usage greater or equals taskContrIntf.allocate.avg.load.mem or the 
+   * cpuLoad usage greater or equals askContrIntf.allocate.avg.load.cpu
+   * 
+   * task could be assigned to a single VM or distributed between other VMs
+   */
+  @Ignore
+  @Test 
+  public void TaskAllocationBasedOn_AvgLoadControllerImpl_3() {
+    CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "4");
+    CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
+    CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.cpu","75");
+    CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.mem","15");
+
+    ccdpEngine= new CcdpMainApplication(null);
+    
+    //waiting for the onEvent function to be called 
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + 15;
+    CcdpUtils.pause(pauseTime);
+
+    Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    //making sure there are two VMs running based on the config properties
+    assertEquals(4,resources.get("EC2").size());
+
+    List<String> cmd = new ArrayList<String>();
+    cmd.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testCpuUsage");
+    cmd.add( "-p");
+    cmd.add("60");
+    String taskId1 = sendTaskRequest("EC2","Test CPU 1","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+   
+    String taskId2 = sendTaskRequest("EC2","Test CPU 2","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+
+    String taskId3 = sendTaskRequest("EC2","Test CPU 3","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId4 = sendTaskRequest("EC2","Test CPU 4","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId5 = sendTaskRequest("EC2","Test CPU 5","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+    String taskId6 = sendTaskRequest("EC2","Test CPU 6","EC2",
+        testChannel, 0.0, cmd,null, this.mainChannel);
+    
+  //waiting until there no request left in the queue
+    int request_Left = ccdpEngine.getRequests().size();
+    while(request_Left > 0) {
+      request_Left = ccdpEngine.getRequests().size();
+    }
+    CcdpUtils.pause(pauseTime);
+
   }
   
   /**
@@ -739,9 +1029,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
    */
   private void waitForResourUpdate(String sid, int index) {
     boolean stateUpdated = false;
-    
+
     while(!stateUpdated) {
-      
+
       if(!ResourceStatus.LAUNCHED.equals(
           ccdpEngine.getResources().get(sid).get(index).getStatus())) 
       {
@@ -750,18 +1040,18 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     }
   }
   /**
-  * Functions used to wait until the specified status of the task 
-  * has been set/obtained
-  * @param status the desired tasks status that we need to wait for
-  * @param taskId the id of the task we want to wait for the status
-  **/
+   * Functions used to wait until the specified status of the task 
+   * has been set/obtained
+   * @param status the desired tasks status that we need to wait for
+   * @param taskId the id of the task we want to wait for the status
+   **/
   private void waitForTaskStatus(String status, String taskId){
     boolean foundStatus = false;
     while(!foundStatus){
-       String state = taskMap.get(taskId).getState().toString();
-       if(state.equals(status)){
-         foundStatus = true;
-       }
+      String state = taskMap.get(taskId).getState().toString();
+      if(state.equals(status)){
+        foundStatus = true;
+      }
     }
   }
   @Override

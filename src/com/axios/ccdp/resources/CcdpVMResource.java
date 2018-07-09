@@ -969,7 +969,7 @@ public class CcdpVMResource implements Serializable
     for( CcdpVMResource res : resources )
     {
       // consider only launched and running VMs
-      if( onlyRunning && (!ResourceStatus.RUNNING.equals(res.getStatus()) && !ResourceStatus.LAUNCHED.equals(res.getStatus())))
+      if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()))
         continue;
     
       // if is just the first one, then just set it as the least one

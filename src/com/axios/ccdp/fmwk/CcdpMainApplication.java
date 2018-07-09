@@ -289,27 +289,37 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     List<String> terminate = new ArrayList<>();
     ShutdownMessage shutdownMsg = new ShutdownMessage();
     if(terminateInstances == true) {
-      for(String sid : resources.keySet()){
-        List<CcdpVMResource> vms = resources.get(sid);
-        for(CcdpVMResource curVm : vms)
-        {
-          String id = curVm.getInstanceId();
-          if( !this.skipTermination.contains(id) )
+      synchronized( this.resources )
+      {
+        for(String sid : resources.keySet()){
+          List<CcdpVMResource> vms = this.resources.get(sid);
+          
+          for(CcdpVMResource curVm : vms)
           {
-            curVm.setStatus(ResourceStatus.SHUTTING_DOWN);
-            terminate.add(id);
-            this.connection.sendCcdpMessage(id, shutdownMsg);
+            String id = curVm.getInstanceId();
+            //can only terminate running vms
+            //launched vms cause exceptions 
+            if( ResourceStatus.RUNNING.equals( curVm.getStatus() ))
+            {
+
+              if( !this.skipTermination.contains(id) )
+              {
+                curVm.setStatus(ResourceStatus.SHUTTING_DOWN);
+                terminate.add(id);
+                this.connection.sendCcdpMessage(id, shutdownMsg);
+              }
+            }
           }
+
         }
       }
     }
     if(terminate.size() > 0) {
       terminateInstances(terminate);
-    
+
     }
     this.connection.disconnect();
-   
-    
+
   }
 
   /**
@@ -366,7 +376,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public void onEvent()
   {
-    this.logger.trace("Checking Resources");
+    this.logger.info("Checking Resources");
     synchronized( this.resources )
     {
       this.checkFreeVMRequirements();
@@ -1099,9 +1109,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             // Check available resources or create a new one.
             if (fail)
             {
-              CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
-              //imgCfg.setSessionId( task.getSessionId() );
-              list = this.allocateResource(imgCfg,task.getSessionId() ); //updated list
+              CcdpImageInfo imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+              imgCfg.setSessionId( task.getSessionId() );
+              list = this.allocateResource(imgCfg); //updated list
               this.logger.debug("The size of the list after allocating Resources is " + list.size());
               //get the new resource we created
               for( CcdpVMResource vm : list )
@@ -1295,8 +1305,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               if( free.isEmpty() )
               {
                 this.logger.info("No VMs Available, launching one " + type);
-                CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
-
+                CcdpImageInfo imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+                imgCfg.setSessionId(sid);
                 resources = this.startInstances(imgCfg);
 
               }// end of no free resource
@@ -1411,8 +1421,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     CcdpImageInfo imgCfg = this.tasker.allocateResources(listByNode);
     if ( imgCfg != null  )
     {
-      //imgCfg.setSessionId(sid);
-      list = this.allocateResource(imgCfg, sid);
+      imgCfg.setSessionId(sid);
+      list = this.allocateResource(imgCfg);
     }
     this.logger.info("Returning a list of resources size " + list.size());
     // Getting all the resources for this session
@@ -1436,8 +1446,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         for( CcdpNodeType type : CcdpNodeType.values() )
         {
           String typeStr = type.toString();
-
-          CcdpImageInfo imgCfg = CcdpUtils.getImageInfo(type);
+          
+          CcdpImageInfo imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
           int free_vms = imgCfg.getMinReq();
 
           List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
@@ -1567,7 +1577,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     if( imgCfg != null )
     {
       imgCfg.setSessionId(sid);
-      this.allocateResource(imgCfg, sid);
+      this.allocateResource(imgCfg);
     }
   }
 
@@ -1578,9 +1588,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * @param req the request that needs resources
    * @return the updated list of resources assigned to the session
    */
-  private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg , String sid)
+  private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg)
   {
-    //String sid = imgCfg.getSessionId();
+    String sid = imgCfg.getSessionId();
     String typeStr = imgCfg.getNodeTypeAsString();
     this.logger.debug("the node type is " + typeStr );
     //Changing sid null to DEFAULT type
@@ -1802,7 +1812,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }// found a list of sessions
       else
       {
-        this.logger.info("Can't find session-id in resources, adding it");
+        this.logger.info("Can't find session-id " + sid +" in resources, adding it");
         this.resources.put(sid,  list);
       }
 

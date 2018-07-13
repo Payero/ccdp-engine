@@ -71,7 +71,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
   /**
    * Stores the name of the class used to interact with the cloud provider
    */
-  protected static String CcdpVMcontroller =   "com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl";
+  protected static String CcdpVMcontroller = "com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl";
 
   /**
    * Stores the name  name of the class used handle different storage solution
@@ -369,7 +369,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
    * Test that the engine receives a task and assigns it to a vm
    */
   
-  @Test (timeout=120000)//test fails if it takes longer than 2 min
+  @Test (timeout=180000)//test fails if it takes longer than 3 min
   public void handlingThreadRequest()
   {
     this.logger.info("Running handlingThreadRequest");
@@ -675,16 +675,17 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     assertTrue(resources.get("Group2").get(0).getTasks().size() ==1);
     assertTrue(resources.get("Group3").get(0).getTasks().size() ==1);
 
-    //making sure the host for task in different session is not the same
-    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId3).getHostId());
-    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId4).getHostId());
-    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId5).getHostId());
-
+   
     //waiting until there are not request left in the queue 
     int request_Left = ccdpEngine.getRequests().size();
     while(request_Left > 0) {
       request_Left = ccdpEngine.getRequests().size();
     }
+
+    //making sure the host for task in different session is not the same
+    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId3).getHostId());
+    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId4).getHostId());
+    assertNotEquals(taskMap.get(taskId1).getHostId(),taskMap.get(taskId5).getHostId());
 
     assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId1).getState());
     assertEquals(CcdpTaskState.SUCCESSFUL, taskMap.get(taskId2).getState());

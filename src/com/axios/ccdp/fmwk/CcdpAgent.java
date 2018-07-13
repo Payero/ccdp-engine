@@ -146,6 +146,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
 //    this.me.setAssignedSession("available");
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
+    this.vmInfo.setCPU(100.0);
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 

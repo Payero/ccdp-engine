@@ -10,8 +10,8 @@ public class TestEngineWithAWSUnitTest extends CcdpMainApplicationTests
   {
     CcdpVMcontroller = "com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl";
     CcdpVMStorageController = "com.axios.ccdp.cloud.aws.AWSCcdpStorageControllerImpl";
-    WAIT_TIME_LAUNCH_VM = 80;
-    WAIT_TIME_SEND_TASK = 30;
+   
+   
   }
 
 }

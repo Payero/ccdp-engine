@@ -229,6 +229,8 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
        return null;
      }
      
+     boolean foundRunningVm = false;
+     
      for( CcdpVMResource resource : resources )
      {
        // if the VM is not running then do not assign task to it
@@ -257,8 +259,44 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
          this.logger.info("Enough resources for a new Job");
          offerCpus -= jobCpus;
          offerMem -= jobMem;
-         
+         foundRunningVm = true;
          return resource;
+       }
+     }
+     this.logger.debug("foundRunningVm= " + foundRunningVm);
+     //if we did not find a running resource lets check if we have launched resources
+     if(!foundRunningVm) {
+       for( CcdpVMResource resource : resources )
+       {
+         // if the VM is not Launched then do not assign task to it
+         ResourceStatus status = resource.getStatus();
+         if( !ResourceStatus.LAUNCHED.equals(status) )
+         {
+           String msg = "VM " + resource.getInstanceId() + 
+                        " not Launched " + status.toString(); 
+           this.logger.debug(msg);
+           continue;
+         }
+         
+         double offerCpus = resource.getCPU();
+         double offerMem = resource.getTotalMemory();
+         
+         String str = 
+         String.format("Offer CPUs: %f, Memory: %f", offerCpus, offerMem);
+         this.logger.debug(str);
+         
+         double jobCpus = task.getCPU();
+         double jobMem = task.getMEM();
+         this.logger.debug("Job Cpus: " + jobCpus + " Job Mem: " + jobMem);
+         // does the offer has more resources than needed?
+         if( jobCpus <= offerCpus && jobMem <= offerMem )
+         {
+           this.logger.info("Enough resources for a new Job");
+           offerCpus -= jobCpus;
+           offerMem -= jobMem;
+           foundRunningVm = true;
+           return resource;
+         }
        }
      }
       

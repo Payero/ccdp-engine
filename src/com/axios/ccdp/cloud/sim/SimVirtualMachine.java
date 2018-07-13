@@ -188,6 +188,7 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
+    this.vmInfo.setCPU(100.0);
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 

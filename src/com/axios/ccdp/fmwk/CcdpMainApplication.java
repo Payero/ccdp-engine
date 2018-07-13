@@ -299,8 +299,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             String id = curVm.getInstanceId();
             //can only terminate running vms
             //launched vms cause exceptions 
-            if( ResourceStatus.RUNNING.equals( curVm.getStatus() ))
-            {
+           // if( ResourceStatus.RUNNING.equals( curVm.getStatus() ))
+           // {
 
               if( !this.skipTermination.contains(id) )
               {
@@ -308,7 +308,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 terminate.add(id);
                 this.connection.sendCcdpMessage(id, shutdownMsg);
               }
-            }
+            //}
           }
 
         }
@@ -967,7 +967,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           // to default before the first HB was sent which made the status be
           // LAUNCHED
           res.setStatus(ResourceStatus.RUNNING);
-          this.changeSession(res, res.getNodeTypeAsString());
+          
+          if(!res.getAssignedSession().equals(res.getNodeTypeAsString()))
+            this.changeSession(res, res.getNodeTypeAsString());
         }
 
       }// for request loop
@@ -1084,8 +1086,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             for( CcdpVMResource vm : list )
             {
               // It has not been assigned yet and there is nothing running
-              this.logger.debug("The number of task in the vm is " + vm.getNumberTasks());
-              this.logger.debug("The vm is single tasked: " + vm.isSingleTasked());
+              
               if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
               {
                 String iid = vm.getInstanceId();
@@ -1098,10 +1099,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 {
                   fail = false;
                   this.sendTaskRequest(task, vm );
-                  continue;
+                  break;
                 }
                 else
                   this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
+              }
+              else {
+                this.logger.info("Resource had more task running");
               }
             }
 
@@ -1109,34 +1113,68 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             // Check available resources or create a new one.
             if (fail)
             {
-              CcdpImageInfo imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
-              imgCfg.setSessionId( task.getSessionId() );
-              list = this.allocateResource(imgCfg); //updated list
-              this.logger.debug("The size of the list after allocating Resources is " + list.size());
-              //get the new resource we created
-              for( CcdpVMResource vm : list )
-              {
-                this.logger.debug("The vm NodeType is " + vm.getNodeType() + "the task type is " + type);
-                // need to make sure we are running on the appropriate node
-                if( !vm.getNodeType().equals( type ) )
-                  continue;
-                // It has not been assigned yet and there is nothing running
-                this.logger.debug("The vm " + vm.getInstanceId() + "is running " + vm.getNumberTasks() + "taks and is single tasked =  " + vm.isSingleTasked());
-                if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+              if(task.getSessionId().equals(task.getNodeTypeAsString())) {
+                this.logger.debug("Could not find a free vm. Need to Launch a new one");
+                // Getting a copy rather than the actual configured object so I can
+                // modify it without affecting the initial configuration
+                CcdpImageInfo imgInfo =
+                    CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+                imgInfo.setSessionId(task.getSessionId());
+                imgInfo.setMinReq(1);
+                imgInfo.setMaxReq(1);
+                List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
+                for( CcdpVMResource vm : secondlist )
                 {
-                  String iid = vm.getInstanceId();
-                  vm.setSingleTask(tid);
-                  task.setHostId( iid );
-                  this.logger.debug("The task HostID was set to " + task.getHostId());
-                  if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
-                      vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                  // It has not been assigned yet and there is nothing running
+                  
+                  if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
                   {
-                    this.logger.info("Successfully assigned VM: " + iid + " to Task: " + task.getTaskId());
-                    this.sendTaskRequest(task, vm );
-                    continue;
+                    String iid = vm.getInstanceId();
+                    vm.setSingleTask(tid);
+                    vm.setAssignedSession(task.getSessionId());
+                    task.setHostId( iid );
+                    this.logger.debug("The task HostID was set to " + task.getHostId());
+                    if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                        vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                    {
+                      this.sendTaskRequest(task, vm );
+                      break;
+                    }
+                    else
+                      this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
                   }
-                }
-              }// end of for loop iteration
+                } 
+              }
+              else {
+                CcdpImageInfo imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+                imgCfg.setSessionId( task.getSessionId() );
+                list = this.allocateResource(imgCfg); //updated list
+                this.logger.debug("The size of the list after allocating Resources is " + list.size());
+                //get the new resource we created
+                for( CcdpVMResource vm : list )
+                {
+                  this.logger.debug("The vm NodeType is " + vm.getNodeType() + "the task type is " + type);
+                  // need to make sure we are running on the appropriate node
+                  if( !vm.getNodeType().equals( type ) )
+                    continue;
+                  // It has not been assigned yet and there is nothing running
+                  this.logger.debug("The vm " + vm.getInstanceId() + "is running " + vm.getNumberTasks() + "taks and is single tasked =  " + vm.isSingleTasked());
+                  if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+                  {
+                    String iid = vm.getInstanceId();
+                    vm.setSingleTask(tid);
+                    task.setHostId( iid );
+                    this.logger.debug("The task HostID was set to " + task.getHostId());
+                    if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                        vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                    {
+                      this.logger.info("Successfully assigned VM: " + iid + " to Task: " + task.getTaskId());
+                      this.sendTaskRequest(task, vm );
+                      continue;
+                    }
+                  }
+                }// end of for loop iteration 
+              }
             }// if we couldn't find a resource
           }// the CPU is >= 100
         }// for each task
@@ -1675,6 +1713,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       resource.setAssignedSession(sid);
       resource.setNodeType(typeStr);
       resource.setCPU(100.0);
+      resource.setTotalMemory(512);
       this.connection.registerProducer(resource.getInstanceId());
 
       // assign the session
@@ -1773,9 +1812,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.logger.trace("Number of assigned resources " + assigned.size());
         for( CcdpVMResource res : assigned )
         {
-          //Updates the status if the resource (from pending to running)
+          //Updates the status of the resource (from pending to running)
           String iid = res.getInstanceId();
           if( !iid.startsWith( CcdpMainApplication.VM_TEST_PREFIX ) ) {
+            
             ResourceStatus vm_state = this.controller.getInstanceState( iid );
             //Only set the state if the instance is shutting down otherwise let the state
             //to be update when heartbeats arrive  

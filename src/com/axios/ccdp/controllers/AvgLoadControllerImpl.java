@@ -365,11 +365,28 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    { 
      CcdpVMResource leastUsed = CcdpVMResource.leastUsed(resources);
      
-     if(leastUsed == null || ((leastUsed.getCPULoad()*100) >= CcdpUtils.getIntegerProperty("taskContrIntf.allocate.avg.load.cpu"))) {
+     if(leastUsed ==null || ((leastUsed.getCPULoad()*100) >= CcdpUtils.getIntegerProperty("taskContrIntf.allocate.avg.load.cpu"))) {
+       boolean first = true;
+       
+       //this is because sometime when the vm just stater running there is a 
+       //spike in the cpu load but there are not task running.
+       if(leastUsed !=null && leastUsed.getTasks().size() == 0)
+         return leastUsed;
+       
+       leastUsed = null;
        for( CcdpVMResource res : resources )
        {
          if(ResourceStatus.LAUNCHED.equals(res.getStatus())) {
-           return res;
+           if( first )
+           {
+             leastUsed = res;
+             first = false;
+             continue;
+           }
+           //if the vm are in launch state all we can do is try to allocate task to the vms with less task
+           if( res.getNumberTasks() < leastUsed.getNumberTasks() )
+             leastUsed = res;
+           
           
          }
        }

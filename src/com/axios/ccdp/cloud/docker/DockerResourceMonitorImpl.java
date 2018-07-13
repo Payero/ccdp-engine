@@ -619,6 +619,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     return -1;
   }
   
+  
   public double getUserCpuPercent( )
   {
     try
@@ -631,6 +632,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     }
     return -1;
   }
+  
   
   public double getCpuPercent( boolean isUser  ) 
                               throws InterruptedException, DockerException
@@ -658,7 +660,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     
     double cpuPercent = 0;
     if( delta > 0.0 && cpuDelta > 0.0 )
-      cpuPercent = ( cpuDelta / delta) * ( (double)currCpuUsage.percpuUsage().size() * 100.0 );
+      cpuPercent = ( cpuDelta / delta) * ( (double)currCpuUsage.percpuUsage().size() );
     
     // need to reset the previous stats
     this.prevStats = curr;

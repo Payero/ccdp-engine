@@ -51,42 +51,7 @@ class Test:
     self.set_node_type(agent_file, node_type)
 
 
-  def set_node_type(self, agent_file, node_type):
-    try:
-      src = os.path.join('/data/ccdp/', agent_file)
-      
-      if not os.path.isfile(src):
-        self.__logger.error("The file was not found")
-        return
 
-      self.__logger.info("modifying %s" % src)
-      base, ext = os.path.splitext(src)
-      prev_name = "%s.PREV" % base
-      os.rename(src, prev_name)
-      new_file = open(src, 'w')
-      pre_file = open(prev_name, 'r')
-      lines = pre_file.readlines()
-      n = len(lines)
-      i = 0
-      found_it = False
-
-      for line in lines:
-        i += 1
-        if line.find('CCDP_NODE_TYPE') >= 0:
-          self.__logger.debug("Modifying line: %s" % line)
-          line = "export CCDP_NODE_TYPE=%s\n" % node_type
-          found_it = True
-        
-        if i < n:
-          next_line = lines[i]
-          if not found_it and next_line.find('run_service.sh') >= 0:
-            self.__logger.debug("The Export statement was not there adding it")
-            new_file.write("export CCDP_NODE_TYPE=%s\n" % node_type)
-
-        new_file.write("%s" % line)
-      
-    except:
-      traceback.print_exc()
 
 """
   Runs the application by instantiating a new Test object and passing all the

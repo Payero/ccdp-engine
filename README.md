@@ -14,7 +14,7 @@ processing thread is a sequence of processing modules used to generate some
 results.  The framework provides a way to allow communications between the 
 modules
 
-  
+   
 ### Minimum Requirements:
 
 - Java SDK 8

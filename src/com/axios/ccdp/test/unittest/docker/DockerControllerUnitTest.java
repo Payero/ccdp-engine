@@ -689,13 +689,22 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       for( Container c : ids )
       {
         String id = c.id();
-        logger.debug("Removing Container" + id);
-        dockerClient.removeContainer(id);
+        try
+        {
+          logger.debug("Removing Container" + id);
+          dockerClient.removeContainer(id);          
+        }
+        catch (Exception e)
+        {
+          logger.info("Could not remove " + id);
+          continue;
+        }
+
       }
     }
     catch( Exception e )
     {
-      logger.info("Could not remove all containers");
+      logger.info("Could not get a list of the containers");
     }
     
   }

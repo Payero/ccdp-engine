@@ -138,7 +138,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     double mem = alloc.get("mem").asDouble();
     int tasks = alloc.get("max-tasks").asInt();
     int sz = resources.size();
-    this.logger.trace("Allocating Resources based on " + sz + " VMs");
+    this.logger.info("Allocating Resources based on " + sz + " VMs");
     double[] assignedCPU = new double[sz];
     double[] assignedMEM = new double[sz];
     double[] availableCPU = new double[sz];
@@ -436,6 +436,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
      {
        assignedTotal += assignedDbls[i];
      }
+     logger.debug("The total assigned cpu is " + assignedTotal);
      double avgUsed = assignedTotal / sz;
      
      return avgUsed;

@@ -145,6 +145,13 @@
     </antcall>
   </target>
 	
+  	<!-- Runs all the unit tests to test Engine with Docker-->
+	<target name="TestEngineWithDocker" depends="test-compile">
+	  <antcall target="junit.testing">
+	    <param name="test.pattern" value="TestEngineWithDockerUnitTest" />
+	  </antcall>
+    </target>
+	
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">
     <junit printsummary="yes" haltonfailure="no" fork="true">

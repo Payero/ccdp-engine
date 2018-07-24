@@ -352,10 +352,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
+		
 		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-		assertEquals(1,resources.get("DEFAULT").size());
+		
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(1,resources.get("NIFI").size());
+		assertEquals(1,resources.get("DEFAULT").size());
 		waitUntilVMisRunning("EC2");
 		waitUntilVMisRunning("NIFI");
 		waitUntilVMisRunning("DEFAULT");
@@ -371,12 +373,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		//waiting for the onEvent function to be called 
 		//waiting for the onEvent function to be called
 		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
-		CcdpUtils.pause(2 * pauseTime);
+		CcdpUtils.pause(3*pauseTime);
 
-		assertEquals(1,resources.get("DEFAULT").size());
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(1,resources.get("NIFI").size());
-
+		assertEquals(1,resources.get("DEFAULT").size());
 		waitUntilVMisRunning("EC2");
 		waitUntilVMisRunning("NIFI");
 		waitUntilVMisRunning("DEFAULT");
@@ -446,7 +447,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 * Test That the engine runs multiple task in a single vm when needed
 	 * and that it only running one task on a vm when needed. 
 	 */
-	@Ignore
+
 	@Test(timeout=180000)//test fails if it takes longer than 3 min
 	public void RunningMultipleTaskRequest() {
 		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
@@ -488,12 +489,13 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 				testChannel, 100.0, nifi_cmd, "Starts NiFi Application", this.mainChannel);
 		//wait for the task to be launched and the new vm if need to be started
 		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
-		CcdpUtils.pause( pauseTime );
+		CcdpUtils.pause(pauseTime +5);
 
 		//making sure each session only has one vm 
 		assertEquals(1,resources.get("DEFAULT").size());
 		assertEquals(1,resources.get("Test1").size());
 		assertEquals(1,resources.get("Test-nifi").size());
+
 		//making sure we give time to the nife vm to be launched
 		//mainly because the sim controller sometimes kill the VM randomly 
 		if(resources.get("NIFI").size() == 0) {
@@ -735,7 +737,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=300000)//test fails if it takes longer than 5 min
-	public void TaskAllocationBasedOn_firstFit() {
+	public void TaskAllocationBasedOn_firsotFit() {
 		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
 		CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
 		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "3");
@@ -888,8 +890,8 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 
 		waitForTaskStatus("RUNNING", taskId1);
 		CcdpUtils.pause(20);
-		
-	
+
+
 		String taskId2 = sendTaskRequest("EC2","Test CPU 2","Test1",
 				testChannel, 0.0, cmd,null, this.mainChannel);
 
@@ -1031,7 +1033,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		cmd1.add("-a");
 		cmd1.add("testCpuUsage");
 		cmd1.add( "-p");
-		cmd1.add("40");
+		cmd1.add("90");
 		List<String> cmd2 = new ArrayList<String>();
 		cmd2.add( "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
 		cmd2.add("-a");
@@ -1043,7 +1045,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 				testChannel, 0.0, cmd1,null, this.mainChannel);
 		waitForTaskStatus("RUNNING",taskId1);
 		CcdpUtils.pause(12);
-		
+
 		String taskId2 = sendTaskRequest("DEFAULT","Random Test 2","DEFAULT",
 				testChannel, 0.0, cmd1,null, this.mainChannel);
 		CcdpUtils.pause(3);
@@ -1062,7 +1064,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 
 		String taskId6 = sendTaskRequest("EC2","Random Test 6","Test3",
 				testChannel, 100.0, cmd1,null, this.mainChannel);
-		CcdpUtils.pause(3);
+
+		//waiting for the onEvent function to be called
+		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
+		CcdpUtils.pause(pauseTime);
+
 
 		//make sure there are only vm running for the session required
 		assertEquals(2,resources.get("DEFAULT").size());

@@ -209,7 +209,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
-    this.vmInfo.setCPU(100.0 - (this.vmInfo.getCPULoad()* 100));
+    double availableCPU = 100.0 - (this.vmInfo.getCPULoad()* 100);
+    if (availableCPU < 0)
+    	availableCPU = 0;
+    this.vmInfo.setCPU(availableCPU);
   }
   
   /**

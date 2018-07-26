@@ -151,12 +151,14 @@ done
 if [ -z "$JAR_FILE" ]; then
   CCDP_LIB_DIR=${CCDP_HOME}/lib
   CCDP_CLS_DIR=${CCDP_HOME}/classes
+  CCDP_DIST_DIR=${CCDP_HOME}/dist
 
 	echo "The ${CCDP_JAR_NAME} was not found, using all jars"
 	unset _JARS
   _JARS=$(find "$CCDP_LIB_DIR" -follow -name "*.jar" -xtype f 2>/dev/null | sort | tr '\n' ':')
+  _DIST=$(find "$CCDP_DIST_DIR" -follow -name "*.jar" -xtype f 2>/dev/null | sort | tr '\n' ':')
 
-  _CLASSPATH=${_JARS}:${CCDP_CLS_DIR}
+  _CLASSPATH=${_JARS}:${_DIST}:${CCDP_CLS_DIR}
 fi
 
 if [ -z ${JAVA_HOME} ]; then 

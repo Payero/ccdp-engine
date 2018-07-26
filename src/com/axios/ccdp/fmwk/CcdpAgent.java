@@ -461,6 +461,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     else
       this.logger.info("Shuting Down Agent");
     this.vmInfo.setStatus(ResourceStatus.SHUTTING_DOWN);
+    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
     
     if( this.timer != null )
       this.timer.stop();

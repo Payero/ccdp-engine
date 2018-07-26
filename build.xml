@@ -9,11 +9,11 @@
 
   <property name="bucket-name" value="ccdp-settings" />
 
-  <!-- Determines whether to compile as 1.7 or 1.8 
+  <!-- Determines whether to compile as 1.7, 1.8, or 10
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
   -->
-  <property name="tgt.jdk" value="10" />
+  <property name="tgt.jdk" value="1.8" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -269,12 +269,14 @@
   <target name="javadocs" depends="javadoc" 
           description="Generates the JavaDoc for the whole project" />
   
+
+<!-- additionalparam="-html4" -->
+
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
     <mkdir dir="${doc.dir}"/>
     <javadoc sourcepath="${src.dir}" 
              destdir="${doc.dir}"
-             additionalparam="-html4"
-             >
+     >
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />
         

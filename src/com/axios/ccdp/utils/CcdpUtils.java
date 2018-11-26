@@ -378,6 +378,13 @@ public class CcdpUtils
     CcdpUtils.loadImageConfiguration();
   }
   
+  public static void setProperty(String key, String val) {
+      CcdpUtils.properties.setProperty(key, val);
+      if(key.startsWith("resourceIntf")) {
+        CcdpUtils.loadImageConfiguration();
+      }
+      
+  }
   /**
    * Tests whether or not the configuration contains the given key
    * 

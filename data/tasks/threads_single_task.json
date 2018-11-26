@@ -8,7 +8,7 @@
         [
           {"task-id": "csv_reader",
            "name": "Csv File Reader",
-           "node-type": "ec2",   
+           "node-type": "EC2",   
            "command": ["python", "runMe.py"],
            "configuration": { "filename": "${CCDP_HOME}/data/csv_test_file.csv" },
            "input-ports": [],

@@ -24,6 +24,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.RegionUtils;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.model.AmazonEC2Exception;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusRequest;
 import com.amazonaws.services.ec2.model.DescribeInstanceStatusResult;
@@ -243,8 +244,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( img_cmd != null && img_cmd.length() > 0 )
     {
       user_data = USER_DATA + img_cmd;
-      if ( session_id != null )
-        user_data += " -s " + session_id;
+      //Not need to send -s session id anymore because the nodeType is passed instead
+      //if ( session_id != null )
+        //user_data += " -s " + session_id;
       logger.info("Using User Data: " + user_data);
     }
     else
@@ -311,7 +313,21 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         // associate the tags with a resource and create them
         tagsReq.withResources(instId)
                .withTags(new_tags);
-        this.ec2.createTags(tagsReq);
+        //sometimes trying to set the tags for the instance will throw an exception
+        //So if the exception happens we try to wait 0.5 sec and then retry to set the tags
+        //we try at least 3 times to set
+        int maxTries = 3;
+        int count = 0;
+        while(true)
+        try {
+          this.ec2.createTags(tagsReq);
+          break;
+        }
+        catch(AmazonEC2Exception e) {
+          logger.error("Could not create tags retrying ");
+          CcdpUtils.pause(0.5);
+          if(++count == maxTries) throw e;
+        }
         
         // Add the instance id to the list of launched
         launched.add(instId);
@@ -518,47 +534,63 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public ResourceStatus getInstanceState(String id)
   {
-    DescribeInstanceStatusRequest descInstReq = 
-        new DescribeInstanceStatusRequest()
-          .withInstanceIds(id);
-    DescribeInstanceStatusResult descInstRes = 
-                              this.ec2.describeInstanceStatus(descInstReq);
-    
-    List<InstanceStatus> state = descInstRes.getInstanceStatuses();
-    //Default as launched
     ResourceStatus updatedstat = ResourceStatus.LAUNCHED;
     
-    Iterator<InstanceStatus> states = state.iterator();
-    String status = new String();
-    while( states.hasNext() )
-    {
-      InstanceStatus stat = states.next();
+  //sometimes trying to get the instate  state from AWS will cause exceptions
+    //So if the exception happens we try to wait 0.5 sec and then retry to set the tags
+    //we try at least 3 times to set
+    int maxTries = 3;
+    int count = 0;
+    while(true)
+    try {
+      DescribeInstanceStatusRequest descInstReq = 
+          new DescribeInstanceStatusRequest()
+            .withInstanceIds(id);
+      DescribeInstanceStatusResult descInstRes = 
+                                this.ec2.describeInstanceStatus(descInstReq);
       
-      String instId = stat.getInstanceId();
-      CcdpVMResource res = new CcdpVMResource(instId);
+      List<InstanceStatus> state = descInstRes.getInstanceStatuses();
+      //Default as launched
       
-      status = stat.getInstanceState().getName();
-      switch( status )
+      
+      Iterator<InstanceStatus> states = state.iterator();
+      String status = new String();
+      while( states.hasNext() )
       {
-      case "pending":
-        updatedstat = ResourceStatus.INITIALIZING;
-        break;
-      case "running":
-        updatedstat = ResourceStatus.RUNNING;
-        break;
-      case "shutting-down":
-        updatedstat = ResourceStatus.SHUTTING_DOWN;
-        break;
-      case "terminated":
-        updatedstat = ResourceStatus.TERMINATED;
-        break;
-      case "stopping":
-      case "stopped":
-        updatedstat = ResourceStatus.STOPPED;
-        break;
-      }  
+        InstanceStatus stat = states.next();
+        
+        String instId = stat.getInstanceId();
+        CcdpVMResource res = new CcdpVMResource(instId);
+        
+        status = stat.getInstanceState().getName();
+        switch( status )
+        {
+        case "pending":
+          updatedstat = ResourceStatus.INITIALIZING;
+          break;
+        case "running":
+          updatedstat = ResourceStatus.RUNNING;
+          break;
+        case "shutting-down":
+          updatedstat = ResourceStatus.SHUTTING_DOWN;
+          break;
+        case "terminated":
+          updatedstat = ResourceStatus.TERMINATED;
+          break;
+        case "stopping":
+        case "stopped":
+          updatedstat = ResourceStatus.STOPPED;
+          break;
+        }  
+      }
+      return updatedstat;
     }
-    return updatedstat;
+    catch(AmazonEC2Exception e) {
+      logger.error("Could not get " + id + " state from AWS");
+      CcdpUtils.pause(1);
+      if(++count == maxTries) throw e;
+    }
+    
   }
   
   /**

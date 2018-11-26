@@ -188,8 +188,7 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     
     this.vmInfo.setStatus(ResourceStatus.RUNNING);
     this.updateResourceInfo();
-    
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
+    this.vmInfo.setCPU(100.0);
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 
@@ -312,7 +311,7 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       this.vmInfo.setMemLoad( this.monitor.getUsedPhysicalMemorySize() );
     
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
-    this.vmInfo.setCPU(this.monitor.getTotalNumberCpuCores());
+    this.vmInfo.setCPU(100 - (this.vmInfo.getCPULoad()*100));
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
   }
@@ -629,5 +628,9 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       this.logger.warn("Invalid Action: " + action);
     
     this.logger.info("Virtual Machine Status set to " + this.vmInfo.getStatus() );
+  }
+  
+  public void stopVMTimer() {
+    this.timer.stop();
   }
 }

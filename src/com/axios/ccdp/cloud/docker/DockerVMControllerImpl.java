@@ -243,8 +243,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
           .networkMode("host")
           .build();
       // Now starting as many containers as asked
-      for(int i = 0; i < max; i++ )
-      {
+      //for(int i = 0; i < max; i++ )
+      //{
         ContainerConfig cfg = ContainerConfig.builder()
             .env(envs)
             .hostConfig(hostCfg)
@@ -268,7 +268,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         }
         
         this.docker.startContainer( cid );
-      }
+      //}
       
       logger.info("May want to add tags as well???");
       //Map<String, String> tags = imgCfg.getTags();

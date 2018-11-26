@@ -145,6 +145,15 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.docker = new DockerVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
     String cfg_file = System.getProperty("ccdp.config.file");
+    if(cfg_file == null)
+    {
+      logger.debug("The ccdp.config.file is null using default config file");
+      String path = System.getenv("CCDP_HOME");
+      if( path == null )
+        path = System.getProperty("CCDP_HOME");
+      
+      cfg_file =  path + "/config/ccdp-config.properties";
+    }
     logger.debug("The config file " + cfg_file);
     
     if( cfg_file != null )
@@ -293,6 +302,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpUtils.pause(15);
     boolean found_it = false;
     
+    logger.debug("There " + this.heartbeats.size() + " heartbeats in the list");
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
     {
@@ -368,7 +378,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
-    
+    logger.debug("the size of the list is " + vms.size());
     CcdpVMResource vm = vms.get(1);
     String testId = vm.getInstanceId();
     logger.debug("Stopping VM " + testId);

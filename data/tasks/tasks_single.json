@@ -4,7 +4,7 @@
       {"task-id": "csv_reader",
        "name": "Csv File Reader",
        "class-name": "tasks.csv_demo.CsvReader",
-       "node-type": "ec2",
+       "node-type": "EC2",
        "reply-to": "The Sender",
        "cpu": "10",
        "mem": "128",

@@ -70,7 +70,6 @@ public class JUnitTestHelper
     File file = new File(path);
     assertTrue("The path: " + path + " is invalid", file.isDirectory());
     
-    
     // getting the name of the configuration file .  If is null or invalid
     // attempts to use the default one
     String fname = System.getProperty(CFG_FILE_KEY);

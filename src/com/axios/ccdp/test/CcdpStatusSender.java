@@ -372,6 +372,7 @@ public class CcdpStatusSender implements TaskEventIntf
    * Runs the show...
    * 
    * @param args all the different command line arguments
+   *
    * @throws Exception an exception is thrown if the instance cannot send 
    *         status
    */

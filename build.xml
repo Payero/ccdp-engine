@@ -13,7 +13,7 @@
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
   -->
-  <property name="tgt.jdk" value="1.8" />
+  <property name="tgt.jdk" value="10" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -184,14 +184,18 @@
 	</target>
 
 	<target name="compile" depends="init" description="compiles the source ">
-		<!-- Compile the java code from ${src.dir} into ${main.dir} -->
+		<!-- Compile the java code from ${src.dir} into ${main.dir} 
+
+         bootclasspath="/usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar" 
+         target="${tgt.jdk}"
+         source="${tgt.jdk}" 
+
+    -->
 		<javac includeantruntime="false" 
 				 debug="true"
 			   srcdir="${src.dir}" 
 			   destdir="${main.dir}" 
-         target="${tgt.jdk}"
-         source="${tgt.jdk}" 
-         bootclasspath="/usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar"                 
+                          
    			 classpathref="classpath"/>
 	</target>
 
@@ -297,7 +301,6 @@
     <mkdir dir="${doc.dir}"/>
     <javadoc sourcepath="${src.dir}" 
              destdir="${doc.dir}"
-             additionalparam="-html4"
              >
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />
@@ -308,7 +311,7 @@
 
 
 <!-- Default, run this -->
-<target name="main" depends="clean,compile,ccdp.engine.dist,javadoc,gen.tar" 
+<target name="main" depends="print-version,clean,compile,ccdp.engine.dist,javadoc,gen.tar" 
         description="Runs all the targets" />
 
 
@@ -338,10 +341,11 @@
 </target>
 
 <target name="print-version"> 
-   <echo>Ant Java/JVM version: ${ant.java.version}</echo> 
-   <echo>Java/JVM detail version: ${java.version}</echo> 
-   <echo message="Java Home: ${java.home}" />
+  <echo>"---------------- Using Versions  ------------------------------"</echo> 
+  <echo>Ant Java/JVM version: ${ant.java.version}</echo> 
+  <echo>Java/JVM detail version: ${java.version}</echo> 
+  <echo message="Java Home: ${java.home}" />
+  <echo>"---------------------------------------------------------------"</echo> 
 </target>
-
 
 </project>

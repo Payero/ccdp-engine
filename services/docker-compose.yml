@@ -1,12 +1,41 @@
-version: '3'
+version: "3"
 services:
+  mongo-3.6:
+    image: mongo:3.6
+    container_name: mongo-3.6
+    hostname: "mongo-3.6"
+    container_name: "mongo-3.6"
+    ports:
+      - "27017:27017"
+    command:
+      mongod --replSet "rs"
+    volumes:
+      - /opt/rfims-ssw/mongodb/data:/data/db
+      - /opt/rfims-ssw/mongodb/out:/out
+
+
+  amq:
+    image: webcenter/activemq:latest
+    hostname: amq
+    container_name: activemq
+    ports:
+      - "8161:8161"
+      - "61616:61616"
+      - "61613:61613"
+    environment:
+      - ACTIVEMQ_NAME=amqp-srv1
+      - ACTIVEMQ_MIN_MEMORY=1024
+      - ACTIVEMQ_MAX_MEMORY=4096
+      - ACTIVEMQ_ENABLED_SCHEDULER=true
+
   zoo:
     image: zookeeper
+    container_name: zoo
     restart: unless-stopped
     ports:
         - 2181:2181
     environment:
       ZOO_MY_ID: 1
       #ZOO_SERVERS: server.1=zoo:2888:3888 server.2=zoo2:2888:3888 server.3=zoo3:2888:3888
-      ZOO_SERVERS: server.1=zoo:2888:3888 
-
+      ZOO_SERVERS: server.1=zoo:2888:3888
+      

@@ -294,7 +294,7 @@
     <mkdir dir="${doc.dir}"/>
     <javadoc sourcepath="${src.dir}" 
              destdir="${doc.dir}"
-             additionalparam="-html4"
+             
              >
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />

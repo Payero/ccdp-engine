@@ -52,6 +52,20 @@ public class OshiTest
     HardwareAbstractionLayer hal = si.getHardware();
     OperatingSystem os = si.getOperatingSystem();
 
+    
+    
+    
+    boolean test = true;
+    if( test )
+    {
+      this.logger.debug("Printing what I need");
+      this.logger.debug(os);
+      
+      
+      return;
+    }
+    
+    
     System.out.println(os);
 
     this.logger.info("Checking computer system...");

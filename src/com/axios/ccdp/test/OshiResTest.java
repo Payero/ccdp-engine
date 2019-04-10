@@ -197,7 +197,7 @@ private void printFileSystem(FileSystem fileSystem)
 //        this.logger.debug("\tMount " + mnt);
 //        this.logger.debug("\tBetter Free " + txt);
         
-        if( type.equals("xfs") || type.equals("nfs") )
+        if( type.equals("xfs") || type.equals("nfs") || type.equals("NTFS") )
         {
           this.logger.debug("Partition Information: " + name);
           this.logger.debug("\tVolume " + vol);

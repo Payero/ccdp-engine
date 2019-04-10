@@ -1,39 +1,25 @@
 package com.axios.ccdp.test;
 
-import static org.junit.Assert.assertFalse;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.log4j.Logger;
-import org.junit.Test;
 
 import com.axios.ccdp.utils.CcdpUtils;
 
-import oshi.PlatformEnum;
 import oshi.SystemInfo;
-import oshi.hardware.Baseboard;
 import oshi.hardware.CentralProcessor;
-import oshi.hardware.CentralProcessor.TickType;
-import oshi.hardware.ComputerSystem;
-import oshi.hardware.Display;
-import oshi.hardware.Firmware;
 import oshi.hardware.GlobalMemory;
 import oshi.hardware.HWDiskStore;
 import oshi.hardware.HWPartition;
 import oshi.hardware.HardwareAbstractionLayer;
 import oshi.hardware.NetworkIF;
-import oshi.hardware.PowerSource;
 import oshi.hardware.Sensors;
-import oshi.hardware.SoundCard;
-import oshi.hardware.UsbDevice;
 import oshi.hardware.VirtualMemory;
 import oshi.software.os.FileSystem;
 import oshi.software.os.NetworkParams;
 import oshi.software.os.OSFileStore;
-import oshi.software.os.OSProcess;
 import oshi.software.os.OperatingSystem;
-import oshi.software.os.OperatingSystem.ProcessSort;
 import oshi.util.FormatUtil;
 import oshi.util.Util;
 
@@ -52,7 +38,18 @@ public class OshiResTest
     HardwareAbstractionLayer hal = si.getHardware();
     OperatingSystem os = si.getOperatingSystem();
     
-    this.logger.debug("Operating System: " + os);
+    this.logger.debug("Operating System: " + os.toString() );
+    os.getFamily();
+    os.getBitness();
+    os.getManufacturer();
+    os.getVersion();
+    os.getProcessId();
+    this.logger.debug("Family: " + os.getFamily() );
+    this.logger.debug("Bitness: " + os.getBitness() );
+    this.logger.debug("Manufacturer: " + os.getManufacturer() );
+    this.logger.debug("Version: " + os.getVersion() );
+    this.logger.debug("ProcessId: " + os.getProcessId() );
+    
 
     this.logger.info("\n\n\nChecking Processor...");
     printProcessor(hal.getProcessor());
@@ -123,7 +120,6 @@ private void printMemory(GlobalMemory memory)
   VirtualMemory vm = memory.getVirtualMemory();
   this.logger.debug("Total Swap Memory: " + FormatUtil.formatBytes(vm.getSwapTotal()) );
   this.logger.debug("Swap Memory Used: " + FormatUtil.formatBytes(vm.getSwapUsed() ) );
-  
 }
 
 
@@ -145,6 +141,7 @@ private void printDisks(HWDiskStore[] diskStores)
     System.out.println("Disks:");
     for (HWDiskStore disk : diskStores) 
     {
+      
         String name = disk.getName();
         long size = disk.getSize();
         if( size <0 ) size = -1;
@@ -153,7 +150,6 @@ private void printDisks(HWDiskStore[] diskStores)
         
         HWPartition[] partitions = disk.getPartitions();
         if (partitions == null) {
-            // TODO Remove when all OS's implemented
             continue;
         }
         this.logger.debug("Partitions");
@@ -174,28 +170,14 @@ private void printFileSystem(FileSystem fileSystem)
     {
         long usable = fs.getUsableSpace();
         long total = fs.getTotalSpace();
-        String logVol = fs.getLogicalVolume();
         String name = fs.getName();
-        String desc = fs.getDescription();
         String type = fs.getType();
         String canUse = FormatUtil.formatBytes(usable);
         String totSpace = FormatUtil.formatBytes(total);
         String txt = String.format("free (%.1f%%)", 100d * usable / total);
-        float  free = ( total == 0 ) ? 0 : (float)usable / (float)total;
         
         String vol = fs.getVolume();
         String mnt = fs.getMount();
-        
-//        this.logger.debug("\tLogical Volume " + logVol);
-//        this.logger.debug("\tName " + name);
-//        this.logger.debug("\tDescription " + desc);
-//        this.logger.debug("\tType " + type);
-//        this.logger.debug("\tAvailable " + canUse);
-//        this.logger.debug("\tTotal Space " + totSpace);
-//        this.logger.debug("\tFree " + free);
-//        this.logger.debug("\tVolume " + vol);
-//        this.logger.debug("\tMount " + mnt);
-//        this.logger.debug("\tBetter Free " + txt);
         
         if( type.equals("xfs") || type.equals("nfs") || type.equals("NTFS") )
         {
@@ -233,8 +215,8 @@ private void printNetworkInterfaces(NetworkIF[] networkIFs)
       String txt = String.format("\tMTU: %s, Speed: %s", net.getMTU(), 
                           FormatUtil.formatValue(net.getSpeed(), "bps"));
       this.logger.debug(txt);
-      boolean hasData = net.getBytesRecv() > 0 || net.getBytesSent() > 0 || net.getPacketsRecv() > 0
-                || net.getPacketsSent() > 0;
+      boolean hasData = net.getBytesRecv()   > 0 || net.getBytesSent()   > 0 || 
+                        net.getPacketsRecv() > 0 || net.getPacketsSent() > 0;
       
       if( hasData )
       {

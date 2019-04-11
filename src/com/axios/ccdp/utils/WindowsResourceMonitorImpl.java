@@ -254,7 +254,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
   public long getTotalVirtualMemorySize()
   {
     long total = this.memory.getVirtualMemory().getSwapTotal();
-    return ( new Long( total ) ) / this.units;
+    return ( Long.valueOf( total ) ) / this.units;
   }
 
   /**
@@ -267,7 +267,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
   public long getUsedVirtualMemorySize()
   {
     long used = this.memory.getVirtualMemory().getSwapUsed();
-    return ( new Long( used ) ) / this.units;
+    return ( Long.valueOf( used ) ) / this.units;
   }
   
   /**
@@ -282,7 +282,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
     long total = this.memory.getVirtualMemory().getSwapTotal();
     long used = this.memory.getVirtualMemory().getSwapUsed();
     
-    return ( new Long( total - used ) ) / this.units;
+    return ( Long.valueOf( total - used ) ) / this.units;
   }
   
   /**
@@ -295,7 +295,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
   public long getTotalPhysicalMemorySize()
   {
     long total = this.memory.getTotal(); 
-    return ( new Long( total ) / this.units );
+    return ( Long.valueOf( total ) / this.units );
   }
   
   /**
@@ -309,7 +309,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
   {
     long total = this.memory.getTotal();
     long avail = this.memory.getAvailable();
-    return ( new Long( total - avail ) / this.units );
+    return ( Long.valueOf( total - avail ) / this.units );
   }
 
   /**
@@ -322,7 +322,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
   public long getFreePhysicalMemorySize()
   {
     long avail = this.memory.getAvailable();
-    return ( new Long( avail ) / this.units );
+    return ( Long.valueOf( avail ) / this.units );
   }
   
   /**

@@ -2,7 +2,9 @@ package com.axios.ccdp.test;
 
 import java.io.FileInputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
@@ -44,6 +46,15 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    Map<String, Long> map = new HashMap<>();
+    map.put("One", Long.valueOf(1) );
+    
+    
+    boolean test = true;
+    
+    if( test )
+      return;
+    
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     this.logger.debug("The URL " + url);
     DockerClient docker = new DefaultDockerClient(url);

@@ -1,7 +1,6 @@
 package com.axios.ccdp.utils;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -41,10 +40,10 @@ public interface SystemResourceMonitorAbs
     if( !SystemResourceMonitorAbs.DIVISORS.isEmpty() )
       return SystemResourceMonitorAbs.DIVISORS.get(units);
     
-    SystemResourceMonitorAbs.DIVISORS.put( UNITS.BYTE, new Long(1) );
-    SystemResourceMonitorAbs.DIVISORS.put( UNITS.KB, new Long(1024) );
-    SystemResourceMonitorAbs.DIVISORS.put( UNITS.MB, new Long(1024*1024) );
-    SystemResourceMonitorAbs.DIVISORS.put( UNITS.GB, new Long(1024*1024*1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.BYTE, Long.valueOf(1) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.KB, Long.valueOf(1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.MB, Long.valueOf(1024*1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.GB, Long.valueOf(1024*1024*1024) );
     
     return SystemResourceMonitorAbs.DIVISORS.get(units);
   }

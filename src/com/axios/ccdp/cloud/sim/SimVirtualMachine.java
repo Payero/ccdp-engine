@@ -16,7 +16,6 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
 import com.axios.ccdp.messages.AssignSessionMessage;
@@ -35,6 +34,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.axios.ccdp.utils.LinuxResourceMonitorImpl;
+import com.axios.ccdp.utils.SystemResourceMonitorAbs;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -76,8 +76,8 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitorIntf monitor = 
-            new LinuxResourceMonitorImpl(SystemResourceMonitorIntf.UNITS.MB);
+  private SystemResourceMonitorAbs monitor = 
+            new LinuxResourceMonitorImpl(SystemResourceMonitorAbs.UNITS.MB);
   /**
    * Object used to send and receive messages such as incoming tasks to process
    * and sending heartbeats and tasks updates

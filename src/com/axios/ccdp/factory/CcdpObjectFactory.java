@@ -4,9 +4,9 @@ import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.SystemResourceMonitorAbs;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -128,11 +128,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the agent 
    *         get the resources
    */
-  public SystemResourceMonitorIntf getResourceMonitorInterface(ObjectNode config)
+  public SystemResourceMonitorAbs getResourceMonitorInterface(ObjectNode config)
   {
     String key = CcdpUtils.CFG_KEY_RES_MON_CLASSNAME;
-    Object obj = this.getNewInstance(key, SystemResourceMonitorIntf.class);
-    SystemResourceMonitorIntf impl = (SystemResourceMonitorIntf)obj;
+    Object obj = this.getNewInstance(key, SystemResourceMonitorAbs.class);
+    SystemResourceMonitorAbs impl = (SystemResourceMonitorAbs)obj;
     impl.configure(config);
     return impl;
   }

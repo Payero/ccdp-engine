@@ -9,7 +9,7 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
+import com.axios.ccdp.utils.SystemResourceMonitorAbs;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,7 +30,7 @@ import oshi.hardware.NetworkIF;
 import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
 
-public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
+public class DockerResourceMonitorImpl implements SystemResourceMonitorAbs
 {
   /**
    * The default URL to reach the Docker engine to get resource statistics for
@@ -227,7 +227,7 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     if( !this.filesystem.isDirectory() )
       this.filesystem = null;
     
-    this.units = SystemResourceMonitorIntf.getDivisor(units);
+    this.units = SystemResourceMonitorAbs.getDivisor(units);
   }
   
 

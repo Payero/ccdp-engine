@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,7 +31,7 @@ import oshi.software.os.OperatingSystem;
  * @author Oscar E. Ganteaume
  *
  */
-public class WindowsResourceMonitorImpl implements SystemResourceMonitorIntf
+public class WindowsResourceMonitorImpl implements SystemResourceMonitorAbs
 {
   /**
    * Generates debug print statements based on the verbosity level.
@@ -106,7 +105,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   public void configure( ObjectNode config )
   {
-    String units = SystemResourceMonitorIntf.UNITS.KB.toString();
+    String units = SystemResourceMonitorAbs.UNITS.KB.toString();
     JsonNode node = config.get("units");
     
     if( node != null )
@@ -169,7 +168,7 @@ public class WindowsResourceMonitorImpl implements SystemResourceMonitorIntf
   public void setUnits( UNITS units )
   {
     this.logger.debug("Initiating new Monitor");
-    this.units = SystemResourceMonitorIntf.getDivisor(units);
+    this.units = SystemResourceMonitorAbs.getDivisor(units);
   }
   
   

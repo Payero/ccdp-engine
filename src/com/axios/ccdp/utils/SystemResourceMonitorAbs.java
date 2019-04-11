@@ -1,4 +1,4 @@
-package com.axios.ccdp.connections.intfs;
+package com.axios.ccdp.utils;
 
 import java.util.HashMap;
 import java.util.List;
@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  * @author Oscar E. Ganteaume
  *
  */
-public interface SystemResourceMonitorIntf
+public interface SystemResourceMonitorAbs
 {
   /**
    * Stores the units to return some of the values such as memory and disk space
@@ -38,15 +38,15 @@ public interface SystemResourceMonitorIntf
    */
   public static long getDivisor(UNITS units)
   {
-    if( !SystemResourceMonitorIntf.DIVISORS.isEmpty() )
-      return SystemResourceMonitorIntf.DIVISORS.get(units);
+    if( !SystemResourceMonitorAbs.DIVISORS.isEmpty() )
+      return SystemResourceMonitorAbs.DIVISORS.get(units);
     
-    SystemResourceMonitorIntf.DIVISORS.put( UNITS.BYTE, new Long(1) );
-    SystemResourceMonitorIntf.DIVISORS.put( UNITS.KB, new Long(1024) );
-    SystemResourceMonitorIntf.DIVISORS.put( UNITS.MB, new Long(1024*1024) );
-    SystemResourceMonitorIntf.DIVISORS.put( UNITS.GB, new Long(1024*1024*1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.BYTE, new Long(1) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.KB, new Long(1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.MB, new Long(1024*1024) );
+    SystemResourceMonitorAbs.DIVISORS.put( UNITS.GB, new Long(1024*1024*1024) );
     
-    return SystemResourceMonitorIntf.DIVISORS.get(units);
+    return SystemResourceMonitorAbs.DIVISORS.get(units);
   }
   
   /**

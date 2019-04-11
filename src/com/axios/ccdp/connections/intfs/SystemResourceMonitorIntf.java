@@ -1,9 +1,9 @@
 package com.axios.ccdp.connections.intfs;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf.UNITS;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -79,52 +79,93 @@ public interface SystemResourceMonitorIntf
   public void setUnits( UNITS units );
   
   /**
-   * Returns the amount of virtual memory that is guaranteed to be available 
-   * to the running process in bytes, or -1 if this operation is not supported.
+   * Gets the unique id identifying this node.
    * 
-   * @return the amount of virtual memory that is guaranteed to be available 
-   *         to the running process in bytes, or -1 if this operation is not 
-   *         supported.
+   * @return the unique id identifying this node.
    */
-  public long getCommittedVirtualMemorySize();
+  public String getUniqueHostId();
   
   /**
-   * Returns the total amount of swap space in bytes or -1 if the value cannot 
+   * Gets the node's Operating System family (Windows, Linux) or null if it 
+   * can't be obtained
+   * 
+   * @return the node's Operating System family (Windows, Linux) or null if it 
+   *         can't be obtained
+   */
+  public String getOSFamily();
+  
+  /**
+   * Gets the node's Operating System bit architecture (32, 64) or null if it 
+   * can't be obtained
+   * 
+   * @return the node's Operating System bit architecture (32, 64) or null if 
+   *         it can't be obtained
+   */
+  public int getOSBitArchitecture();
+
+  /**
+   * Gets the node's Operating System manufacturer (GNU, Microsoft) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System manufacturer (GNU, Microsoft) or null 
+   *         if it can't be obtained
+   */
+  public String getOSManufacturer();
+  
+  /**
+   * Gets the node's Operating System Version (7.6, 10 Pro) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System Version (7.6, 10 Pro) or null if 
+   * it can't be obtained
+   */
+  public String getOSVersion();
+  
+  /**
+   * Gets the node's Operating System code name (Core, N/A) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System code name (Core, N/A) or null if 
+   *         it can't be obtained
+   */
+  public String getOSCodeName();
+  
+  /**
+   * Gets the node's Operating System build number (7.6, 12345) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System build number (7.6, 12345) or null if 
+   *         it can't be obtained
+   */
+  public String getOSBuildNumber();
+  
+  
+  /**
+   * Gets the total amount of virtual memory in the node or -1 if it can't 
    * be obtained
    * 
-   * @return the total amount of swap space in bytes or -1 if the value cannot 
+   * @return the total amount of virtual memory in the node or -1 if it can't 
    *         be obtained
    */
-  public long getTotalSwapSpaceSize();
-  
+  public long getTotalVirtualMemorySize();
+
   /**
-   * Returns the amount of free swap space in bytes or -1 if the value cannot 
+   * Gets the amount of virtual memory used in the node or -1 if it can't 
    * be obtained
    * 
-   * @return the amount of free swap space in bytes or -1 if the value cannot 
+   * @return the amount of virtual memory used in the node or -1 if it can't 
    *         be obtained
    */
-  public long getFreeSwapSpaceSize();
+  public long getUsedVirtualMemorySize();
   
   /**
-   * Returns the CPU time used by the process on which the Java virtual machine 
-   * is running in nanoseconds. The returned value is of nanoseconds precision 
-   * but not necessarily nanoseconds accuracy. This method returns -1 if the 
-   * the platform does not support this operation.
+   * Gets the amount of virtual memory available in the node or -1 if it can't 
+   * be obtained
    * 
-   * @return the CPU time used by the process in nanoseconds, or -1 if this 
-   *         operation is not supported.
+   * @return the amount of virtual memory available in the node or -1 if it  
+   *         can't be obtained
    */
-  public long getProcessCpuTime();
-  
-  /**
-   * Returns the amount of free physical memory in bytes or -1 if the value 
-   * cannot be obtained
-   * 
-   * @return the amount of free physical memory in bytes or -1 if the value  
-   *         cannot be obtained
-   */
-  public long getFreePhysicalMemorySize();
+  public long getFreeVirtualMemorySize();
   
   /**
    * Returns the total amount of physical memory in bytes or -1 if the value  
@@ -136,32 +177,49 @@ public interface SystemResourceMonitorIntf
   public long getTotalPhysicalMemorySize();
   
   /**
-   * Returns the total amount of physical memory used in bytes or -1 if the value  
-   * cannot be obtained
+   * Returns the total amount of physical memory used in bytes or -1 if the   
+   * value cannot be obtained
    * 
    * @return the total amount of physical memory in bytes or -1 if the value  
    *         cannot be obtained
    */
   public long getUsedPhysicalMemorySize();
-  
+
+  /**
+   * Returns the amount of free physical memory in bytes or -1 if the value 
+   * cannot be obtained
+   * 
+   * @return the amount of free physical memory in bytes or -1 if the value  
+   *         cannot be obtained
+   */
+  public long getFreePhysicalMemorySize();
   
   /**
-   * Returns the number of open file descriptors or -1 if the value cannot 
+   * Gets the number of physical CPUs installed in the node or -1 if it can't 
    * be obtained
    * 
-   * @return the number of open file descriptors or -1 if the value cannot 
-   *         be obtained
+   * @return the number of physical CPUs installed in the node or -1 if it  
+   *         can't be obtained
    */
-  public long getOpenFileDescriptorCount();
+  public int getPhysicalCPUCount();
   
   /**
-   * Returns the maximum number of file descriptors or -1 if the value cannot 
+   * Gets the number of physical CPUs cores in the node or -1 if it can't 
    * be obtained
    * 
-   * @return the maximum number of file descriptors or -1 if the value cannot 
-   *         be obtained
+   * @return the number of physical CPUs cores in the node or -1 if it  
+   *         can't be obtained
    */
-  public long getMaxFileDescriptorCount();
+  public int getPhysicalCPUCoreCount();
+  
+  /**
+   * Gets the number of logical (virtual) CPUs cores in the node or -1 if it  
+   * can't be obtained
+   * 
+   * @return the number of logical (virtual) CPUs cores in the node or -1 if it  
+   *         can't be obtained
+   */
+  public int getVirtualCPUCoreCount();
   
   /**
    * Returns the "recent cpu usage" for the whole system. This value is a 
@@ -192,32 +250,73 @@ public interface SystemResourceMonitorIntf
    * @return the "recent cpu usage" for the Java Virtual Machine process; a 
    *         negative value if not available.
    */
-  public double getProcessCpuLoad();
+  public double[] getCPUCoresLoad();
   
   /**
-   * Gets the total number of CPU or cores available in this machine
+   * Gets a list of all the File Systems names attached to the node or an empty
+   * list if it can't obtain it.  Each name corresponds to the mount point name
    * 
-   * @return the total number of CPU or cores available in this machine
+   * @return list of all the file systems names attached to the node or an 
+   *         empty list if it can't obtain it
    */
-  public int getTotalNumberCpuCores();
+  public String[] getFileStorageNames();
   
+  /**
+   * Gets the total amount of storage space of the given partition.  If the 
+   * name cannot be found then it return -1L
+   * 
+   * @param name the name of the storage to retrieve the information
+   * 
+   * @return the total amount of storage space of the given partition
+   */
+  public long getTotalStorageSpaceByName(String name);
+
+  /**
+   * Gets the total amount of used storage space of the given partition.  If 
+   * the name cannot be found then it return -1L
+   * 
+   * @param name the name of the storage to retrieve the information
+   * 
+   * @return the total amount of used storage space of the given partition
+   */
+  public long getUsedStorageSpaceByName(String name);
+  
+  /**
+   * Gets the total amount of free storage space of the given partition.  If  
+   * the name cannot be found then it return -1L
+   * 
+   * @param name the name of the storage to retrieve the information
+   * 
+   * @return the total amount of free storage space of the given partition
+   */
+  public long getFreeStorageSpaceByName(String name);  
+
+  
+  /**
+   * Gets map containing information about each of the partitions found in
+   * the given disk name. Currently it contains the following information:
+   * 
+   * Name, Identification, Type, Size, MountPoint, TotalSpace, UsedSpace, 
+   * FreeSpace
+   * 
+   * @param name the name of the disk to retrieve the information from
+   * 
+   * @return map containing information about each of the partitions found in
+   *         the given disk name 
+   */
+  public Map<String, String> getDiskPartitionInfo(String name);
+
   /**
    * Gets the total amount of disk space of the root partition ('/' for Linux
    * based systems and 'c:' for Windows).  If the system does not have neither 
    * of the two partitions mentioned above then it return -1L
    * 
+   * @param name the name of the disk to retrieve the information from
+   * 
    * @return the total amount of disk space of the root partition
    */
   public long getTotalDiskSpace();
   
-  /**
-   * Gets the total usable amount of disk space of the root partition ('/' for
-   * Linux based systems and 'c:' for Windows).  If the system does not have
-   * neither of the two partitions mentioned above then it return -1L
-   * 
-   * @return the total usable amount of disk space of the root partition
-   */
-  public long getUsableDiskSpace();
   /**
    * Gets the total amount of disk space of the root partition ('/' for Linux
    * based systems and 'c:' for Windows) that is being used .  If the system 
@@ -237,6 +336,57 @@ public interface SystemResourceMonitorIntf
    */
   public long getFreeDiskSpace();  
 
+  /**
+   * Gets the hostname of the node where this process was invoked or null if
+   * it can't be obtained
+   * 
+   * @return the hostname of the node where this process was invoked or null if
+   *         it can't be obtained
+   */
+  public String getHostName();
+  
+  /**
+   * Gets the domain name of the node where this process was invoked or null if
+   * it can't be obtained
+   * 
+   * @return the domain name of the node where this process was invoked or null 
+   *         if it can't be obtained
+   */
+  public String getDomainName();
+  
+  /**
+   * Gets a list of all the DNS serves used by this node or null if it can't be 
+   * obtained
+   * 
+   * @return list of all the DNS serves used by this node or null if it can't 
+   *         be obtained
+   */
+  public String[] getDNSServers();
+  
+  /**
+   * Gets a list of all the network interfaces (cards) used by this node or 
+   * null if it can't be obtained
+   * 
+   * @return list of all the network interfaces (cards) used by this node or 
+   *         null if it can't be obtained
+   */
+  public String[] getNetworkInterfaces();
+  
+  /**
+   * Gets map containing information about each of the interfaces found in
+   * this node. Currently it contains the following information:
+   * 
+   * Name, MACAddress, MTU, Speed, PacketsSent, PacketsReceived, BytesSent, 
+   * BytesReceived, InErrors, OutErrors
+   * 
+   * @param name the name of the disk to retrieve the information from
+   * 
+   * @return map containing information about each of the partitions found in
+   *         the given disk name 
+   */
+  public Map<String, String> getNetworkInterfaceInfo( String name );
+  
+  
   /**
    * Gets a JSON object representing the object.  The following are the keys
    * 
@@ -261,12 +411,5 @@ public interface SystemResourceMonitorIntf
    * 
    */
   public void close();
-  
-  /**
-   * Gets the unique id identifying this node.
-   * 
-   * @return the unique id identifying this node.
-   */
-  public String getUniqueHostId();
   
 }

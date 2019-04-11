@@ -2,6 +2,8 @@ package com.axios.ccdp.test;
 
 import static org.junit.Assert.assertFalse;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -357,10 +359,21 @@ private void printSoundCards(SoundCard[] cards) {
    * @param args
    *            the arguments
    */
-  public static void main(String[] args) throws Exception
+  public static void main(String[] args)
   {
     String cfg_file = System.getProperty("ccdp.config.file");
-    CcdpUtils.loadProperties(cfg_file);
+    try
+    {
+      CcdpUtils.loadProperties(cfg_file);
+    }
+    catch (FileNotFoundException e)
+    {
+      e.printStackTrace();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
     CcdpUtils.configLogger();
     
     new OshiTest();

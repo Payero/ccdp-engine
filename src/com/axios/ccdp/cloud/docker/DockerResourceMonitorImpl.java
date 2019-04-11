@@ -4,11 +4,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
-import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,17 +23,13 @@ import com.spotify.docker.client.messages.MemoryStats;
 import com.spotify.docker.client.messages.CpuStats.CpuUsage;
 import com.spotify.docker.client.messages.MemoryStats.Stats;
 
-/**
- * Simple utility class used to obtain some of the resource utilization 
- * information from the operating system.  
- * 
- * The methods used here to get the information cannot be accessed directly and
- * therefore this class uses Reflection in order to get those values. It uses 
- * the 'sun.management.OperatingSystemImpl' class to query the OS.
- * 
- * @author Oscar E. Ganteaume
- *
- */
+import oshi.SystemInfo;
+import oshi.hardware.CentralProcessor;
+import oshi.hardware.HardwareAbstractionLayer;
+import oshi.hardware.NetworkIF;
+import oshi.software.os.OSFileStore;
+import oshi.software.os.OperatingSystem;
+
 public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
 {
   /**
@@ -84,6 +81,33 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
    */
   private ContainerStats prevStats = null;
   /**
+   * Retrieves all the information possible for this node
+   */
+  private SystemInfo system_info = new SystemInfo();
+
+  /**
+   * Handles all the OS information queries to the node
+   * 
+   */
+  private OperatingSystem os = null;
+  
+  /**
+   * Handles all the hardware information queries to the node
+   * 
+   */
+  private HardwareAbstractionLayer hardware = null;
+  
+  /**
+   * Handles all CPU related information
+   */
+  private CentralProcessor processor = null;
+  
+  /**
+   * Stores previous ticks to calculate CPU load for each one of the cores
+   */
+  private long[][] prevProcTicks;
+  
+  /**
    * Instantiates a new resource monitor
    */
   public DockerResourceMonitorImpl()
@@ -92,15 +116,35 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
   }
   
   /**
-   * Configures the running environment and/or connections required to perform
-   * the operations.  The JSON Object contains all the different fields 
-   * necessary to operate.  These fields might change on each actual 
-   * implementation
+   * Instantiates a new resource monitor
    * 
-   * @param config a JSON Object containing all the necessary fields required 
-   *        to operate
+   * @param units the units to use when displaying some of the values
    */
-  public void configure( ObjectNode config )
+  public DockerResourceMonitorImpl( String units )
+  {
+    this(UNITS.valueOf(units));
+  }
+  
+  /**
+   * Instantiates a new resource monitor
+   * 
+   * @param units the units to use when displaying some of the values
+   */
+  public DockerResourceMonitorImpl( UNITS units)
+  {
+    this.logger.debug("Initiating new Monitor");
+    this.setUnits( units );
+    
+    this.os = this.system_info.getOperatingSystem();
+    this.hardware = this.system_info.getHardware();
+    this.processor = this.hardware.getProcessor();
+    this.processor.updateAttributes();
+    this.prevProcTicks = this.processor.getProcessorCpuLoadTicks();
+    
+  }
+  
+  @Override
+  public void configure(ObjectNode config)
   {
     String units = UNITS.KB.toString();
     String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
@@ -147,30 +191,10 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     {
       this.logger.error("Message: " + ioe.getMessage(), ioe);
     }
-    
+
   }
-  
-  /**
-   * Instantiates a new resource monitor
-   * 
-   * @param units the units to use when displaying some of the values
-   */
-  public DockerResourceMonitorImpl( String units )
-  {
-    this(UNITS.valueOf(units));
-  }
-  
-  /**
-   * Instantiates a new resource monitor
-   * 
-   * @param units the units to use when displaying some of the values
-   */
-  public DockerResourceMonitorImpl( UNITS units)
-  {
-    this.logger.debug("Initiating new Monitor");
-    this.setUnits( units );
-  }
-  
+
+
   /**
    * Sets the units to used to represent the resources such as BYTE, KB, MB, 
    * and GB.  The string is a representation of an actual value of the enum 
@@ -206,15 +230,87 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     this.units = SystemResourceMonitorIntf.getDivisor(units);
   }
   
+
+  @Override
+  public String getUniqueHostId()
+  {
+    return this.shortCid;
+  }
+
   /**
-   * Returns the amount of virtual memory that is guaranteed to be available 
-   * to the running process in bytes, or -1 if this operation is not supported.
+   * Gets the node's Operating System family (Windows, Linux) or null if it 
+   * can't be obtained
    * 
-   * @return the amount of virtual memory that is guaranteed to be available 
-   *         to the running process in bytes, or -1 if this operation is not 
-   *         supported.
+   * @return the node's Operating System family (Windows, Linux) or null if it 
+   *         can't be obtained
    */
-  public long getCommittedVirtualMemorySize()
+  public String getOSFamily()
+  {
+    return this.os.getFamily();
+  }
+  
+  /**
+   * Gets the node's Operating System bit architecture (32, 64) or null if it 
+   * can't be obtained
+   * 
+   * @return the node's Operating System bit architecture (32, 64) or null if 
+   *         it can't be obtained
+   */
+  public int getOSBitArchitecture()
+  {
+    return this.os.getBitness();
+  }
+
+  /**
+   * Gets the node's Operating System manufacturer (GNU, Microsoft) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System manufacturer (GNU, Microsoft) or null 
+   *         if it can't be obtained
+   */
+  public String getOSManufacturer()
+  {
+    return this.os.getManufacturer();
+  }
+  
+  /**
+   * Gets the node's Operating System Version (7.6, 10 Pro) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System Version (7.6, 10 Pro) or null if 
+   * it can't be obtained
+   */
+  public String getOSVersion()
+  {
+    return this.os.getVersion().getVersion();
+  }
+
+  /**
+   * Gets the node's Operating System code name (Core, N/A) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System code name (Core, N/A) or null if 
+   *         it can't be obtained
+   */
+  public String getOSCodeName()
+  {
+    return this.os.getVersion().getCodeName();
+  }
+  
+  /**
+   * Gets the node's Operating System build number (7.6, 12345) or null if 
+   * it can't be obtained
+   * 
+   * @return the node's Operating System build number (7.6, 12345) or null if 
+   *         it can't be obtained
+   */
+  public String getOSBuildNumber()
+  {
+    return this.os.getVersion().getBuildNumber();
+  }
+
+  @Override
+  public long getTotalVirtualMemorySize()
   {
     long mem = -1;
     try
@@ -233,53 +329,32 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     
     return mem;
   }
-  
-  /**
-   * Returns the total amount of swap space in bytes or -1 if the value cannot 
-   * be obtained
-   * 
-   * @return the total amount of swap space in bytes or -1 if the value cannot 
-   *         be obtained
-   */
-  public long getTotalSwapSpaceSize()
-  {    
-    return this.getCommittedVirtualMemorySize();
-  }
-  
-  /**
-   * Returns the amount of free swap space in bytes or -1 if the value cannot 
-   * be obtained
-   * 
-   * @return the amount of free swap space in bytes or -1 if the value cannot 
-   *         be obtained
-   */
-  public long getFreeSwapSpaceSize()
+
+  @Override
+  public long getUsedVirtualMemorySize()
   {
-    return this.getCommittedVirtualMemorySize();
+    return this.getTotalVirtualMemorySize();
   }
-  
-  /**
-   * Returns the CPU time used by the process on which the Java virtual machine 
-   * is running in nanoseconds. The returned value is of nanoseconds precision 
-   * but not necessarily nanoseconds accuracy. This method returns -1 if the 
-   * the platform does not support this operation.
-   * 
-   * @return the CPU time used by the process in nanoseconds, or -1 if this 
-   *         operation is not supported.
-   */
-  public long getProcessCpuTime()
+
+  @Override
+  public long getFreeVirtualMemorySize()
   {
-    CpuUsage usg = this.prevStats.cpuStats().cpuUsage();
-    return usg.totalUsage() / this.units;
+    return this.getTotalVirtualMemorySize();
   }
-  
-  /**
-   * Returns the amount of free physical memory in bytes or -1 if the value 
-   * cannot be obtained
-   * 
-   * @return the amount of free physical memory in bytes or -1 if the value  
-   *         cannot be obtained
-   */
+
+  @Override
+  public long getTotalPhysicalMemorySize()
+  {
+    return this.prevStats.memoryStats().limit() / this.units;
+  }
+
+  @Override
+  public long getUsedPhysicalMemorySize()
+  {
+    return this.prevStats.memoryStats().stats().totalRss() / this.units;
+  }
+
+  @Override
   public long getFreePhysicalMemorySize()
   {
     MemoryStats mem = this.prevStats.memoryStats();
@@ -288,159 +363,194 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     //
     return (mem.limit() - mem.stats().totalRss() )  / this.units;
   }
-  
-  /**
-   * Returns the total amount of physical memory in bytes or -1 if the value  
-   * cannot be obtained
-   * 
-   * @return the total amount of physical memory in bytes or -1 if the value  
-   *         cannot be obtained
-   */
-  public long getTotalPhysicalMemorySize()
+
+  @Override
+  public int getPhysicalCPUCount()
   {
-    return this.prevStats.memoryStats().limit() / this.units;      
+    return this.processor.getPhysicalPackageCount();
   }
-  
-  /**
-   * Returns the total amount of physical memory used in bytes or -1 if the value  
-   * cannot be obtained
-   * 
-   * @return the total amount of physical memory in bytes or -1 if the value  
-   *         cannot be obtained
-   */
-  public long getUsedPhysicalMemorySize()
+
+  @Override
+  public int getPhysicalCPUCoreCount()
   {
-    return this.prevStats.memoryStats().stats().totalRss() / this.units;
+    return this.processor.getPhysicalProcessorCount();
   }
-  
-  
-  /**
-   * Returns the number of open file descriptors or -1 if the value cannot 
-   * be obtained
-   * 
-   * @return the number of open file descriptors or -1 if the value cannot 
-   *         be obtained
-   */
-  public long getOpenFileDescriptorCount()
+
+  @Override
+  public int getVirtualCPUCoreCount()
   {
-    return -1L;  
+    return this.processor.getLogicalProcessorCount();
   }
-  
-  /**
-   * Returns the maximum number of file descriptors or -1 if the value cannot 
-   * be obtained
-   * 
-   * @return the maximum number of file descriptors or -1 if the value cannot 
-   *         be obtained
-   */
-  public long getMaxFileDescriptorCount()
-  {
-    return -1L;  
-  }
-  
-  /**
-   * Returns the percentage of CPU utilization by comparing a previous stats 
-   * against a new one
-   * 
-   * @return the percentage of CPU utilization by comparing a previous stats 
-   *         against a new one; a negative value if not available.
-   */
+
+  @Override
   public double getSystemCpuLoad()
   {
     return this.getSystemCpuPercent();
   }
-  
-  /**
-   * Returns the "recent cpu usage" for the Java Virtual Machine process. This 
-   * value is a double in the [0.0,1.0] interval. A value of 0.0 means that 
-   * none of the CPUs were running threads from the JVM process during the 
-   * recent period of time observed, while a value of 1.0 means that all CPUs 
-   * were actively running threads from the JVM 100% of the time during the 
-   * recent period being observed. Threads from the JVM include the application 
-   * threads as well as the JVM internal threads. All values betweens 0.0 and 
-   * 1.0 are possible depending of the activities going on in the JVM process 
-   * and the whole system. If the Java Virtual Machine recent CPU usage is not 
-   * available, the method returns a negative value.
-   * 
-   * @return the "recent cpu usage" for the Java Virtual Machine process; a 
-   *         negative value if not available.
-   */
-  public double getProcessCpuLoad()
+
+  @Override
+  public double[] getCPUCoresLoad()
   {
-    return this.getUserCpuPercent();
+    this.processor.updateAttributes();
+    
+    double[] val = 
+        this.processor.getProcessorCpuLoadBetweenTicks(this.prevProcTicks);
+    this.prevProcTicks = this.processor.getProcessorCpuLoadTicks();
+    return val;
   }
-  
-  /**
-   * Gets the total number of CPU or cores available in this machine
-   * 
-   * @return the total number of CPU or cores available in this machine
-   */
-  public int getTotalNumberCpuCores()
+
+  @Override
+  public String[] getFileStorageNames()
   {
-    return this.prevStats.cpuStats().cpuUsage().percpuUsage().size();
+    OSFileStore[] stores = this.os.getFileSystem().getFileStores();
+    
+    String[] names = new String[stores.length];
+    for( int i = 0; i < stores.length; i++ )
+    {
+      OSFileStore store = stores[i];
+      names[i] = store.getMount();
+    }
+    return names;
   }
-  
-  /**
-   * Gets the total amount of disk space of the root partition ('/' for Linux
-   * based systems and 'c:' for Windows).  If the system does not have neither 
-   * of the two partitions mentioned above then it return -1L
-   * 
-   * @return the total amount of disk space of the root partition
-   */
+
+  @Override
+  public long getTotalStorageSpaceByName(String name)
+  {
+    OSFileStore store = this.getFileStore(name);
+    if( store != null )
+      return store.getTotalSpace() / this.units;
+    else
+      return -1;
+  }
+
+  @Override
+  public long getUsedStorageSpaceByName(String name)
+  {
+    OSFileStore store = this.getFileStore(name);
+    
+    if( store != null )
+      return (( store.getTotalSpace() - store.getUsableSpace()) / this.units );
+    else
+      return -1;
+  }
+
+  @Override
+  public long getFreeStorageSpaceByName(String name)
+  {
+    OSFileStore store = this.getFileStore(name);
+    if( store != null )
+      return store.getUsableSpace() / this.units;
+    else
+      return -1;
+  }
+
+  @Override
+  public Map<String, String> getDiskPartitionInfo(String name)
+  {
+    OSFileStore store = this.getFileStore(name);
+    Map<String, String> map = new HashMap<>();
+    if( store != null )
+    {
+      long total = store.getTotalSpace();
+      long free = store.getUsableSpace();
+          
+      map.put("Name", store.getName() );
+      map.put("Volume", store.getVolume() );
+      map.put("Type", store.getType() );
+      map.put("Mount", store.getMount() );
+      map.put("Total", Long.toString( total / this.units ) );
+      map.put("Available", Long.toString( free / this.units ) );
+      return map;
+    }
+    
+    return null;
+  }
+
+  @Override
   public long getTotalDiskSpace()
   {
-    if( this.filesystem != null )
-      return this.filesystem.getTotalSpace() / this.units ;
+    OSFileStore store = this.getFileStore();
+    if( store != null )
+      return store.getTotalSpace() / this.units;
     else
       return -1L;
   }
 
-  /**
-   * Gets the total usable amount of disk space of the root partition ('/' for
-   * Linux based systems and 'c:' for Windows).  If the system does not have
-   * neither of the two partitions mentioned above then it return -1L
-   * 
-   * @return the total usable amount of disk space of the root partition
-   */
-  public long getUsableDiskSpace()
-  {
-    if( this.filesystem != null )
-      return this.filesystem.getUsableSpace() / this.units ;
-    else
-      return -1L;
-  }
-
-  /**
-   * Gets the total amount of disk space of the root partition ('/' for Linux
-   * based systems and 'c:' for Windows) that is being used .  If the system 
-   * does not have neither of the two partitions mentioned above then it 
-   * return -1L
-   * 
-   * @return the total amount of disk space of the root partition being used
-   */
+  @Override
   public long getUsedDiskSpace()
   {
-    if( this.filesystem != null )
-      return (this.getTotalDiskSpace() - this.getFreeDiskSpace()) / this.units ;
+    OSFileStore store = this.getFileStore();
+    if( store != null )
+      return (( store.getTotalSpace() - store.getUsableSpace()) / this.units );
     else
       return -1L;
   }
-  
-  /**
-   * Gets the total free amount of disk space of the root partition ('/' for
-   * Linux based systems and 'c:' for Windows).  If the system does not have
-   * neither of the two partitions mentioned above then it return -1L
-   * 
-   * @return the total free amount of disk space of the root partition
-   */
+
+  @Override
   public long getFreeDiskSpace()
   {
-    if( this.filesystem != null )
-      return this.filesystem.getFreeSpace() / this.units ;
+    OSFileStore store = this.getFileStore();
+    if( store != null )
+      return store.getUsableSpace() / this.units;
     else
       return -1L;
   }
-  
+
+  @Override
+  public String getHostName()
+  {
+    return this.os.getNetworkParams().getHostName();
+  }
+
+  @Override
+  public String getDomainName()
+  {
+    return this.os.getNetworkParams().getDomainName();
+  }
+
+  @Override
+  public String[] getDNSServers()
+  {
+    return this.os.getNetworkParams().getDnsServers();
+  }
+
+  @Override
+  public String[] getNetworkInterfaces()
+  {
+    NetworkIF[] nw = this.hardware.getNetworkIFs();
+    String[] names = new String[nw.length];
+    for(int i = 0; i < nw.length; i++ )
+    {
+      names[i] = nw[i].getDisplayName();
+    }
+    return names;
+  }
+
+  @Override
+  public Map<String, String> getNetworkInterfaceInfo(String name)
+  {
+    NetworkIF[] nw = this.hardware.getNetworkIFs();
+    for( NetworkIF intrf : nw )
+    {
+      if( intrf.getDisplayName().equals(name) )
+      {
+        Map<String, String> map = new HashMap<>();
+        map.put("Name", intrf.getDisplayName() );
+        map.put("MACAddress", intrf.getMacaddr() );
+        map.put("MTU", Integer.toString( intrf.getMTU() ) );
+        map.put("Speed", Long.toString( intrf.getSpeed() ) );
+        map.put("PacketsSent", Long.toString( intrf.getPacketsSent() ) );
+        map.put("PacketsReceived", Long.toString( intrf.getPacketsRecv() ) );
+        map.put("BytesSent", Long.toString( intrf.getBytesSent() ) );
+        map.put("BytesReceived", Long.toString( intrf.getBytesRecv() ) );
+        map.put("InErrors", Long.toString( intrf.getInErrors() ) );
+        map.put("OutErrors", Long.toString( intrf.getOutErrors() ) );
+        
+        return map;
+      }
+    }
+    return null;
+  }
   
   /**
    * Returns a string representation of a JSON object where each key is the same
@@ -466,59 +576,58 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     return str;
   }
   
-  /**
-   * Gets a JSON object representing the object.  The following are the keys
-   * 
-   *  - CommittedVirtualMemorySize
-   *  - TotalSwapSpaceSize
-   *  - FreeSwapSpaceSize
-   *  - ProcessCpuTime
-   *  - FreePhysicalMemorySize
-   *  - TotalPhysicalMemorySize
-   *  - OpenFileDescriptorCount
-   *  - MaxFileDescriptorCount
-   *  - SystemCpuLoad
-   *  - ProcessCpuLoad
-   *   
-   * 
-   * @return a JSON object representing an instance of this class
-   */
+  @Override
   public ObjectNode toJSON()
   {
-    ObjectMapper mapper = new ObjectMapper();
-    ObjectNode json = mapper.createObjectNode();
-    
-    json.put("TotalDiskSpace", 
-        this.getTotalDiskSpace());
-    json.put("UsableDiskSpace", 
-        this.getUsableDiskSpace());
-    json.put("FreeDiskSpace", 
-        this.getFreeDiskSpace());
-    json.put("CommittedVirtualMemorySize", 
-             this.getCommittedVirtualMemorySize());
-    json.put("TotalSwapSpaceSize", 
-        this.getTotalSwapSpaceSize());
-    json.put("FreeSwapSpaceSize", 
-        this.getFreeSwapSpaceSize());
-    json.put("TotalNumberCpuCores", 
-        this.getTotalNumberCpuCores());
-    json.put("ProcessCpuTime", 
-        this.getProcessCpuTime());
-    json.put("FreePhysicalMemorySize", 
-        this.getFreePhysicalMemorySize());
-    json.put("TotalPhysicalMemorySize", 
-        this.getTotalPhysicalMemorySize());
-    json.put("OpenFileDescriptorCount", 
-        this.getOpenFileDescriptorCount());
-    json.put("MaxFileDescriptorCount", 
-        this.getMaxFileDescriptorCount());
-    json.put("SystemCpuLoad", 
-        this.getSystemCpuLoad());
-    json.put("ProcessCpuLoad", 
-        this.getProcessCpuLoad());
-    
-    return json;
+    // TODO Auto-generated method stub
+    return null;
   }
+
+  @Override
+  public void close()
+  {
+    this.logger.debug("Nothing to close or clean");
+
+  }
+
+  /**
+   * Gets the File Store based on the given name.  If is not found it returns
+   * null
+   * 
+   * @return the File Store based on the given name.  If is not found it
+   *         returns null
+   */
+  private OSFileStore getFileStore()
+  {
+    OSFileStore[] stores = this.os.getFileSystem().getFileStores();
+    for( OSFileStore store : stores )
+    {
+      String store_mount = store.getMount().toLowerCase();
+      if( store_mount.equals("/") || store_mount.equals("c:\\") )
+        return store;
+    }
+    return null;
+  }
+  
+  /**
+   * Gets the File Store based on the given name.  If is not found it returns
+   * null
+   * 
+   * @return the File Store based on the given name.  If is not found it
+   *         returns null
+   */
+  private OSFileStore getFileStore( String name )
+  {
+    OSFileStore[] stores = this.os.getFileSystem().getFileStores();
+    for( OSFileStore store : stores )
+    {
+      String store_mount = store.getMount();
+      if( store_mount != null && store_mount.equals(name) )
+        return store;
+    }
+    return null;
+  }
+  
   
   /**
    * Gets the container id from the given filename by looking for the first 
@@ -669,45 +778,4 @@ public class DockerResourceMonitorImpl implements SystemResourceMonitorIntf
     
   }
   
-  /**
-   * Closes the DockerClient
-   */
-  public void close()
-  {
-    this.docker.close();
-  }
-  
-  /**
-   * Gets the unique id identifying this node.
-   * 
-   * @return the unique id identifying this node.
-   */
-  public String getUniqueHostId()
-  {
-    return this.shortCid;
-  }
-  
-  /**
-   * Runs the show, used only as a quick way to test the methods.
-   * 
-   * @param args the command line arguments, not used
-   */
-  public static void main( String[] args)
-  {
-    CcdpUtils.configLogger();
-    
-    DockerResourceMonitorImpl srm = new DockerResourceMonitorImpl(UNITS.KB);
-    
-    
-//    while( true )
-//    {
-      System.out.println("");
-      System.out.println("***************************************************");
-      System.out.println(srm.toString());
-      System.out.println("***************************************************");
-      System.out.println("");
-      
-      CcdpUtils.pause(1);
-//    }
-  }
 }

@@ -508,8 +508,6 @@ public class LinuxResourceMonitorImpl implements SystemResourceMonitorIntf
    * based systems and 'c:' for Windows).  If the system does not have neither 
    * of the two partitions mentioned above then it return -1L
    * 
-   * @param name the name of the disk to retrieve the information from
-   * 
    * @return the total amount of disk space of the root partition
    */
   public long getTotalDiskSpace()

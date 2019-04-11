@@ -1,6 +1,8 @@
 package com.axios.ccdp.test;
 
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Arrays;
 
 import org.apache.log4j.Logger;
@@ -182,7 +184,8 @@ private void printFileSystem(FileSystem fileSystem)
         String vol = fs.getVolume();
         String mnt = fs.getMount();
         
-        if( type.equals("xfs") || type.equals("nfs") || type.equals("NTFS") )
+        if( type.equals("xfs") || type.equals("nfs")  ||
+            type.equals("NTFS") || type.startsWith("ext") )
         {
           this.logger.debug("Partition Information: " + name);
           this.logger.debug("\tVolume " + vol);
@@ -250,10 +253,21 @@ private void printNetworkInterfaces(NetworkIF[] networkIFs)
    * @param args
    *            the arguments
    */
-  public static void main(String[] args) throws Exception
+  public static void main(String[] args) 
   {
     String cfg_file = System.getProperty("ccdp.config.file");
-    CcdpUtils.loadProperties(cfg_file);
+    try
+    {
+      CcdpUtils.loadProperties(cfg_file);
+    }
+    catch (FileNotFoundException e)
+    {
+      e.printStackTrace();
+    }
+    catch (IOException e)
+    {
+      e.printStackTrace();
+    }
     CcdpUtils.configLogger();
     
     new OshiResTest();

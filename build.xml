@@ -294,17 +294,12 @@
   <target name="javadocs" depends="javadoc" 
           description="Generates the JavaDoc for the whole project" />
   
-
-<!-- additionalparam="-html4" -->
-
+  <!-- Generates the JavaDoc for the whole project -->
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
     <mkdir dir="${doc.dir}"/>
-    <javadoc sourcepath="${src.dir}" 
-             destdir="${doc.dir}"
-             >
+    <javadoc sourcepath="${src.dir}" destdir="${doc.dir}" additionalparam="-html4">
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />
-        
       </classpath>
     </javadoc>
   </target>

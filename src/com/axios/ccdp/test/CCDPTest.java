@@ -3,6 +3,7 @@ package com.axios.ccdp.test;
 import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -10,6 +11,8 @@ import java.util.StringTokenizer;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.utils.LinuxResourceMonitorImpl;
+import com.axios.ccdp.utils.SystemResourceMonitorAbs.UNITS;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.DockerClient.ListContainersParam;
@@ -46,15 +49,32 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    Map<String, Long> map = new HashMap<>();
-    map.put("One", Long.valueOf(1) );
+    LinuxResourceMonitorImpl srm = new LinuxResourceMonitorImpl(UNITS.MB);
     
     
-    boolean test = true;
+    System.out.println("");
+    System.out.println("***************************************************");
+    System.out.println(srm.toPrettyPrint());
+    System.out.println("***************************************************");
+    System.out.println("");
     
-    if( test )
-      return;
-    
+    String[] fs = srm.getFileStorageNames();
+    for( String name : fs )
+    {
+      System.out.println("Storage: " + name);
+      Map<String, String> map = srm.getDiskPartitionInfo(name);
+      Iterator<String> keys = map.keySet().iterator();
+      while( keys.hasNext() )
+      {
+        String key = keys.next();
+        System.out.println("\t[" + key + "] = " + map.get(key) );
+        
+      }
+    }
+  }
+  
+  private void doDocker() throws Exception
+  {
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     this.logger.debug("The URL " + url);
     DockerClient docker = new DefaultDockerClient(url);
@@ -69,9 +89,10 @@ public class CCDPTest
       this.logger.debug("The Container id " + id);
 //      docker.removeContainer(id);
     }
-    docker.close();
-    
+    docker.close();    
   }
+  
+  
   
   public static void main( String[] args ) throws Exception
   {

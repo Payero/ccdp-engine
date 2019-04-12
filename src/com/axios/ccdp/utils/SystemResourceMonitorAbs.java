@@ -861,6 +861,8 @@ public abstract class SystemResourceMonitorAbs
    * Gets the File Store based on the given name.  If is not found it returns
    * null
    * 
+   * @param name the name of the file storage to retrieve
+   * 
    * @return the File Store based on the given name.  If is not found it
    *         returns null
    */

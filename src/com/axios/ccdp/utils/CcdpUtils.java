@@ -93,6 +93,8 @@ public class CcdpUtils
   public static final String CFG_KEY_STORAGE = "storageIntf";
   /** Properties used by the resource monitor object */
   public static final String CFG_KEY_RES_MON = "res.mon.intf";
+  /** Properties used by the database object */
+  public static final String CFG_KEY_DB_INTF = "database.intf";
  
   
   /** Class handling connection to external entities */
@@ -107,6 +109,8 @@ public class CcdpUtils
   public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
   /** Class used to measure resource utilization */
   public static final String CFG_KEY_RES_MON_CLASSNAME = "res.mon.intf.classname";
+  /** Class used to connect to the database */
+  public static final String CFG_KEY_DATABASE_CLASSNAME = "database.intf.classname";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";

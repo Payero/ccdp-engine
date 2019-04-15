@@ -19,6 +19,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -92,6 +93,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   private ThreadController controller = null;
   
   /**
+   * Stores the object that interacts with the database
+   */
+  private CcdpDatabaseIntf dbClient = null;
+  
+  /**
    * Instantiates a new instance of the agent responsible for running all the
    * tasks on a particular Mesos Agent
    * 
@@ -109,14 +115,18 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     
     ObjectNode res_mon_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
+    ObjectNode db_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_DB_INTF);
     
     this.monitor = factory.getResourceMonitorInterface(res_mon_node);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
+    this.dbClient = factory.getCcdpDatabaseIntf( db_node );
+    this.dbClient.connect();
+    
     this.logger.debug("Done with the connections: " + task_msg_node.toString());
-
     
     String hostId = this.monitor.getUniqueHostId();
     String hostname = null;

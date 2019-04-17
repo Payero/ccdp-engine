@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
+import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,7 +30,7 @@ import com.mongodb.client.model.Filters;
 import com.mongodb.client.result.DeleteResult;
 
 
-public class CcdpMongoDbImpl
+public class CcdpMongoDbImpl implements CcdpDatabaseIntf
 {
   static {
     Logger mongoLogger = Logger.getLogger( "org.mongodb.driver" );
@@ -67,16 +68,25 @@ public class CcdpMongoDbImpl
    * Stores the collection object with all the records
    */
   private MongoCollection<Document> statusColl = null;
-
+  /**
+   * Generates JSON objects 
+   */
   private ObjectMapper mapper = new ObjectMapper();
-  
+
+  /**
+   * Default constructor, it does not perform any action
+   */
   public CcdpMongoDbImpl()
   {
 
   }
 
 
-
+  /**
+   * Gets all the settings required to connect from the given parameter
+   * 
+   * @param config the JSON representation of the DB connection arguments
+   */
   public void configure(ObjectNode config)
   {
     if( config.has("db.host") )
@@ -86,10 +96,16 @@ public class CcdpMongoDbImpl
     if( config.has("db.name") )
       this.dbName = config.get("db.name").asText();
     if( config.has("status.collection") )
-      this.dbColl = config.get("status.collection").asText();
+      this.dbColl = config.get("resources.table").asText();
     
   }
 
+  /**
+   * Connects to the database using the settings passed to the configure() 
+   * method.  Returns true if was able to connect or false otherwise
+   * 
+   * @return true if was able to connect or false otherwise
+   */
   public boolean connect()
   {
     String url = String.format("mongodb://%s:%d", this.dbHost, this.dbPort);
@@ -101,103 +117,60 @@ public class CcdpMongoDbImpl
                 builder.hosts(Arrays.asList(sa)))
         .build());
     this.database = this.client.getDatabase(this.dbName);
-    
-//    try {
-//      this.database.createCollection(this.dbColl);
-//    }
-//    catch( Exception e )
-//    {
-//      // the collection already exists so ignore the error message
-//    }
     this.statusColl = this.database.getCollection(this.dbColl);
     
     return true;
   }
 
+  /**
+   * Stores the information from the Resource object into the database.
+   * Returns true if was able to store the information or false otherwise
+   * 
+   * @param vm the object with the information to store
+   * 
+   * @return true if was able to store the information or false otherwise
+   */
   public boolean storeVMInformation(CcdpVMResource vm )
   {
     Document doc = Document.parse( vm.toJSON().toString() );
-    
-    if( doc == null )
-      System.err.println("Crap!!");
-    else
-      this.logger.debug("The Document " + doc.toString() );
     String id = doc.get("instance-id").toString();
-    
-    this.logger.info("Storing Data for " + id );
     try
-  {
-    Bson query = Filters.eq("instance-id", id);
-    this.logger.debug("Finding '" + id + "'");
-    Document myFirst = this.statusColl.find(query).first();
-    if( myFirst == null )
     {
-      this.logger.debug("Did not find it, inserting it");
-      this.statusColl.insertOne(doc);      
+      Bson query = Filters.eq("instance-id", id);
+      Document myFirst = this.statusColl.find(query).first();
+      if( myFirst == null )
+      {
+        this.statusColl.insertOne(doc);      
+      }
+      else
+      {
+        doc.append("last-updated", Long.valueOf(Instant.now().toEpochMilli()) );
+        this.statusColl.findOneAndReplace(query, doc);
+      }
+      
     }
-    else
+    catch( Exception e )
     {
-      this.logger.debug("Updating current entry");
-      doc.append("last-updated", Long.valueOf(Instant.now().toEpochMilli()) );
-      this.statusColl.findOneAndReplace(query, doc);
+      this.logger.error("ERROR " + e.getMessage());
+      e.printStackTrace();
     }
-    
-  }
-  catch( Exception e )
-  {
-    this.logger.error("ERROR " + e.getMessage());
-    e.printStackTrace();
-  }
-    
-    
     
     return true;
     
-//    boolean result = false;
-//    String id = vm.getInstanceId();
-//    
-//    try
-//    {
-//      BasicDBObject dbObj = new BasicDBObject();
-//      
-//      ObjectNode node = vm.toJSON();
-//      HashMap<String, Object> map = 
-//          new ObjectMapper().readValue(node.traverse(), HashMap.class);
-//      dbObj.putAll(map);
-//      Document doc = new Document(map);
-//      
-//      try
-//      {
-//        Bson query = Filters.eq("instance-id", id);
-//        this.logger.debug("Finding '" + id + "'");
-//        this.statusColl.findOneAndUpdate(query, dbObj);
-//      }
-//      catch( Exception e )
-//      {
-//        this.logger.error("ERROR " + e.getMessage());
-//        e.printStackTrace();
-//        this.logger.info("Could not find it, inserting " + id);
-//        //this.statusColl.insertOne(doc);
-//      }
-//      result = true;
-//    }
-//    catch(Exception e )
-//    {
-//      this.logger.error("Got an exception while inserting the status " + 
-//                         e.getMessage() );
-//      result = false;
-//    }
-//    
-//    return result;
   }
 
+  /**
+   * Gets the first object whose instance-id matches the given uniqueId.  If 
+   * the object is not found it returns null
+   * 
+   * @param uniqueId the object's unique identifier
+   * 
+   * @return returns the object if found or null otherwise
+   */
   public CcdpVMResource getVMInformation(String uniqueId)
   {
-    this.logger.info("Finding VM " + uniqueId);
-    
     FindIterable<Document> docs = 
         this.statusColl.find(Filters.eq("instance-id", uniqueId) );
-    
     try
     {
       return this.getCcdpVMResource( docs.first() );
@@ -211,15 +184,25 @@ public class CcdpMongoDbImpl
     
   }
   
-  public boolean deleteVMInformation(String uniqueId)
+  /**
+   * Deletes all the entries whose instance-id matches the given one.
+   * 
+   * @param uniqueId the object's unique identifier
+   * 
+   * @return returns the  number of entries that were removed 
+   */
+  public long deleteVMInformation(String uniqueId)
   {
-    DeleteResult delRes = this.statusColl.deleteMany(Filters.eq("instance-id", uniqueId)); 
-    this.logger.debug("Removed " + delRes.getDeletedCount() + " entries");
-    return true;
+    DeleteResult delRes = 
+        this.statusColl.deleteMany(Filters.eq("instance-id", uniqueId)); 
+    return delRes.getDeletedCount();
   }
 
-
-
+  /**
+   * Gets a list of all the resources stored in the database.
+   * 
+   * @return a list of the resources stored in the database
+   */
   public List<CcdpVMResource> getAllVMInformation()
   {
     List<CcdpVMResource> result = new ArrayList<>();
@@ -239,6 +222,15 @@ public class CcdpMongoDbImpl
     return result;
   }
 
+  /**
+   * Gets a list of all the resources stored in the database whose session id
+   * matches the given one 'sid'
+   * 
+   * @param sid the session-id to query the database
+   * 
+   * @return a list of the resources stored in the database whose session id
+   *         matches the given one 'sid'
+   */
   public List<CcdpVMResource> getAllVMInformationBySessionId(String sid)
   {
     
@@ -262,13 +254,26 @@ public class CcdpMongoDbImpl
     return result;
   }
 
-  public boolean disconnect()
+  /**
+   * Disconnects the client from the database
+   */
+  public void disconnect()
   {
     this.client.close();
-    return true;
   }
   
-  
+  /**
+   * Translates the given Document object into a CcdpVMResource.  Basically it
+   * removes the _id field and uses ObjectMapper and a HashMap for the 
+   * translation.
+   * 
+   * @param doc the MongoDB Document to translate
+   * 
+   * @return a CcdpVMResource object with all its fields populated
+   * 
+   * @throws JsonProcessingException a JsonProcessingException is thrown if 
+   *         there is a problem during the translation
+   */
   private CcdpVMResource getCcdpVMResource( Document doc ) throws JsonProcessingException
   {
     if( doc == null )

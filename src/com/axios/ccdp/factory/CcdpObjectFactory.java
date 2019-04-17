@@ -1,6 +1,7 @@
 package com.axios.ccdp.factory;
 
 import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
@@ -191,4 +192,23 @@ public class CcdpObjectFactory
     impl.configure(config);
     return impl; 
   }
+  
+  /**
+   * Gets the object responsible for accessing the database.  It stores, update,
+   * and delete entries from the database
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the framework 
+   *         to access the database
+   */
+  public CcdpDatabaseIntf getCcdpDatabaseIntf(ObjectNode config)
+  {
+    String key = CcdpUtils.CFG_KEY_DATABASE_CLASSNAME;
+    Object obj = this.getNewInstance(key, CcdpDatabaseIntf.class);
+    CcdpDatabaseIntf impl = (CcdpDatabaseIntf)obj;
+    impl.configure(config);
+    return impl;
+  }
+  
+  
 }

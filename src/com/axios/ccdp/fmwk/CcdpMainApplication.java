@@ -409,7 +409,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public void onEvent()
   {
-    this.logger.info("Checking Resources");
+    this.logger.debug("Checking Resources");
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
     {
@@ -457,13 +457,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   private void removeUnresponsiveResources()
   {
-    this.logger.trace("Checking for unresponsive VMs");
-
     List<CcdpVMResource> list = 
               this.dbClient.getAllVMInformation();
-    List<CcdpVMResource> remove = new ArrayList<>();
     List<String> terminate = new ArrayList<>();
-
+    this.logger.trace("Checking for unresponsive VMs out of " + list.size() );
     // check the last time each VM was updated
     for( CcdpVMResource vm : list )
     {
@@ -484,11 +481,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         {
           String txt = "The Agent " + id + " Status " + vm.getStatus() +
               " has not sent updates since " + this.formatter.format(new Date(resTime));
-          this.logger.debug(txt);
-          this.logger.debug("It has been " + (diff/1000) + " seconds since we got last heartbeat");
-          this.logger.debug("Removing unresponsive instance " + id );
+          this.logger.info(txt);
+          this.logger.info("It has been " + (diff/1000) + " seconds since we got last heartbeat");
+          this.logger.info("Removing unresponsive instance " + id );
           this.dbClient.deleteVMInformation(id);
-          remove.add(vm);
 
           //if the instance is not in the do not terminate list and is unresponsive
           //add it to the terminate list to send the shut_down command to aws
@@ -503,7 +499,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.logger.warn("unresponsive VM caused exception, removing it " + e.getMessage() );
         e.printStackTrace();
         this.dbClient.deleteVMInformation(id);
-        remove.add(vm);
       }
     }
 
@@ -512,7 +507,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     int numberOfUnresponsiveVMs = terminate.size();
 
     if( numberOfUnresponsiveVMs > 0) {
-      terminateInstances(terminate);
+      this.terminateInstances(terminate);
     }
   }
 
@@ -1593,7 +1588,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                   }
                   else
                   {
-                    this.logger.info("VM " + id + 
+                    this.logger.trace("VM " + id + 
                                      " is a test node, skipping termination");
                   }
                 }
@@ -1654,10 +1649,15 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void terminateInstances( List<String> terminate) 
   {
     this.logger.info("Terminating " + terminate.toString() );
-    this.controller.terminateInstances(terminate);
+    List<String> filtered = new ArrayList<>();
     for( String iid : terminate)
+    {
+      if( !iid.startsWith("i-test") )
+        filtered.add(iid);
       this.dbClient.deleteVMInformation(iid);
-    
+    }
+    this.controller.terminateInstances(filtered);
+        
     this.showSystemChange();
   }
   /**

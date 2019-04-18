@@ -144,7 +144,6 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
       }
       else
       {
-        doc.append("last-updated", Long.valueOf(Instant.now().toEpochMilli()) );
         this.statusColl.findOneAndReplace(query, doc);
       }
       
@@ -234,7 +233,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformationBySessionId(String sid)
   {
     
-    this.logger.info("Finding all VMs for " + sid);
+    this.logger.debug("Finding all VMs for " + sid);
     List<CcdpVMResource> result = new ArrayList<>();
     FindIterable<Document> docs = 
         this.statusColl.find(Filters.eq("session-id", sid) );

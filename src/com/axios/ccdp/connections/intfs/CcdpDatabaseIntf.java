@@ -61,6 +61,22 @@ public interface CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformationBySessionId( String sid );
   
   /**
+   * Gets the total number of VMs stored in the database
+   * 
+   * @return the total number of VMs stored in the database
+   */
+  public int getTotalVMInformationCount();
+
+  /**
+   * Gets the total number of VMs stored in the database assigned to a specific
+   * session
+   * 
+   * @return the total number of VMs stored in the database assigned to a
+   *         specific session
+   */
+  public int getVMInformationCount(String sid);
+  
+  /**
    * Deletes all the entries whose instance-id matches the given one.
    * 
    * @param uniqueId the object's unique identifier

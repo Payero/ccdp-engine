@@ -416,15 +416,21 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       // removes all resources that have failed to update
       this.removeUnresponsiveResources();
     }
-    
+    List<String> toRemove = new ArrayList<>();
     for( String sid : this.sessions )
     {
+      if ( this.dbClient.getVMInformationCount(sid) == 0 )
+        toRemove.add(sid);
+      
       if( !this.nodeTypes.contains(sid) )
       {
         this.checkAllocation( sid );
         this.checkDeallocation( sid );
       }
     }
+    
+    for(String sid : toRemove )
+      this.sessions.remove(sid);
     
 //    synchronized( this.resources )
 //    {

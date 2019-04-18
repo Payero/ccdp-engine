@@ -62,75 +62,19 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
+    List<Integer> nums = new ArrayList<>();
+    for(int i = 0; i < 10; i++)
+      nums.add(i);
     
-    CcdpVMResource vm = CCDPTest.getVM();
-    //this.logger.debug("Parsing:\n" + vm.toPrettyPrint());
-    ObjectMapper mapper = new ObjectMapper();
-    Map<String, Object> map = mapper.convertValue(vm.toJSON(), Map.class);
-    this.logger.debug("The Map " + map.toString() );
-    Document doc = new Document(map);
-  }
-  
-  public void whatNow( JsonNode node, Map map )
-  {
-    Iterator<String> keys = node.fieldNames();
-    while( keys.hasNext() )
+    for( Integer n : nums )
     {
-      String key = keys.next();
-      JsonNode value = node.get(key);
-      this.logger.debug("Working with " + key );
-      if( value.isObject() )
+      if( n % 2 == 0 )
       {
-        this.logger.debug("**************  Found a Container (" + key + "), calling me again   ****");
-        this.whatNow( value, map);
+        this.logger.debug("Removing " + n );
+        nums.remove(n);
       }
-      else if( value.isArray() )
-      {
-        this.logger.debug("**************  Found an array (" + key + "), calling me again   ****");
-        Iterator<JsonNode> elements = value.elements();
-        while( elements.hasNext() )
-        {
-          this.whatNow(elements.next(), map);
-        }
-      }
-      else
-      {
-      }
-      
     }
-  }
-  
-  public static CcdpVMResource getVM()
-  {
-    String uiid = "i-test-cec36adf496e";
-    CcdpTaskRequest task = new CcdpTaskRequest();
-    task.setTaskId(UUID.randomUUID().toString());
-    task.setCPU(0.5);
-    task.setHostId("localhost");
     
-    CcdpVMResource vm = new CcdpVMResource(uiid);
-    vm.setStatus(ResourceStatus.RUNNING);
-    vm.setHostname("localhost");
-    vm.setInstanceId(uiid);
-    vm.setNodeType(CcdpNodeType.DEFAULT);
-    vm.setAgentId("myAgent");
-    vm.setAssignedSession("DEFAULT");
-    vm.setAssignedCPU(0.0);
-    vm.setAssignedMEM(0.0);
-    vm.setAssignedDisk(0.0);
-    vm.setMemLoad(8151.0);
-    vm.setSingleTask("localhost");
-    vm.isSingleTasked(false);
-    vm.setCPULoad(85.35564853556485);
-    vm.setMemLoad(31897.0);
-    vm.setDisk(932431.0);
-    vm.setFreeMemory(23745.0);
-    vm.setCPULoad(0.14644351464435146);
-    vm.setFreeDiskSpace(909747.0);
-    vm.setLastAssignmentTime(1555323695787L);
-    vm.setLastUpdatedTime(1555323695787L);
-    vm.addTask(task);
-    return vm;
   }
   
   public static void main( String[] args ) throws Exception

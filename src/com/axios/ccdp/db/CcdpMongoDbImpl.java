@@ -254,6 +254,27 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   }
 
   /**
+   * Gets the total number of VMs stored in the database
+   * 
+   * @return the total number of VMs stored in the database
+   */
+  public int getTotalVMInformationCount()
+  {
+    return this.getAllVMInformation().size();
+  }
+
+  /**
+   * Gets the total number of VMs stored in the database assigned to a specific
+   * session
+   * 
+   * @return the total number of VMs stored in the database assigned to a
+   *         specific session
+   */
+  public int getVMInformationCount(String sid)
+  {
+    return this.getAllVMInformationBySessionId( sid ).size();
+  }
+  /**
    * Disconnects the client from the database
    */
   public void disconnect()

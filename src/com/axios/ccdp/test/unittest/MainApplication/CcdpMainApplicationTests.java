@@ -15,13 +15,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
-
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;

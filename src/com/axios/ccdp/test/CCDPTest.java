@@ -1,39 +1,12 @@
 package com.axios.ccdp.test;
 
-import java.io.FileInputStream;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.StringTokenizer;
-import java.util.UUID;
 
 import org.apache.log4j.Logger;
-import org.bson.Document;
 
-import com.axios.ccdp.resources.CcdpVMResource;
-import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
-import com.axios.ccdp.tasking.CcdpTaskRequest;
+
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.LinuxResourceMonitorImpl;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.axios.ccdp.utils.SystemResourceMonitorAbs.UNITS;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.deser.std.ObjectArrayDeserializer;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.mongodb.BasicDBObject;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.DockerClient.ListContainersParam;
-import com.spotify.docker.client.messages.Container;
-import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.ContainerCreation;
-import com.spotify.docker.client.messages.ContainerInfo;
-import com.spotify.docker.client.messages.HostConfig;
-
 
 
 public class CCDPTest 

@@ -5,7 +5,7 @@ import javax.jms.TextMessage;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.amq.AmqConnector;
+import com.axios.ccdp.impl.connections.amq.AmqConnector;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 

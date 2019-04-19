@@ -1,7 +1,6 @@
 package com.axios.ccdp.test.unittest;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,9 +16,6 @@ import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 
 import junit.framework.TestCase;
 
-import org.hamcrest.CoreMatchers.*;
-import org.hamcrest.core.AnyOf;
-import org.junit.Assert;
 
 public class ThreadRequestsGeneratorUnitTest extends TestCase
 {
@@ -306,7 +302,6 @@ public class ThreadRequestsGeneratorUnitTest extends TestCase
     List<CcdpThreadRequest> reqs = this.getRequests(key);
     assertNotNull(reqs);
     assertEquals(reqs.size(), 1);
-    List<String> expected = Arrays.asList("The Sender", "Someone Else");
     
     for( CcdpThreadRequest req : reqs )
     {

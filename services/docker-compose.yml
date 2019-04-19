@@ -3,6 +3,7 @@ services:
   mongo-3.6:
     image: mongo:3.6
     container_name: mongo-3.6
+    restart: unless-stopped
     hostname: "mongo-3.6"
     container_name: "mongo-3.6"
     ports:
@@ -18,6 +19,7 @@ services:
     image: webcenter/activemq:latest
     hostname: amq
     container_name: activemq
+    restart: unless-stopped
     ports:
       - "8161:8161"
       - "61616:61616"

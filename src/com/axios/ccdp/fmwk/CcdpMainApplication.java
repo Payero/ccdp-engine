@@ -23,13 +23,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.controllers.CcdpVMControllerAbs;
+import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.EndSessionMessage;
@@ -110,10 +109,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Controls all the VMs
    */
   private CcdpVMControllerIntf controller =null;
-  /**
-   * Object responsible for creating/deleting files
-   */
-  private CcdpStorageControllerIntf storage = null;
+//  /**
+//   * Object responsible for creating/deleting files
+//   */
+//  private CcdpStorageControllerIntf storage = null;
   /**
    *  Stores the object responsible for storing data in the database
    */
@@ -195,8 +194,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
     ObjectNode res_ctr_node =
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
-    ObjectNode storage_node =
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
+//    ObjectNode storage_node =
+//        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
     ObjectNode db_node =
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_DB_INTF);
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
@@ -204,7 +203,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
 
     this.controller = factory.getCcdpResourceController(res_ctr_node);
-    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
+//    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
     this.dbClient = factory.getCcdpDatabaseIntf(db_node);
     this.dbClient.connect();
 

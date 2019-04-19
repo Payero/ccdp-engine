@@ -8,9 +8,9 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import com.axios.ccdp.connections.amq.AmqReceiver;
-import com.axios.ccdp.connections.amq.AmqSender;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.impl.connections.amq.AmqReceiver;
+import com.axios.ccdp.impl.connections.amq.AmqSender;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.UndefinedMessage;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -19,7 +19,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
-import junit.framework.AssertionFailedError;
 import junit.framework.TestCase;
 
 public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsumerIntf

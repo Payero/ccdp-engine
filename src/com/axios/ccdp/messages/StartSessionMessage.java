@@ -1,6 +1,5 @@
 package com.axios.ccdp.messages;
 
-import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;

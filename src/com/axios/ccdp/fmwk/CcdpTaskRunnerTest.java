@@ -9,7 +9,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
+import com.axios.ccdp.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;

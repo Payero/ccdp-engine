@@ -1,6 +1,5 @@
 package com.axios.ccdp.messages;
 
-import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 
 public class UndefinedMessage extends CcdpMessage
 {

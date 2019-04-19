@@ -1,13 +1,15 @@
 package com.axios.ccdp.factory;
 
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
-import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.controllers.CcdpVMControllerAbs;
+
+import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
+import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.axios.ccdp.intfs.CcdpTaskingControllerIntf;
+import com.axios.ccdp.intfs.CcdpVMControllerIntf;
+
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.SystemResourceMonitorAbs;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 

@@ -2,7 +2,6 @@ package com.axios.ccdp.test;
 
 import java.io.File;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
@@ -16,9 +15,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.amq.AmqReceiver;
-import com.axios.ccdp.connections.amq.AmqSender;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.impl.connections.amq.AmqReceiver;
+import com.axios.ccdp.impl.connections.amq.AmqSender;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.EndSessionMessage;
 import com.axios.ccdp.messages.KillTaskMessage;

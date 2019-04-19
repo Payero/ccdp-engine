@@ -18,11 +18,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpDatabaseIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.KillTaskMessage;
@@ -37,7 +38,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.SystemResourceMonitorAbs;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -188,7 +188,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     else
     {
       this.logger.warn("Skipping Hearbeats");
-      this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+      //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+      this.dbClient.storeVMInformation(this.vmInfo);
     }
     
     this.runMain();
@@ -219,6 +220,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+    this.vmInfo.setLastUpdatedTime(System.currentTimeMillis());
     double availableCPU = 100.0 - (this.vmInfo.getCPULoad()* 100);
     if (availableCPU < 0)
     	availableCPU = 0;
@@ -309,9 +311,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.trace("Sending Heartbeat to " + this.toMain);
+    this.logger.trace("Storing hearbeat");
     this.updateResourceInfo();
-    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    this.dbClient.storeVMInformation(this.vmInfo);
   }
   
 
@@ -473,7 +476,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     else
       this.logger.info("Shuting Down Agent");
     this.vmInfo.setStatus(ResourceStatus.SHUTTING_DOWN);
-    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    this.dbClient.storeVMInformation(this.vmInfo);
     
     if( this.timer != null )
       this.timer.stop();

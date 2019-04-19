@@ -1,6 +1,9 @@
 package com.axios.ccdp.factory;
 
 
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
 import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
@@ -76,10 +79,27 @@ public class CcdpObjectFactory
       throw new RuntimeException( msg );
     }
     
+    
     try
     {
       Class<?> instantiation = Class.forName(classname);
-      Object obj = instantiation.newInstance();
+      Constructor<?> def = null;
+      Constructor<?>[] consts = instantiation.getConstructors();
+      if( consts.length > 0 )
+      {
+        for(Constructor<?> tst : consts )
+        {
+          if ( tst.getParameterTypes().length == 0 )
+          {
+            def = tst;
+            break;
+          }
+        }
+      }
+      if( def == null )
+        throw new RuntimeException("Could not find the default constructor");
+      Class<?>[] params = def.getParameterTypes();
+      Object obj = instantiation.getDeclaredConstructor(params).newInstance();
       if( clazz.isInstance(obj) )
         return obj;
       else
@@ -102,6 +122,14 @@ public class CcdpObjectFactory
     catch (IllegalAccessException e)
     {
       throw new RuntimeException("Illegal Access for " + classname );
+    }
+    catch (NoSuchMethodException e)
+    {
+      throw new RuntimeException("No Such Method for " + classname );
+    }
+    catch (InvocationTargetException e)
+    {
+      throw new RuntimeException("Invocation Target for " + classname );
     }
   }
   

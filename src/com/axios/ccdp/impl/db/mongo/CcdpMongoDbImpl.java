@@ -213,7 +213,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
       }
       catch( JsonProcessingException jpe )
       {
-        this.logger.error("Could not process VM");
+        this.logger.error("Could not process VM " + jpe.getMessage() );
         continue;
       }
     }

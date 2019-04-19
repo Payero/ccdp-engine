@@ -418,11 +418,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     List<String> toRemove = new ArrayList<>();
     for( String sid : this.sessions )
     {
-      if ( this.dbClient.getVMInformationCount(sid) == 0 )
-        toRemove.add(sid);
+//      if ( this.dbClient.getVMInformationCount(sid) == 0 )
+//        toRemove.add(sid);
       
       if( !this.nodeTypes.contains(sid) )
       {
+        if ( this.dbClient.getVMInformationCount(sid) == 0 )
+          toRemove.add(sid);
+        
         this.checkAllocation( sid );
         this.checkDeallocation( sid );
       }

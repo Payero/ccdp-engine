@@ -45,8 +45,8 @@ import com.axios.ccdp.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
@@ -133,7 +133,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     // need to make sure the default configuration is set properly
     CcdpImageInfo def = 
-        CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+        CcdpUtils.getImageInfo( CcdpConfigParser.DEFAULT_IMG_NAME );
     if( def.getImageId() == null || 
         def.getSecGrp() == null || 
         def.getSubnet() == null )
@@ -288,7 +288,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         CreateTagsRequest tagsReq = new CreateTagsRequest();
         
         List<Tag> new_tags = new ArrayList<Tag>();
-        new_tags.add(new Tag(CcdpUtils.KEY_INSTANCE_ID, instId));
+        new_tags.add(new Tag(CcdpConfigParser.KEY_INSTANCE_ID, instId));
         
         if( tags != null )
         {
@@ -703,7 +703,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public static AWSCredentials getAWSCredentials()
   {
-    CcdpImageInfo img = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+    CcdpImageInfo img = 
+        CcdpUtils.getImageInfo(CcdpConfigParser.EC2_IMG_NAME);
     String fname = img.getCredentialsFile();
     String profile = img.getProfileName();
     

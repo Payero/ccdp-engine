@@ -41,7 +41,6 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 
@@ -103,7 +102,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    * 
    * @param type the type of node this agent is running
    */
-  public CcdpAgent(CcdpNodeType type)
+  public CcdpAgent(String type)
   {
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();

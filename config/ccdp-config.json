@@ -1,0 +1,133 @@
+{
+  "logging": {
+    "config-file": "${CCDP_HOME}/config/log4j.properties", 
+    "logs-dir": "${CCDP_HOME}/logs"
+  },
+  "engine": {
+    "resources-check-cycle": 5,
+    "do-not-terminate": [
+      "i-0fa470f3da73d8ac0", 
+      "i-0a1679a0cb4aba5dd"
+    ],
+    "node-types": [
+      "DEFAULT", 
+      "EC2", 
+      "EMS",
+      "HADOOP", 
+      "SERVICE",
+      "NIFI", 
+      "CUSTOM",
+      "OTHER", 
+      "DOCKER",
+      "UNKNOWN"
+    ]
+  },
+  "interface-impls": {
+    "connection": {
+      "classname": "com.axios.ccdp.impl.connections.amq.AmqCcdpConnectionImpl",
+      "broker": "failover://tcp://localhost:61616",
+      "main-queue": "CCDP-Engine"  
+    },
+    "task-allocator": {
+      "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl"
+    },
+    "resource-manager": {
+      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl"
+    },
+    "storage": {
+      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
+    },
+    "resource-monitor": {
+      "classname": "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+      "units": "MB",
+      "docker-url": "http://172.17.0.1:2375"
+    },
+    "database": {
+      "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
+      "db-host": "localhost",
+      "db-port": 27017,
+      "db-name": "CCDP",
+      "db-resources-table": "ResourceStatus"
+    }
+  },
+  "tasking": {
+    "allocate": {
+      "avg-load-cpu": 80,
+      "avg-load-mem": 15,
+      "avg-load-time": 2,
+      "no-more-than":  5
+    },
+    "deallocate": {
+      "avg-load-cpu": 20,
+      "avg-load-mem": 20,
+      "avg-load-time": 2
+    }
+  },
+  "resource-provisioning": {
+    "resources": {
+      "DEFAULT": {
+        "loader-class": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
+        "image-id": "ami-00960e391c6790e70",
+        "min-number-free-agents": 0,
+        "security-group": "sg-54410d2f",
+        "subnet-id": "subnet-d7008b8f",
+        "key-file-name": "aws_serv_server_key",
+        "tags": {
+            "session-id": "Service-Node", "Name": "Host-Agent"
+          },
+        "startup-command": [
+            "/data/ccdp/ccdp_install.py",
+            "-a", 
+            "download", 
+            "-d", 
+            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "-w", 
+            "-t", 
+            "/data/ccdp"
+          ],
+        "assignment-command": "/home/oeg/scripts/test.sh",
+        "region": "us-east-1",
+        "role-name": "my-Role",
+        "proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": 1234,
+        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-profile-name": "default"
+      },
+      "EC2": {
+        "loader-class": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
+        "image-id": "ami-00960e391c6790e70",
+        "min-number-free-agents": 0,
+        "security-group": "sg-54410d2f",
+        "subnet-id": "subnet-d7008b8f",
+        "key-file-name": "aws_serv_server_key",
+        "tags": {
+            "session-id": "Service-Node", "Name": "Host-Agent"
+          },
+        "startup-command": [
+            "/data/ccdp/ccdp_install.py",
+            "-a", 
+            "download", 
+            "-d", 
+            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "-w", 
+            "-t", 
+            "/data/ccdp"
+          ],
+        "assignment-command": "/home/oeg/scripts/test.sh",
+        "region": "us-east-1",
+        "role-name": "my-Role",
+        "proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": 1234,
+        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-profile-name": "default"
+      },
+      "NIFI": {
+        
+      },
+      "DOCKER": {
+        "dist-file": "${CCDP_HOME}/dist/ccdp-engine.tgz"
+      }
+    }
+  }
+
+}

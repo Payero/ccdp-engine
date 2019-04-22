@@ -19,7 +19,6 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -30,13 +29,15 @@ import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
+import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -50,94 +51,101 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  */
 public class CcdpUtils
 {
+  /**  The key name of the property storing the configuration filename  */
+  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
   /**  The default name of the configuration file  */
-  public static final String CFG_FILENAME = "ccdp-config.properties";
+  public static final String CFG_FILENAME = "ccdp-config.json";
   /**  The default name of the log4j configuration file  */
   public static final String LOG4J_CFG_FILENAME = "log4j.properties";
   /**  The key name of the property storing the log4j config filename  */
   public static final String CFG_KEY_LOG4J_CFG_FILE = "log4j.config.file";
-  /**  The key name of the property storing the configuration filename  */
-  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
-  /**  The key name of the property the root path of the system  */
-  public static final String CFG_KEY_FMWK_ROOT = "ccdp.framework.root";
-  /**  The key name of the property with the self contained executor jar  */
-  public static final String CFG_KEY_EXEC_JAR = "executor.src.jar.file";
-  /**  The key name of the property with the self contained executor jar  */
-  public static final String CFG_KEY_EXEC_CMD = "executor.cmd.line";
-  /**  The key name of the property used to locate the mesos master  */
-  public static final String CFG_KEY_MESOS_MASTER_URI = "mesos.master.uri";
-  /**  The key name of the property used to send tasks to the Scheduler  */
-  public static final String CFG_KEY_TASKING_CHANNEL = "to.scheduler.channel";
-  /**  The key name of the property used to set the Unique ID of this session */
-  public static final String CFG_KEY_TASKING_UUID = "tasking.uuid";
-  /**  The key name of the property used to send events to other entities  */
-  public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
-  /**  The key name of the property used to connect to a broker  */
-  public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
-//  /** The key name of the property used determine min number of free agents **/
-//  public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
-  /** The key name of the property used add or not an agent at initialization **/
-  public static final String CFG_KEY_SKIP_AGENT = "skip.local.agent";
-  /** The key name of the property used to set the checking cycle in seconds **/
-  public static final String CFG_KEY_CHECK_CYCLE = "resources.checking.cycle";
-  /** Comma delimited list of id that should not be terminated **/
-  public static final String CFG_KEY_SKIP_TERMINATION = "do.not.terminate";
-  
-  /** Properties used by the tasking object receiving external tasks */
-  public static final String CFG_KEY_CONN_INTF = "connectionIntf";
-  /** Properties used by the tasking controller object */
-  public static final String CFG_KEY_TASK_CTR = "taskContrIntf";
-  /** Properties used by the resource controller object */
-  public static final String CFG_KEY_RESOURCE = "resourceIntf";
-  /** Properties used by the storage controller object */
-  public static final String CFG_KEY_STORAGE = "storageIntf";
-  /** Properties used by the resource monitor object */
-  public static final String CFG_KEY_RES_MON = "res.mon.intf";
-  /** Properties used by the database object */
-  public static final String CFG_KEY_DB_INTF = "database.intf";
- 
-  
-  /** Class handling connection to external entities */
-  public static final String CFG_KEY_CONNECTION_CLASSNAME = "connection.intf.classname";
-  /** Class handling connection to external entities */
-  public static final String CFG_KEY_TASKING_CLASSNAME = "tasking.intf.classname";
-  /** Class handling task allocation and determining when to start/stop VMs */
-  public static final String CFG_KEY_TASKER_CLASSNAME = "task.allocator.intf.classname";
-  /** Class used to interact with the cloud provider to start/stop VMs */
-  public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
-  /** Class used to interact with the storage solution */
-  public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
-  /** Class used to measure resource utilization */
-  public static final String CFG_KEY_RES_MON_CLASSNAME = "res.mon.intf.classname";
-  /** Class used to connect to the database */
-  public static final String CFG_KEY_DATABASE_CLASSNAME = "database.intf.classname";
-  
-  /** Stores the property to determine if an agent should send HB or not **/
-  public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";
-  /** The JSON key used to store the user's session id **/
-  public static final String KEY_SESSION_ID = "session-id";
-  /** The JSON key used to store the resource's instance id **/
-  public static final String KEY_INSTANCE_ID = "instance-id";
-  /** The JSON key used to store task id **/
-  public static final String KEY_TASK_ID = "task-id";
-  /** The JSON key used to store the thread id **/
-  public static final String KEY_THREAD_ID = "thread-id";
-  /** The JSON key used to store the resource's instance id **/
-  public static final String KEY_TASK_STATUS = "task-status";
-  
-  /** The name of the public session-id to use when none found in requests   */
-  public static final String PUBLIC_SESSION_ID = "public-session";
-  
 
-  /****************************************************************************/
-  /****************************************************************************/
   
-  /** Stores the number of seconds to send/receive heartbeats **/
-  public static final String CFG_KEY_HB_FREQ = "heartbeat.freq.secs";
-  /** Stores the name of the Queue where to send events to the main app **/
-  public static final String CFG_KEY_MAIN_CHANNEL = "ccdp.main.queue";
-  /** Stores the name of the configuration key with the log folder location **/
-  public static final String CFG_KEY_LOG_DIR = "ccdp.logs.dir";
+  //  /**  The key name of the property storing the configuration filename  */
+//  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
+//  /**  The key name of the property the root path of the system  */
+//  public static final String CFG_KEY_FMWK_ROOT = "ccdp.framework.root";
+//  /**  The key name of the property with the self contained executor jar  */
+//  public static final String CFG_KEY_EXEC_JAR = "executor.src.jar.file";
+//  /**  The key name of the property with the self contained executor jar  */
+//  public static final String CFG_KEY_EXEC_CMD = "executor.cmd.line";
+//  /**  The key name of the property used to locate the mesos master  */
+//  public static final String CFG_KEY_MESOS_MASTER_URI = "mesos.master.uri";
+//  /**  The key name of the property used to send tasks to the Scheduler  */
+//  public static final String CFG_KEY_TASKING_CHANNEL = "to.scheduler.channel";
+//  /**  The key name of the property used to set the Unique ID of this session */
+//  public static final String CFG_KEY_TASKING_UUID = "tasking.uuid";
+//  /**  The key name of the property used to send events to other entities  */
+//  public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";
+//  /**  The key name of the property used to connect to a broker  */
+//  public static final String CFG_KEY_BROKER_CONNECTION = "broker.connection";
+////  /** The key name of the property used determine min number of free agents **/
+////  public static final String CFG_KEY_INITIAL_VMS = "min.number.free.agents";
+//  /** The key name of the property used add or not an agent at initialization **/
+//  public static final String CFG_KEY_SKIP_AGENT = "skip.local.agent";
+//  /** The key name of the property used to set the checking cycle in seconds **/
+//  public static final String CFG_KEY_CHECK_CYCLE = "resources.checking.cycle";
+//  /** Comma delimited list of id that should not be terminated **/
+//  public static final String CFG_KEY_SKIP_TERMINATION = "do.not.terminate";
+//  
+//  /** Properties used by the tasking object receiving external tasks */
+//  public static final String CFG_KEY_CONN_INTF = "connectionIntf";
+//  /** Properties used by the tasking controller object */
+//  public static final String CFG_KEY_TASK_CTR = "taskContrIntf";
+//  /** Properties used by the resource controller object */
+//  public static final String CFG_KEY_RESOURCE = "resourceIntf";
+//  /** Properties used by the storage controller object */
+//  public static final String CFG_KEY_STORAGE = "storageIntf";
+//  /** Properties used by the resource monitor object */
+//  public static final String CFG_KEY_RES_MON = "res.mon.intf";
+//  /** Properties used by the database object */
+//  public static final String CFG_KEY_DB_INTF = "database.intf";
+// 
+//  
+//  /** Class handling connection to external entities */
+//  public static final String CFG_KEY_CONNECTION_CLASSNAME = "connection.intf.classname";
+//  /** Class handling connection to external entities */
+//  public static final String CFG_KEY_TASKING_CLASSNAME = "tasking.intf.classname";
+//  /** Class handling task allocation and determining when to start/stop VMs */
+//  public static final String CFG_KEY_TASKER_CLASSNAME = "task.allocator.intf.classname";
+//  /** Class used to interact with the cloud provider to start/stop VMs */
+//  public static final String CFG_KEY_RESOURCE_CLASSNAME = "resource.intf.classname";
+//  /** Class used to interact with the storage solution */
+//  public static final String CFG_KEY_STORAGE_CLASSNAME = "storage.intf.classname";
+//  /** Class used to measure resource utilization */
+//  public static final String CFG_KEY_RES_MON_CLASSNAME = "res.mon.intf.classname";
+//  /** Class used to connect to the database */
+//  public static final String CFG_KEY_DATABASE_CLASSNAME = "database.intf.classname";
+//  /** Class used to create a new the image loader */
+//  public static final String CFG_KEY_LOADER_CLASSNAME = "loader-class";
+//  
+//  
+//  /** Stores the property to determine if an agent should send HB or not **/
+//  public static final String CFG_KEY_SKIP_HEARTBEATS ="do.not.send.hearbeat";
+//  /** The JSON key used to store the user's session id **/
+//  public static final String KEY_SESSION_ID = "session-id";
+//  /** The JSON key used to store the resource's instance id **/
+//  public static final String KEY_INSTANCE_ID = "instance-id";
+//  /** The JSON key used to store task id **/
+//  public static final String KEY_TASK_ID = "task-id";
+//  /** The JSON key used to store the thread id **/
+//  public static final String KEY_THREAD_ID = "thread-id";
+//  /** The JSON key used to store the resource's instance id **/
+//  public static final String KEY_TASK_STATUS = "task-status";
+//  
+//  /** The name of the public session-id to use when none found in requests   */
+//  public static final String PUBLIC_SESSION_ID = "public-session";
+//  
+//
+//  /****************************************************************************/
+//  /****************************************************************************/
+//  
+//  /** Stores the number of seconds to send/receive heartbeats **/
+//  public static final String CFG_KEY_HB_FREQ = "heartbeat.freq.secs";
+//  /** Stores the name of the Queue where to send events to the main app **/
+//  public static final String CFG_KEY_MAIN_CHANNEL = "ccdp.main.queue";
+//  /** Stores the name of the configuration key with the log folder location **/
+//  public static final String CFG_KEY_LOG_DIR = "ccdp.logs.dir";
 
   
   /****************************************************************************/
@@ -149,21 +157,26 @@ public class CcdpUtils
    * @author Oscar E. Ganteaume
    *
    */
-  public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
-                                    CUSTOM, OTHER, DEFAULT, DOCKER, UNKNOWN };
+//  public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
+//                                    CUSTOM, OTHER, DEFAULT, DOCKER, UNKNOWN };
+  
+  public static List<String> NodeTypes = new ArrayList<>();
+  
   
   /****************************************************************************/
   /**
    * Stores all the properties used by the system
    */
-  private static Properties properties = System.getProperties();
+//  private static Properties properties = System.getProperties();
+//  private static ObjectNode config = null; 
   
   private static Logger logger = Logger.getLogger(CcdpUtils.class);
   
   private static ObjectMapper mapper = new ObjectMapper();
   
-  private static Map<CcdpNodeType, CcdpImageInfo> 
-                                                      images = new HashMap<>();
+  private static Map<String, CcdpImageInfo> images = new HashMap<>();
+  
+  private static CcdpConfigParser parser = null;
   /**
    * Configures the running environment using the properties file whose name
    * matches the CcdpUtils.KEY_CFG_FILE property.  If not found then it attempts
@@ -177,11 +190,8 @@ public class CcdpUtils
   public static void configureProperties() 
                                       throws FileNotFoundException, IOException
   {
-    String key = CcdpUtils.CFG_KEY_CFG_FILE;
-    if( CcdpUtils.properties.containsKey( key ) )
-      CcdpUtils.configProperties(CcdpUtils.properties.getProperty( key ));
-    else
-      CcdpUtils.configProperties(null);
+    String cfgFile = CcdpUtils.getConfigValue( CcdpUtils.CFG_KEY_CFG_FILE );
+    CcdpUtils.configProperties( cfgFile );
   }
   
   /**
@@ -250,11 +260,9 @@ public class CcdpUtils
    */
   public static void configLogger()
   {
-    String key = CcdpUtils.CFG_KEY_LOG4J_CFG_FILE;
-    if( CcdpUtils.properties.containsKey(  key ) )
-      CcdpUtils.configLogger(CcdpUtils.properties.getProperty( key ));
-    else
-      CcdpUtils.configLogger(null);
+    String cfgFile = 
+        CcdpUtils.getConfigValue( CcdpUtils.CFG_KEY_LOG4J_CFG_FILE );
+    CcdpUtils.configLogger( cfgFile );
   }
   
   /**
@@ -327,7 +335,7 @@ public class CcdpUtils
   {
     CcdpUtils.loadProperties( new File(fname) );
   }
-  
+
   /**
    * Loads all the properties from the given File.  If the name of the 
    * configuration file is invalid or if it has problem reading the file it 
@@ -369,144 +377,12 @@ public class CcdpUtils
    */
   public static void loadProperties( InputStream stream ) throws IOException
   {
-    Properties props = new Properties();
-    props.load(stream);
-    Enumeration<?> keys = props.keys();
-    while( keys.hasMoreElements() )
-    {
-      String key = (String)keys.nextElement();
-      String val = CcdpUtils.expandVars(props.getProperty(key)).trim();
-      CcdpUtils.properties.setProperty(key, val);
-    }
+    
+    CcdpUtils.parser = new CcdpConfigParser( stream );
+    
     // now we can load the image configuration
-    CcdpUtils.loadImageConfiguration();
+    CcdpUtils.loadImageInfo();
   }
-  
-  public static void setProperty(String key, String val) {
-      CcdpUtils.properties.setProperty(key, val);
-      if(key.startsWith("resourceIntf")) {
-        CcdpUtils.loadImageConfiguration();
-      }
-      
-  }
-  /**
-   * Tests whether or not the configuration contains the given key
-   * 
-   * @param key the key containing the desired property
-   * @return true if the key exists or false otherwise
-   */
-  public static boolean containsKey(String key)
-  {
-    return CcdpUtils.properties.containsKey(key);
-  }
-  
-  /**
-   * Gets the value of the property stored using the given key.  If the property
-   * is not found it returns null
-   * 
-   * @param key the key containing the desired property
-   * @return the value of the property if found or null otherwise
-   */
-  public static String getProperty(String key)
-  {
-    return CcdpUtils.properties.getProperty(key);
-  }
-  
-  /**
-   * Gets the value of the property stored using the given key as an integer.  
-   * If the property is not found it throws a NumberFormatException
-   * 
-   * @param key the key containing the desired property
-   * @return the integer value of the property if found
-   * 
-   * @throws NumberFormatException a NumberFormatException is thrown if the 
-   *         value stored in the key is invalid
-   */
-  public static int getIntegerProperty(String key)
-  {
-    return Integer.valueOf(CcdpUtils.getProperty(key));
-  }
-
-  /**
-   * Gets the value of the property stored using the given key as a double.  
-   * If the property is not found it throws a NumberFormatException
-   * 
-   * @param key the key containing the desired property
-   * @return the double value of the property if found
-   * 
-   * @throws NumberFormatException a NumberFormatException is thrown if the 
-   *         value stored in the key is invalid
-   */
-  public static double getDoubleProperty(String key)
-  {
-    return Double.valueOf(CcdpUtils.getProperty(key));
-  }
-  
-  /**
-   * Gets the value of the property stored using the given key.  If the property
-   * is not found it returns null
-   * 
-   * @param key the key containing the desired property
-   * @return the value of the property if found or null otherwise
-   */
-  public static boolean getBooleanProperty(String key)
-  {
-    return Boolean.valueOf(CcdpUtils.getProperty(key));
-  }
-  
-  /**
-   * Returns all the key, value pairs from the configuration where the keys 
-   * start with the given filter.  
-   * 
-   * @param filter the first characters representing all the desired keys
-   * 
-   * @return a Map with all the key, value pairs from the configuration where 
-   *         the keys start with the given filter.
-   */
-  public static HashMap<String, String> getKeysByFilter( String filter )
-  {
-    HashMap<String, String> map = new HashMap<String, String>();
-    Enumeration<?> e = CcdpUtils.properties.propertyNames();
-    
-    if( filter == null )
-      return map;
-    
-    int start = filter.length() + 1;
-    
-    while( e.hasMoreElements() )
-    {
-      String key = (String) e.nextElement();
-      if( key.startsWith(filter) )
-      {
-        String val = CcdpUtils.properties.getProperty(key).trim();
-        // making sure I am ignoring the first one
-        if( key.length() > filter.length() )
-        {
-          String prop = key.substring(start);
-          map.put(prop, val);
-        }
-      }
-    }
-    
-    return map;
-  }
-  
-  /**
-   * Returns all the key, value pairs from the configuration where the keys 
-   * start with the given filter as a JSON (ObjectNode) object  
-   * 
-   * @param filter the first characters representing all the desired keys
-   * 
-   * @return an ObjectNode with all the key, value pairs from the configuration  
-   *         where the keys start with the given filter.
-   */
-  public static ObjectNode getJsonKeysByFilter( String filter )
-  {
-    HashMap<String, String> map = CcdpUtils.getKeysByFilter(filter);
-    
-    return mapper.convertValue(map, ObjectNode.class);
-  }
-  
   
   /**
    * Expands the value of environment variables contained in the value.   If it
@@ -719,14 +595,14 @@ public class CcdpUtils
         if( job.has("node-type") )
         {
           String type = job.get("node-type").asText();
-          task.setNodeType( CcdpNodeType.valueOf(type.toUpperCase() ));
+          task.setNodeType( type.toUpperCase() );
         }
         
         if( job.has("mem") )
           task.setMEM( job.get("mem").asDouble() );
-        if( job.has(CcdpUtils.KEY_SESSION_ID) )
+        if( job.has(CcdpConfigParser.KEY_SESSION_ID) )
         {
-          String sid = job.get(CcdpUtils.KEY_SESSION_ID).asText();
+          String sid = job.get(CcdpConfigParser.KEY_SESSION_ID).asText();
           task.setSessionId(sid);
           request.setSessionId(sid);
         }
@@ -835,84 +711,41 @@ public class CcdpUtils
    * @throws InvalidArgumentException an InvalidArgumentException is thrown if
    *         the type is null            
    * */
-  public static CcdpImageInfo getImageInfo(CcdpNodeType type)
+  public static CcdpImageInfo getImageInfo(String type)
   {
-    if( type == null )
-      throw new InvalidArgumentException("The Node Type cannot be null");
+    if( type == null || !CcdpUtils.NodeTypes.contains( type ) )
+      throw new InvalidArgumentException("Invalid Node Type: " + type);
     
     return CcdpUtils.images.get(type);
   }
+  
   
   /**
    * Loads all the image information from the configuration file.  All the 
    * different node types are defined in the CcdpUtils.CcdpNodeType enum
    */
-  private static void loadImageConfiguration()
+  private static void loadImageInfo()
   {
-    
-    for( CcdpNodeType type : CcdpNodeType.values() )
-    {
-      String strType = type.toString().toLowerCase();
-      
-      CcdpImageInfo img = new CcdpImageInfo();
-      img.setNodeType(type);
-      
-      String filter = CFG_KEY_RESOURCE + "." + strType;
+    List<String> nodes = CcdpUtils.parser.getNodeTypes();
+    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
 
-      Map<String, String> map = CcdpUtils.getKeysByFilter(filter);
-      if( !map.isEmpty() )
+    for( String node : nodes )
+    {
+      JsonNode imgCfg = CcdpUtils.parser.getResourceCfg( node );
+      if( imgCfg == null )
       {
-        if( map.containsKey("min.number.free.agents") )
-        {
-          img.setMinReq(Integer.parseInt(map.get("min.number.free.agents")));
-          img.setMaxReq(Integer.parseInt(map.get("min.number.free.agents"))); //AWS charges for max
-        }
-        if( map.containsKey("image.id") )
-          img.setImageId(map.get("image.id"));
-        if( map.containsKey("security.group") )
-          img.setSecGrp(map.get("security.group"));
-        if( map.containsKey("subnet.id") )
-          img.setSubnet(map.get("subnet.id"));
-        if( map.containsKey("key.file.name") )
-          img.setKeyFile(map.get("key.file.name"));
-        if( map.containsKey("instance.type") )
-          img.setInstanceType(map.get("instance.type"));
-        
-        if( map.containsKey("region") )
-          img.setRegion(map.get("region"));
-        if( map.containsKey("role.name") )
-          img.setRoleName(map.get("role.name"));
-        if( map.containsKey("proxy.url") )
-          img.setProxyUrl(map.get("proxy.url"));
-        if( map.containsKey("proxy.port") )
-          img.setProxyPort( Integer.parseInt( map.get("proxy.port") ) );
-        if( map.containsKey("credentials.file") )
-          img.setCredentialsFile(map.get("credentials.file"));
-        if( map.containsKey("profile.name") )
-          img.setProfileName(map.get("profile.name"));
-        if( map.containsKey("startup.command") )
-          img.setStartupCommand(map.get("startup.command"));
-        if( map.containsKey("assignment.command") )
-          img.setAssignmentCommand(map.get("assignment.command"));
-        
-        
-        try
-        {
-          if(map.containsKey("tags"))
-          {
-            map = mapper.readValue(map.get("tags"),
-                new TypeReference<HashMap<String, String>>() {});
-            img.setTags(map);
-          }
-        }
-        catch(Exception e )
-        {
-          System.err.println("Could not parse the image tags: " + e.getMessage());
-        }
-      }// the map is not empty
-      CcdpUtils.images.put(type, img);
-    }// end of the NodeType loop
+        CcdpUtils.logger.warn("The Node Type " + node + " could be found");
+        continue;
+      }
+      CcdpImgLoaderIntf loader = 
+          factory.getCcdpImgLoaderIntf(node, imgCfg.deepCopy());
+      
+      CcdpImageInfo img = loader.getImageInfo();
+      CcdpUtils.images.put(node, img);
+    }
   }// end of the method
+  
+  
   
   /**
    * Returns an <code>InetAddress</code> object encapsulating what is most 
@@ -1043,26 +876,90 @@ public class CcdpUtils
   }
   
   /**
-   * Gets the configuration value stored either as an environment variable or
-   * as a property.  First it tries to see if it was set as a system property, 
-   * if it does not exists then it tries to get it as an environment 
-   * variable.  It returns null if it is not in any of the two storages 
-   * mentioned before
+   * Gets the configuration value stored either as a key in the configuration 
+   * object, as a System Property, or an environment variable.  First it tries 
+   * to see if it was set in the configuration object.  If it was not found 
+   * then checks the system property, if it does not exists then it tries to 
+   * get it as an environment variable.  It returns null if it is not in any of 
+   * the three storages mentioned before
    * 
-   * @param key the name of the key to look in the environment variable or the
-   *        system property
+   * @param key the name of the key to look in the configuration file, system
+   *        properties, or as an environmental value
    * @return the string representation of what is stored in that key or null if
    *         not found
    */
   public static String getConfigValue(String key )
   {
-    String val = CcdpUtils.getProperty(key);
+    JsonNode node = CcdpUtils.parser.getConfigValue(key);
     
-    if( val == null )
-      val = System.getenv(key);
-    
-    return val;
-    
+    if( node != null )
+      return node.asText();
+    else if ( System.getProperty(key) != null )
+      return System.getProperty(key);
+    else
+      return System.getenv( key );
   }
   
+  /**************************************************************************
+   ****************     From the Configuration Parser     ******************* 
+   **************************************************************************/
+  public JsonNode getLoggingCfg()
+  {
+    return CcdpUtils.parser.getLoggingCfg();
+  }
+  
+  public JsonNode getEngineCfg()
+  {
+    return CcdpUtils.parser.getEngineCfg();
+  }
+  
+  public List<String> getNodeTypes()
+  {
+    return CcdpUtils.parser.getNodeTypes();
+  }
+  
+  public JsonNode getConnnectionIntfCfg()
+  {
+    return CcdpUtils.parser.getConnnectionIntfCfg();
+  }
+  
+  public JsonNode getTaskAllocatorIntfCfg()
+  {
+    return CcdpUtils.parser.getTaskAllocatorIntfCfg();
+  }
+  
+  public JsonNode getResourceManagerIntfCfg()
+  {
+    return CcdpUtils.parser.getResourceManagerIntfCfg();
+  }
+  
+  public JsonNode getStorageIntfCfg()
+  {
+    return CcdpUtils.parser.getStorageIntfCfg();
+  }
+  
+  public JsonNode getResourceMonitorIntfCfg()
+  {
+    return CcdpUtils.parser.getResourceMonitorIntfCfg();
+  }
+  
+  public JsonNode getDatabaseIntfCfg()
+  {
+    return CcdpUtils.parser.getDatabaseIntfCfg();
+  }
+  
+  public JsonNode getTaskingParamsCfg()
+  {
+    return CcdpUtils.parser.getTaskingParamsCfg();
+  }
+  
+  public JsonNode getResourcesCfg()
+  {
+    return CcdpUtils.parser.getResourcesCfg();
+  }
+  
+  public JsonNode getResourceCfg( String resName )
+  {
+    return CcdpUtils.parser.getResourceCfg(resName);
+  }
 }

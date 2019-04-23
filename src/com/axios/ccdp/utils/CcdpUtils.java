@@ -1121,7 +1121,9 @@ public class CcdpUtils
   /**
    * Gets the configuration for a single resource object.  
    * 
-   * @param resName the name of the resource to retrieve 
+   * @param resName the name of the resource to retrieve
+   * 
+   *  @return the resource matching the given name or null if not found
    */
   public static JsonNode getResourceCfg( String resName )
   {
@@ -1132,7 +1134,7 @@ public class CcdpUtils
    * Sets the configuration for a single resource object.  Once configured the
    * new object is stored in the resources object
    * 
-   * @param name the resName of the resource to store 
+   * @param resName the resName of the resource to store 
    * @param node a map like object the configuration for a single resource 
    *        object
    */

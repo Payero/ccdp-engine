@@ -12,7 +12,7 @@ import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -27,7 +27,7 @@ public class AWSControlerUnitTest
       .getLogger(AWSControlerUnitTest.class.getName());
   
   private ObjectMapper mapper = new ObjectMapper();
-  private ObjectNode jsonCfg;
+  private JsonNode jsonCfg;
   AWSCcdpVMControllerImpl aws = null;
   
   
@@ -44,8 +44,8 @@ public class AWSControlerUnitTest
       try
       {
         CcdpUtils.loadProperties(cfg_file);
-        this.jsonCfg = 
-            CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+        
+        this.jsonCfg = CcdpUtils.getResourceCfg("EC2"); 
       }
       catch( Exception e )
       {
@@ -100,7 +100,7 @@ public class AWSControlerUnitTest
     
     boolean inclusive = false;
     CcdpImageInfo 
-    imgCfg = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    imgCfg = CcdpUtils.getImageInfo("EC2");
     imgCfg.setMinReq(1);
     imgCfg.setMaxReq(1);
 
@@ -155,7 +155,7 @@ public class AWSControlerUnitTest
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
     ObjectNode filter = this.mapper.createObjectNode();
-    filter.put(CcdpUtils.KEY_INSTANCE_ID, "i-0146423181872f36f");
+    filter.put("instance-id", "i-0146423181872f36f");
     List<CcdpVMResource> items = this.aws.getStatusFilteredByTags(filter);
     
     for(CcdpVMResource vm : items )

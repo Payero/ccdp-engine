@@ -37,8 +37,6 @@ import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Simple utility class used to perform different tasks by multiple objects
@@ -55,12 +53,28 @@ public class CcdpUtils
   public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
   /**  The default name of the configuration file  */
   public static final String CFG_FILENAME = "ccdp-config.json";
+  /**  The key name of the property storing the log4j config filename  */
+  public static final String SYS_KEY_LOG4J_CFG_FILE = "log4j.config.file";
+  public static final String JSON_KEY_LOG4J_CFG_FILE = "config-file";
+  public static final String JSON_KEY_LOGS_DIR = "logs-dir";
   /**  The default name of the log4j configuration file  */
   public static final String LOG4J_CFG_FILENAME = "log4j.properties";
-  /**  The key name of the property storing the log4j config filename  */
-  public static final String CFG_KEY_LOG4J_CFG_FILE = "log4j.config.file";
-
   
+  /** Stores the property to determine if an agent should send HB or not **/
+  public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-hearbeats";  
+  /** Stores the number of seconds to send/receive heartbeats **/
+  public static final String CFG_KEY_HB_FREQ = "heartbeat-req-secs";
+  public static final String CFG_KEY_SKIP_TERMINATION = "do-not-terminate";
+  public static final String CFG_KEY_CHECK_CYCLE = "resources-check-cycle";
+  /** Stores the name of the Queue where to send events to the main app **/
+  public static final String CFG_KEY_MAIN_CHANNEL = "main-queue";
+  /** Defines the default name to use for 'default' resources **/
+  public static final String DEFAULT_RES_NAME = "DEFAULT";
+  /**  The key name of the property used to connect to a broker  */
+  public static final String CFG_KEY_BROKER_CONNECTION = "broker";
+  
+  /**  The key name of the property used to send events to other entities  */
+  public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
 //  /**  The key name of the property the root path of the system  */
@@ -137,13 +151,10 @@ public class CcdpUtils
 //  public static final String PUBLIC_SESSION_ID = "public-session";
 //  
 //
-//  /****************************************************************************/
-//  /****************************************************************************/
-//  
-//  /** Stores the number of seconds to send/receive heartbeats **/
-//  public static final String CFG_KEY_HB_FREQ = "heartbeat.freq.secs";
-//  /** Stores the name of the Queue where to send events to the main app **/
-//  public static final String CFG_KEY_MAIN_CHANNEL = "ccdp.main.queue";
+  /****************************************************************************/
+  /****************************************************************************/
+  
+
 //  /** Stores the name of the configuration key with the log folder location **/
 //  public static final String CFG_KEY_LOG_DIR = "ccdp.logs.dir";
 
@@ -153,29 +164,15 @@ public class CcdpUtils
    * Defines all the different types of processing nodes supported for data 
    * processing.  It is intended to be able to instantiate images based on the
    * processing needs
-   * 
-   * @author Oscar E. Ganteaume
-   *
    */
-//  public static enum CcdpNodeType { EC2, EMS, HADOOP, SERV, NIFI, 
-//                                    CUSTOM, OTHER, DEFAULT, DOCKER, UNKNOWN };
-  
   public static List<String> NodeTypes = new ArrayList<>();
-  
-  
-  /****************************************************************************/
-  /**
-   * Stores all the properties used by the system
-   */
-//  private static Properties properties = System.getProperties();
-//  private static ObjectNode config = null; 
-  
+  /** Prints statements to the screen based on the verbosity level **/
   private static Logger logger = Logger.getLogger(CcdpUtils.class);
-  
+  /** Generates all the different JSON objects **/
   private static ObjectMapper mapper = new ObjectMapper();
-  
+  /** Stores all the different images based on the type **/
   private static Map<String, CcdpImageInfo> images = new HashMap<>();
-  
+  /** Parses all the properties and facilitates it access  **/
   private static CcdpConfigParser parser = null;
   /**
    * Configures the running environment using the properties file whose name
@@ -261,7 +258,7 @@ public class CcdpUtils
   public static void configLogger()
   {
     String cfgFile = 
-        CcdpUtils.getConfigValue( CcdpUtils.CFG_KEY_LOG4J_CFG_FILE );
+        CcdpUtils.getConfigValue( CcdpUtils.JSON_KEY_LOG4J_CFG_FILE );
     CcdpUtils.configLogger( cfgFile );
   }
   
@@ -273,8 +270,12 @@ public class CcdpUtils
    * 
    * @param cfgFile the file to use to configure the logging system
    */
-  public static void configLogger(String cfgFile )
+  public static void configLogger( String cfgFile )
   {
+    String logs_dir = CcdpUtils.getConfigValue(CcdpUtils.JSON_KEY_LOGS_DIR);
+    if( logs_dir != null )
+      System.setProperty("ccdp.logs.dir", CcdpUtils.expandVars(logs_dir) );
+    
     if( cfgFile == null )
     {
       String name = CcdpUtils.LOG4J_CFG_FILENAME;
@@ -903,63 +904,240 @@ public class CcdpUtils
   /**************************************************************************
    ****************     From the Configuration Parser     ******************* 
    **************************************************************************/
-  public JsonNode getLoggingCfg()
+  /**
+   * Gets all the configuration parameters used by the logging object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getLoggingCfg()
   {
     return CcdpUtils.parser.getLoggingCfg();
   }
   
-  public JsonNode getEngineCfg()
+  /**
+   * Sets all the configuration parameters used by the logging object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setLoggingCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setLoggingCfg(node);
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the engine object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getEngineCfg()
   {
     return CcdpUtils.parser.getEngineCfg();
   }
   
-  public List<String> getNodeTypes()
+  /**
+   * Sets all the configuration parameters used by the engine object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setEngineCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setEngineCfg(node);
+  }
+  
+  /**
+   * Gets all the node types under the resource provisioning tag
+   * 
+   * @return a list containing all the node types under the resource 
+   *         provisioning tag
+   */
+  public static List<String> getNodeTypes()
   {
     return CcdpUtils.parser.getNodeTypes();
   }
   
-  public JsonNode getConnnectionIntfCfg()
+  /**
+   * Gets all the configuration parameters used by the connection object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getConnnectionIntfCfg()
   {
     return CcdpUtils.parser.getConnnectionIntfCfg();
   }
   
-  public JsonNode getTaskAllocatorIntfCfg()
+  /**
+   * Sets all the configuration parameters used by the connection object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setConnectionIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setConnnectionIntfCfg(node);
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the task allocator object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getTaskAllocatorIntfCfg()
   {
     return CcdpUtils.parser.getTaskAllocatorIntfCfg();
   }
   
-  public JsonNode getResourceManagerIntfCfg()
+  /**
+   * Sets all the configuration parameters used by the task allocator object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setTaskAllocatorIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setTaskAllocatorIntfCfg(node);
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the resource manager object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getResourceManagerIntfCfg()
   {
     return CcdpUtils.parser.getResourceManagerIntfCfg();
   }
+
+  /**
+   * Sets all the configuration parameters used by the task resource manager 
+   * object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setResourceManagerIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setResourceManagerIntfCfg(node);
+  }
   
-  public JsonNode getStorageIntfCfg()
+  /**
+   * Gets all the configuration parameters used by the storage object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getStorageIntfCfg()
   {
     return CcdpUtils.parser.getStorageIntfCfg();
   }
   
-  public JsonNode getResourceMonitorIntfCfg()
+  /**
+   * Sets all the configuration parameters used by the task storage object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setStorageIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setStorageIntfCfg(node);
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the resource monitor object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getResourceMonitorIntfCfg()
   {
     return CcdpUtils.parser.getResourceMonitorIntfCfg();
   }
+
+  /**
+   * Sets all the configuration parameters used by the task resource monitor 
+   * object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setResourceMonitorIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setResourceMonitorIntfCfg(node);
+  }
   
-  public JsonNode getDatabaseIntfCfg()
+  /**
+   * Gets all the configuration parameters used by the database object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getDatabaseIntfCfg()
   {
     return CcdpUtils.parser.getDatabaseIntfCfg();
   }
   
-  public JsonNode getTaskingParamsCfg()
+  /**
+   * Sets all the configuration parameters used by the database object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setDatabaseIntfCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setDatabaseIntfCfg(node);
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the tasking parameters in
+   * the form of "allocate" and "deallocate"
+   * 
+   * @return an object containing all the different configuration parameters
+   */
+  public static JsonNode getTaskingParamsCfg()
   {
     return CcdpUtils.parser.getTaskingParamsCfg();
   }
   
-  public JsonNode getResourcesCfg()
+  /**
+   * Sets all the configuration parameters used by the tasking object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public static void setTaskinParamsCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setTaskingParamsCfg(node);
+  }
+  
+  /**
+   * Gets all the resources configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different resources
+   */
+  public static JsonNode getResourcesCfg()
   {
     return CcdpUtils.parser.getResourcesCfg();
   }
   
-  public JsonNode getResourceCfg( String resName )
+  /**
+   * Sets all the resources configured under the resource provisioning task
+   * 
+   * @param node a map like object with all the different resources
+   */
+  public static void setResourcesCfg(JsonNode node)
+  {
+    CcdpUtils.parser.setResourcesCfg(node);
+  }
+  
+  /**
+   * Gets the configuration for a single resource object.  
+   * 
+   * @param resName the name of the resource to retrieve 
+   */
+  public static JsonNode getResourceCfg( String resName )
   {
     return CcdpUtils.parser.getResourceCfg(resName);
+  }
+  
+  /**
+   * Sets the configuration for a single resource object.  Once configured the
+   * new object is stored in the resources object
+   * 
+   * @param name the resName of the resource to store 
+   * @param node a map like object the configuration for a single resource 
+   *        object
+   */
+  public static void setResourceCfg(String resName, JsonNode node)
+  {
+    CcdpUtils.parser.setResourceCfg(resName, node);
   }
 }

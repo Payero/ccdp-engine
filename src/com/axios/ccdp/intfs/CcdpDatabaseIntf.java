@@ -3,7 +3,7 @@ package com.axios.ccdp.intfs;
 import java.util.List;
 
 import com.axios.ccdp.resources.CcdpVMResource;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public interface CcdpDatabaseIntf
 {
@@ -12,7 +12,7 @@ public interface CcdpDatabaseIntf
    * 
    * @param config the JSON representation of the DB connection arguments
    */
-  public void configure( ObjectNode config );
+  public void configure( JsonNode config );
   
   /**
    * Connects to the database using the settings passed to the configure() 

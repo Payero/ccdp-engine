@@ -16,6 +16,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -181,7 +182,7 @@ public abstract class SystemResourceMonitorAbs
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public abstract void configure( ObjectNode config );
+  public abstract void configure( JsonNode config );
   
   /**
    * Gets all the different file system storage names such as ext3, ext4, NTFS,

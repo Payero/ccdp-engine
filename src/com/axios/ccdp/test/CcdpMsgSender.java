@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -75,12 +74,10 @@ public class CcdpMsgSender implements CcdpMessageConsumerIntf
   {
     this.sender = new AmqSender();
     
-    Map<String, String> map = 
-        CcdpUtils.getKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
-    
-    String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
+    JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
+    String broker = conn_cfg.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();    
     if( channel == null )
-      channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+      channel = conn_cfg.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     
     channel = channel.trim();
     

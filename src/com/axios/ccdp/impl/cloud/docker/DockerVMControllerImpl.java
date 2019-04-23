@@ -17,6 +17,7 @@ import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
@@ -95,14 +96,15 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
    *         authenticate the user
    */
   @Override
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     logger.debug("Configuring ResourceController using: " + config);
+    
     // the configuration is required
     if( config == null )
       throw new IllegalArgumentException("The config cannot be null");
     
-    this.config = config;
+    this.config = config.deepCopy();
     
     if( config.has("dist.file") )
     {
@@ -124,7 +126,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         logger.info("Getting Distribution file from AWS S3 bucket");
         this.use_fs = false;
         if( !config.has("aws.region") || config.get("aws.region") == null )
-          config.put("aws.region",  "us-east-1");
+          this.config.put("aws.region",  "us-east-1");
             
       }
       else
@@ -173,9 +175,9 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       // if the session id is not assigned, then use the node type
       String session_id = imgCfg.getSessionId();
       if( session_id == null )
-        imgCfg.setSessionId(imgCfg.getNodeTypeAsString());
+        imgCfg.setSessionId(imgCfg.getNodeType());
       
-      String type = imgCfg.getNodeTypeAsString();
+      String type = imgCfg.getNodeType();
       
       logger.info("Starting VM of type " + type + " for session " + session_id ) ;
       // Setting all the environment variables
@@ -431,7 +433,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public List<CcdpVMResource> getStatusFilteredByTags( ObjectNode filter )
+  public List<CcdpVMResource> getStatusFilteredByTags( JsonNode filter )
   {
     logger.debug("Getting Filtered Status using: " + filter);
     logger.warn("Not currently implemented as does not have tags yet");

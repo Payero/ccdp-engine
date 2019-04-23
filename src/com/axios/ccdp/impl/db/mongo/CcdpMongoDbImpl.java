@@ -17,7 +17,6 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.ServerAddress;
 import com.mongodb.client.FindIterable;
@@ -86,7 +85,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
    * 
    * @param config the JSON representation of the DB connection arguments
    */
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     if( config.has("db.host") )
       this.dbHost = config.get("db.host").asText();

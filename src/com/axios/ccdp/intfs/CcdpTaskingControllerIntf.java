@@ -4,7 +4,7 @@ import java.util.List;
 
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Interface used to isolate decision making on when to launch new resources
@@ -25,7 +25,7 @@ public interface CcdpTaskingControllerIntf
    * 
    * @param config the object containing all the configuration parameters
    */
-  public  void configure( ObjectNode config );
+  public  void configure( JsonNode config );
 
   /**
    * Assigns all the tasks in the given list to the target VM based on 

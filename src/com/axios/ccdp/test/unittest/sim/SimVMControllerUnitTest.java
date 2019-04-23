@@ -30,7 +30,7 @@ import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -88,8 +88,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -98,7 +97,8 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     
     assertNotNull("Could not setup a connection with broker", this.connection);
     String uuid = UUID.randomUUID().toString();
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    String channel = 
+        task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL ).asText();
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
@@ -110,7 +110,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -131,7 +131,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startMultipleInstancesTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -152,7 +152,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -176,7 +176,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithoutSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -199,7 +199,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startAndStopInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -233,7 +233,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startManyAndStopSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.NIFI);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("NIFI");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -276,7 +276,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void checksTasksRunningOnVMTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.NIFI);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("NIFI");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -335,7 +335,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.controller.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -366,7 +366,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     this.logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -458,7 +458,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);

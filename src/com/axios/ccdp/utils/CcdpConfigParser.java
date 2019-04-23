@@ -5,7 +5,6 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.log4j.Logger;
 
@@ -50,7 +49,7 @@ public class CcdpConfigParser
    */
   private Logger logger = Logger.getLogger(CcdpConfigParser.class.getName());
   
-  private JsonNode config = null;
+  private ObjectNode config = null;
   private ObjectMapper mapper = new ObjectMapper();
   
   @SuppressWarnings("unused")
@@ -59,26 +58,52 @@ public class CcdpConfigParser
     
   }
   
+  /**
+   * Instantiates a new object using the the given filename.  If the filename
+   * is invalid or it cannot be read, it throws a RuntimeException
+   * 
+   * @param filename the name of the file with all the configuration parameters
+   * @throws RuntimeException If the filename is invalid or it cannot be read, 
+   *         it throws a RuntimeException
+   */
   public CcdpConfigParser( String filename )
   {
     this.logger.debug("Parsing JSON file " + filename);
     this.setFilename(filename);
   }
   
+  /**
+   * Instantiates a new object using the the given stream.  If the stream
+   * is invalid or it cannot be read, it throws a RuntimeException
+   * 
+   * @param stream the byte stream with all the configuration parameters
+   * @throws RuntimeException If the filename is invalid or it cannot be read, 
+   *         it throws a RuntimeException
+   */
   public CcdpConfigParser( InputStream stream )
   {
     try
     {
-      this.config = this.mapper.readTree(stream);
+      this.config = this.mapper.readTree(stream).deepCopy();
     }
     catch( Exception e)
     {
       this.logger.error("Could not parse the InputStream data");
       e.printStackTrace();
+      throw new RuntimeException("Could not parse the configuration file");
     }
-    
   }
-  
+
+  /**
+   * Sets the JSON file name containing all the configuration parameters. 
+   * If the filename is invalid or it cannot be read, it throws a 
+   * RuntimeException
+   * 
+   * @param fname the name of the file to store
+   * 
+   * @throws RuntimeException If the filename is invalid or it cannot be read, 
+   *         it throws a RuntimeException
+   */
   public void setFilename( String fname )
   {
     File file = new File(fname);
@@ -86,30 +111,65 @@ public class CcdpConfigParser
       throw new IllegalArgumentException("The file " + fname + " is invalid");
     try
     {
-      this.config = this.mapper.readTree(file);
+      this.config = this.mapper.readTree(file).deepCopy();
     }
     catch( Exception e)
     {
       this.logger.error("Could not parse the configuration file " + fname);
       e.printStackTrace();
+      throw new RuntimeException("Could not parse the configuration file");
     }
   }
 
+  /**
+   * Gets all the configuration parameters used by the logging object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getLoggingCfg()
   {
     return this.config.get( CcdpConfigParser.KEY_LOGGING );
   }
+  /**
+   * Sets all the configuration parameters used by the logging object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setLoggingCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_LOGGING, node );
+  }
   
+  /**
+   * Gets all the configuration parameters used by the engine object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getEngineCfg()
   {
     return this.config.get( CcdpConfigParser.KEY_ENGINE );
   }
   
+  /**
+   * Sets all the configuration parameters used by the engine object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setEngineCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_ENGINE, node );
+  }
+  
+  /**
+   * Gets all the node types under the resource provisioning tag
+   * 
+   * @return a list containing all the node types under the resource 
+   *         provisioning tag
+   */
   public List<String> getNodeTypes()
   {
     List<String> nodeTypes = new ArrayList<>();
-    JsonNode eng = this.getEngineCfg();
-    JsonNode nodes = eng.get( CcdpConfigParser.KEY_NODE_TYPES );
+    JsonNode nodes = this.getResourcesCfg();
     if( nodes != null && nodes.isArray() )
     {
       for( JsonNode type : nodes )
@@ -119,52 +179,175 @@ public class CcdpConfigParser
     return nodeTypes;
   }
   
+  /**
+   * Gets all the configuration parameters used by the connection object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getConnnectionIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_CONNECTION_INTF );
   }
-  
+
+  /**
+   * Sets all the configuration parameters used by the engine object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setConnnectionIntfCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+
+  /**
+   * Gets all the configuration parameters used by the task allocator object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getTaskAllocatorIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_TASK_ALLOCATOR );
   }
   
+  /**
+   * Sets all the configuration parameters used by the task allocator object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setTaskAllocatorIntfCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the resource manager object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getResourceManagerIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_RESOURCE_MGR );
   }
   
+  /**
+   * Sets all the configuration parameters used by the task resource manager 
+   * object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setResourceManagerIntfCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the storage object
+   * 
+   * @return an object containing all the different configuration parameters
+   */  
   public JsonNode getStorageIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_STORAGE );
   }
+
+  /**
+   * Sets all the configuration parameters used by the task storage object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setStorageIntfCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
   
+  /**
+   * Gets all the configuration parameters used by the resource monitor object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getResourceMonitorIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_RESOURCE_MON );
   }
   
+  /**
+   * Sets all the configuration parameters used by the task resource monitor 
+   * object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setResourceMonitorIntfCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the database object
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getDatabaseIntfCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_DATABASE );
   }
   
+  /**
+   * Sets all the configuration parameters used by the database object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setDatabaseIntfCfg(JsonNode node )
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+  
+  /**
+   * Gets all the configuration parameters used by the tasking parameters in
+   * the form of "allocate" and "deallocate"
+   * 
+   * @return an object containing all the different configuration parameters
+   */
   public JsonNode getTaskingParamsCfg()
   {
     JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
     return impls.get( CcdpConfigParser.KEY_TASKING );
   }
   
+  /**
+   * Sets all the configuration parameters used by the tasking object
+   * 
+   * @param node an object containing all the different configuration parameters
+   */
+  public void setTaskingParamsCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
+  }
+  
+  /**
+   * Gets all the resources configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different resources
+   */
   public JsonNode getResourcesCfg()
   {
     JsonNode prov = this.config.get( CcdpConfigParser.KEY_RES_PROV );
     return prov.get( CcdpConfigParser.KEY_RESOURCES );
+  }
+
+  /**
+   * Sets all the resources configured under the resource provisioning task
+   * 
+   * @param node a map like object with all the different resources
+   */
+  public void setResourcesCfg(JsonNode node)
+  {
+    this.config.set( CcdpConfigParser.KEY_RES_PROV, node );
   }
   
   public JsonNode getResourceCfg( String resName )
@@ -173,25 +356,83 @@ public class CcdpConfigParser
     return resources.get( resName );
   }
   
+  /**
+   * Sets the configuration for a single resource object.  Once configured the
+   * new object is stored in the resources object
+   * 
+   * @param resName the name of the resource to store 
+   * @param node a map like object the configuration for a single resource 
+   *        object
+   */
+  public void setResourceCfg( String resName, JsonNode node )
+  {
+    ObjectNode resources = this.getResourcesCfg().deepCopy();
+    resources.set(resName, node);
+    this.setResourcesCfg(resources);
+  }
+
+  /**
+   * Gets a single configuration object if found otherwise it returns null
+   * 
+   * @param key the name of the configuration parameter to find
+   * 
+   * @return a single configuration object if found otherwise it returns null
+   */
   public JsonNode getConfigValue( String key )
   {
-    return this.findElement(this.config, key);
-  }
-  
-  private JsonNode findElement(JsonNode jsonNode, String key ) 
-  {
-    Iterator<String> names = jsonNode.fieldNames();
-    while(names.hasNext()) 
+    Iterator<String> names = this.config.fieldNames();
+    while( names.hasNext() )
     {
       String name = names.next();
-      if( name == key )
-        return jsonNode.get(key);
-      else
-        return findElement(jsonNode.get(name), key);
+      JsonNode value = this.findElement(this.config.get(name), key);
+      if( value != null )
+        return value;
     }
     return null;
   }
   
+  /**
+   * Iterates recursively through all the  nodes in the current configuration  
+   * parameters searching for the given key.  Returns the object stored under 
+   * the key name or null if it was not found.
+   * 
+   * @param node the object to search for the given key
+   * @param key the name of the configuration parameter to find
+   * 
+   * @return the object stored under the key name or null if it was not found.
+   */
+  private JsonNode findElement(JsonNode node, String key ) 
+  {
+    Iterator<String> names = node.fieldNames();
+    while( names.hasNext() )
+    {
+      String name = names.next();
+      JsonNode value = node.get(name);
+      if( name.equals(key) )
+      {
+        return value;
+      }
+      else
+      {
+        if( value.isContainerNode() )
+        {
+          value = this.findElement(value, key);
+          if( value != null )
+            return value;
+        }
+      }
+    }
+    
+    return null;
+  }
+  
+  /**
+   * Runs the show 
+   * 
+   * @param args command line arguments
+   * 
+   * @throws Exception throws an exception if something unexpected happens
+   */
   public static void main(String[] args) throws Exception
   {
     String cfg_file = System.getProperty("ccdp.config.file");

@@ -11,13 +11,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Generates a DEFAULT image using the parameters in the given configuration
+ * Generates a NIFI image using the parameters in the given configuration
  * object
  *  
  * @author Oscar E. Ganteaume
  *
  */
-public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
+public class NifiImageLoaderImpl implements CcdpImgLoaderIntf
 {
   /**
    * Stores all the configurations for this image

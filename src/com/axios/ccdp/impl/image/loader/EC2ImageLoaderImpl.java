@@ -11,13 +11,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Generates a DEFAULT image using the parameters in the given configuration
+ * Generates anEC2 image using the parameters in the given configuration
  * object
  *  
  * @author Oscar E. Ganteaume
  *
  */
-public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
+public class EC2ImageLoaderImpl implements CcdpImgLoaderIntf
 {
   /**
    * Stores all the configurations for this image
@@ -56,7 +56,7 @@ public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
     
     CcdpImageInfo img = new CcdpImageInfo();
     
-    img.setNodeType(nodeType);
+    img.setNodeType(this.nodeType);
     img.setImageId (this.config.get("image-id").asText() );
     img.setMinReq( this.config.get("min-number-free-agents").asInt());
     img.setMaxReq( this.config.get("min-number-free-agents").asInt());

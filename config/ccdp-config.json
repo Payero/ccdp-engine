@@ -9,18 +9,8 @@
       "i-0fa470f3da73d8ac0", 
       "i-0a1679a0cb4aba5dd"
     ],
-    "node-types": [
-      "DEFAULT", 
-      "EC2", 
-      "EMS",
-      "HADOOP", 
-      "SERVICE",
-      "NIFI", 
-      "CUSTOM",
-      "OTHER", 
-      "DOCKER",
-      "UNKNOWN"
-    ]
+    "skip-heartbeats": false,
+    "heartbeat-req-secs": 5,
   },
   "interface-impls": {
     "connection": {
@@ -52,15 +42,15 @@
   },
   "tasking": {
     "allocate": {
-      "avg-load-cpu": 80,
-      "avg-load-mem": 15,
-      "avg-load-time": 2,
+      "avg-cpu-load": 80,
+      "avg-mem-load": 15,
+      "avg-time-load": 2,
       "no-more-than":  5
     },
     "deallocate": {
-      "avg-load-cpu": 20,
-      "avg-load-mem": 20,
-      "avg-load-time": 2
+      "avg-cpu-load": 20,
+      "avg-mem-load": 20,
+      "avg-time-load": 2
     }
   },
   "resource-provisioning": {
@@ -94,7 +84,7 @@
         "credentials-profile-name": "default"
       },
       "EC2": {
-        "loader-class": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
+        "loader-class": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
@@ -122,10 +112,50 @@
         "credentials-profile-name": "default"
       },
       "NIFI": {
-        
+        "loader-class": "com.axios.ccdp.impl.image.loader.NifiImageLoaderImpl",
+        "image-id": "ami-00960e391c6790e70",
+        "min-number-free-agents": 0,
+        "security-group": "sg-54410d2f",
+        "subnet-id": "subnet-d7008b8f",
+        "key-file-name": "aws_serv_server_key",
+        "tags": {
+            "session-id": "Service-Node", "Name": "Host-Agent"
+          },
+        "startup-command": [
+            "/data/ccdp/ccdp_install.py",
+            "-a", 
+            "download", 
+            "-d", 
+            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "-w", 
+            "-t", 
+            "/data/ccdp"
+          ],
+        "assignment-command": "/home/oeg/scripts/test.sh",
+        "region": "us-east-1",
+        "role-name": "my-Role",
+        "proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": 1234,
+        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-profile-name": "default"
       },
       "DOCKER": {
-        "dist-file": "${CCDP_HOME}/dist/ccdp-engine.tgz"
+        "loader-class": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
+        "image-id": "payero/centos:ccdp",
+        "min-number-free-agents": 0,
+        "startup-command": [
+            "/data/ccdp/ccdp_install.py",
+            "-a", 
+            "download", 
+            "-d", 
+            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "-w", 
+            "-t", 
+            "/data/ccdp",
+            "-D",
+            "-n",
+            "DOCKER"
+          ]
       }
     }
   }

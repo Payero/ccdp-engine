@@ -15,6 +15,7 @@ import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -75,7 +76,7 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
    * @param config the configuration used to set the allocation/deallocation
    *        parameters
    */
-  public abstract void configure(ObjectNode config);
+  public abstract void configure(JsonNode config);
 
   /**
    * Determines whether or not additional resources are needed based on

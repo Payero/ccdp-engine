@@ -33,7 +33,7 @@ import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
@@ -68,7 +68,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Stores the configuration for the tests
    */
-  private ObjectNode jsonCfg;
+  private JsonNode jsonCfg;
   /**
    * Generates all the JSON objects used during the tests
    */
@@ -126,8 +126,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -136,7 +135,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     
     assertNotNull("Could not setup a connection with broker", this.connection);
     String uuid = UUID.randomUUID().toString();
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    String channel = 
+        task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
@@ -159,8 +159,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       try
       {
         CcdpUtils.loadProperties(cfg_file);
-        this.jsonCfg = 
-            CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+        this.jsonCfg = CcdpUtils.getResourceCfg("DOCKER");
         this.docker.configure(this.jsonCfg);
       }
       catch( Exception e )
@@ -191,7 +190,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     Logger.getRootLogger().setLevel(Level.WARN);
     Logger.getRootLogger().setAdditivity(false);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -211,7 +210,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startMultipleInstancesTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -231,7 +230,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -283,7 +282,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithoutSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -328,7 +327,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startAndStopInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -364,7 +363,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startManyAndStopSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -408,7 +407,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   //@Test
   public void checksTasksRunningOnVMTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -466,7 +465,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.docker.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -497,7 +496,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -589,7 +588,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   //@Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);

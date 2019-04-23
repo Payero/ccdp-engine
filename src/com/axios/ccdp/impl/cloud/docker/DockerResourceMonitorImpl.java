@@ -10,7 +10,6 @@ import java.util.List;
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
@@ -100,7 +99,7 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     String units = UNITS.KB.toString();
     String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;

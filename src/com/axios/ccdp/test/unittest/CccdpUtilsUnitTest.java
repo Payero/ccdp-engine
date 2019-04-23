@@ -6,7 +6,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CccdpUtilsUnitTest
 {
@@ -19,25 +19,27 @@ public class CccdpUtilsUnitTest
   @Test
   public void ChangingPropertiesTest()
   {
-    String key = "connectionIntf.broker.connection";
+    ObjectNode conn_cfg = CcdpUtils.getConnnectionIntfCfg().deepCopy();
+    String key = "broker";
     String val = "failover://tcp://localhost:61616";
-    assertTrue("The key was not found in the properties",CcdpUtils.containsKey(key));
-    CcdpUtils.setProperty(key, val);
+    assertTrue("The key was not found in the properties", conn_cfg.has(key));
+    conn_cfg.put(key, val);
     
-    assertEquals(val, CcdpUtils.getProperty(key));
+    assertEquals(val, conn_cfg.get(key).asText());
   }
   
   
   @Test
   public void loadImageTest()
   {
-    String imageId = CcdpUtils.getImageInfo(CcdpNodeType.EC2).getImageId();
+    String imageId = CcdpUtils.getImageInfo("EC2").getImageId();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     
-    String key = "resourceIntf.ec2.image.id";
+    String key = "image-id";
     String val = "ami-0cdc695251d96520a";
-    assertTrue("The key was not found in the properties",CcdpUtils.containsKey(key));
-    CcdpUtils.setProperty(key, val);
-    assertNotEquals(imageId,CcdpUtils.getImageInfo(CcdpNodeType.EC2).getImageId() );
+    assertTrue("The key was not found in the properties", res_cfg.has(key));
+    res_cfg.put(key, val);
+    assertNotEquals(imageId, CcdpUtils.getImageInfo("EC2").getImageId() );
   }
 }
 

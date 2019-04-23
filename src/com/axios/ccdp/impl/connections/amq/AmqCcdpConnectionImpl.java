@@ -14,6 +14,7 @@ import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
@@ -98,9 +99,9 @@ public class AmqCcdpConnectionImpl
    *        to operate
    */
   @Override
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
-    this.config = config;
+    this.config = config.deepCopy();
     this.logger.debug("Using Configuration " + this.config.toString());
     if( this.config.has(CcdpUtils.CFG_KEY_MAIN_CHANNEL) )
     {
@@ -122,8 +123,9 @@ public class AmqCcdpConnectionImpl
       if( !this.senders.containsKey(channel) )
       {
         this.logger.info("Registering Producer: " + channel);
-        String brkr =
-            this.config.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
+        JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
+        String brkr = 
+            conn_cfg.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
         AmqSender sender = new AmqSender();
         sender.connect(brkr, channel);
 

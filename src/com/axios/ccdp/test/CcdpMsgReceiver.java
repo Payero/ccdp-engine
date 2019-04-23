@@ -1,7 +1,6 @@
 package com.axios.ccdp.test;
 
 import java.io.File;
-import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -23,6 +22,7 @@ import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
@@ -203,10 +203,8 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     
-    
-    Map<String, String> map = 
-        CcdpUtils.getKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
-    String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
+    JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
+    String broker = conn_cfg.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();
     String channel = null;  
     
     if( cmd.hasOption('b') )
@@ -216,7 +214,7 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
       channel = cmd.getOptionValue('d');
     else
     {
-      channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_RESPONSE_CHANNEL);
+      channel = conn_cfg.get( CcdpUtils.CFG_KEY_RESPONSE_CHANNEL ).asText();
       if( channel == null || channel.length() == 0 )
         usage("The destination or channel is required");
     }

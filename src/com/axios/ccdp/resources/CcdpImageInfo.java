@@ -3,7 +3,7 @@ package com.axios.ccdp.resources;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,7 +24,7 @@ public class CcdpImageInfo
   /**
    * The type of Node the instances of this class will be used for
    */
-  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
+  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   
   /**
    * Performs all the nodes operations from and to JSON to/from objects
@@ -177,26 +177,6 @@ public class CcdpImageInfo
   }
   
   /**
-   * Gets the type of Node the instances of this class will be used for
-   * 
-   * @return the type of Node the instances of this class will be used for
-   */
-  public CcdpNodeType getNodeType()
-  {
-    return nodeType;
-  }
-
-  /**
-   * Sets the type of Node the instances of this class will be used for
-   * 
-   * @param nodeType the type of Node the instances of this class will be used for
-   */
-  public void setNodeType(CcdpNodeType nodeType)
-  {
-    this.nodeType = nodeType;
-  }
-
-  /**
    * Gets a string representation of the type of Node the instances of this 
    * class will be used for
    * 
@@ -204,9 +184,9 @@ public class CcdpImageInfo
    *         a string
    */
   @JsonGetter("node-type")
-  public String getNodeTypeAsString()
+  public String getNodeType()
   {
-    return nodeType.toString();
+    return nodeType;
   }
 
   /**
@@ -219,7 +199,7 @@ public class CcdpImageInfo
   @JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
-    this.nodeType = CcdpNodeType.valueOf(nodeType);
+    this.nodeType = nodeType;
   }
   
   /**

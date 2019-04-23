@@ -6,9 +6,9 @@ import java.io.InputStream;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Class used to manage data being stored in AWS S3 buckets.  
@@ -51,7 +51,7 @@ public class DockerStorageControllerImpl implements CcdpStorageControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     if( config == null )
       throw new IllegalArgumentException("The configuration cannot be null");

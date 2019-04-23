@@ -34,6 +34,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
@@ -106,8 +107,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 
 		// creating the factory that generates the objects used by the test class
 		CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-		ObjectNode task_msg_node = 
-				CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+		JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg(); 
 
 		this.connection = factory.getCcdpConnectionInterface(task_msg_node);
 		this.connection.configure(task_msg_node);
@@ -119,21 +119,35 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		this.connection.registerConsumer(uuid, testChannel);
 		this.taskMap = new  HashMap<>();
 		assertTrue("The taskMap should be empty", this.taskMap.isEmpty());
-
-		mainChannel= CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+		mainChannel= task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL ).asText();
 		assertNotNull("The channel for the engine cannot be null", this.mainChannel);
 
-		//setting the controller and storage properties to the appropriate name
-		CcdpUtils.setProperty("resource.intf.classname", CcdpMainApplicationTests.CcdpVMcontroller);
-		CcdpUtils.setProperty("storage.intf.classname", CcdpMainApplicationTests.CcdpVMStorageController);
+    
+	//setting the controller and storage properties to the appropriate name
+		ObjectNode res_mgr = CcdpUtils.getResourceManagerIntfCfg().deepCopy();
+		res_mgr.put("classname", CcdpMainApplicationTests.CcdpVMcontroller);
+		CcdpUtils.setResourceManagerIntfCfg(res_mgr);
+    
+		ObjectNode storage = CcdpUtils.getStorageIntfCfg().deepCopy();
+    storage.put("classname", CcdpMainApplicationTests.CcdpVMStorageController);
+    CcdpUtils.setStorageIntfCfg(storage);
+    
+    ObjectNode res_mon = CcdpUtils.getResourceMonitorIntfCfg().deepCopy();
+    res_mon.put("classname", CcdpMainApplicationTests.ClassMonitorIntf);
+    CcdpUtils.setResourceManagerIntfCfg(res_mon);
+    
+    ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
 
-		//setting resource monitor property to the appropriate name
-		CcdpUtils.setProperty("res.mon.intf.classname", CcdpMainApplicationTests.ClassMonitorIntf);
-
-		//setting the free vm to 0 
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "0");
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "0");
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "0");
+    ObjectNode nif_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nif_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("NIFI", nif_cfg);
 
 		System.out.println("\n ***************************************************************************** \n");
 
@@ -169,8 +183,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	public void OneFreeVMforDefault()
 	{
 		this.logger.info("Running OneFreeVMforDefault");
-		//CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "3");
+    ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 3);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		assertNotNull("The application should not be null", ccdpEngine);
 		//waiting for the engine to get settle and launch vms if need
@@ -203,7 +220,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	public void OneFreeVMforEC2()
 	{
 		this.logger.info("Running OneFreeVMforEC2");
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
+    ObjectNode ec2_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ec2_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", ec2_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		assertNotNull("The application should not be null", ccdpEngine);
 		//waiting for the engine to get settle and launch vms if need
@@ -235,7 +255,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	public void OneFreeVMforNifi()
 	{
 		this.logger.info("Running OneFreeVMforNifi");
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+    ObjectNode nifi_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nifi_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("NIFI", nifi_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		assertNotNull("The application should not be null", ccdpEngine);
 		//waiting for the engine to get settle and launch vms if need
@@ -266,10 +289,21 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test(timeout=180000)//test fails if it takes longer than 3 min
-	public void TestCheckFreeVMRequirements() {
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+	public void TestCheckFreeVMRequirements() 
+	{
+    ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+    
+	  ObjectNode ec2_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ec2_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", ec2_cfg);
+    
+    ObjectNode nifi_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nifi_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("NIFI", nifi_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called the fist time 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -292,20 +326,29 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		waitUntilVMisRunning("DEFAULT");
 		//waiting for the onEvent function to be called
 		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
-
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "0");
+    def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+    
 		CcdpUtils.pause(pauseTime);
 		assertEquals(0,resources.get("DEFAULT").size());
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(1,resources.get("NIFI").size());
-
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "0");
+		
+		nifi_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nifi_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("NIFI", nifi_cfg);
+    
 		CcdpUtils.pause(pauseTime);
 		assertEquals(0,resources.get("DEFAULT").size());
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(0,resources.get("NIFI").size());
 
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "0");
+		ec2_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ec2_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", ec2_cfg);
+    
 		CcdpUtils.pause(pauseTime);
 		assertEquals(0,resources.get("DEFAULT").size());
 		assertEquals(0,resources.get("EC2").size());
@@ -322,7 +365,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	@Test (timeout=240000)//test fails if it takes longer than 4 min
 	public void TestRemoveUnresponsiveVM() {
 		this.logger.info("Running  TestRemoveUnresponsiceVM");
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
+		ObjectNode def_cfg = 
+		    CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+		def_cfg.put("min-number-free-agents", 1);
+		CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -366,10 +412,23 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=240000)//test fails if it takes longer than 4 min
-	public void TestRemoveMultipleUnresponsiveVM() {
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+	public void TestRemoveMultipleUnresponsiveVM() 
+	{
+	  ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+    
+    ObjectNode ec2_cfg = 
+        CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ec2_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", ec2_cfg);
+    
+    ObjectNode nif_cfg = 
+        CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nif_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("NIFI", nif_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -426,8 +485,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 		this.logger.info("Running handlingThreadRequest");
 
+    ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
 		//changing the number of free require agents
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
 		//running main engine
 		ccdpEngine= new CcdpMainApplication(null);
 
@@ -485,11 +547,25 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test(timeout=180000)//test fails if it takes longer than 3 min
-	public void RunningMultipleTaskRequest() {
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "5");
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-		CcdpUtils.setProperty("resourceIntf.nifi.min.number.free.agents", "1");
+	public void RunningMultipleTaskRequest() 
+	{
+	  ObjectNode def_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    def_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, def_cfg);
+
+    ObjectNode nif_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
+    nif_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("NIFI", nif_cfg);
+    
+    ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("no-more-than", 5);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
 
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
@@ -612,9 +688,18 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=180000)//test fails if it takes longer than 3 min
-	public void TaskAllocationBasedOn_NumberTasksControllerImpl_1() {
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
+	public void TaskAllocationBasedOn_NumberTasksControllerImpl_1() 
+	{
+	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("no-more-than", 2);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+	  
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -700,9 +785,18 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=180000)//test fails if it takes longer than 3 min
-	public void TaskAllocationBasedOn_NumberTasksControllerImpl_2() {
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
+	public void TaskAllocationBasedOn_NumberTasksControllerImpl_2() 
+	{
+    ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("no-more-than", 2);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -794,10 +888,23 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=300000)//test fails if it takes longer than 5 min
-	public void TaskAllocationBasedOn_firsotFit() {
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.NumberTasksControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.no.more.than", "2");
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "3");
+	public void TaskAllocationBasedOn_firsotFit() 
+	{
+	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("no-more-than", 2);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+	  
+    ObjectNode res_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    res_cfg.put("min-number-free-agents", 3);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, res_cfg);
+    
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -926,12 +1033,23 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 * 
 	 */
 	@Test (timeout=300000)//test fails if it takes longer than 5 min
-	public void TaskAllocationBasedOn_AvgLoadControllerImpl_1() {
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "1");
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.cpu","75");
-		CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.mem","15");
-
+	public void TaskAllocationBasedOn_AvgLoadControllerImpl_1() 
+	{
+	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("avg-cpu-load", 75);
+    allocate.put("avg-mem-load", 15);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+	    
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -1015,11 +1133,22 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=240000)//test fails if it takes longer than 4 min
-	public void TaskAllocationBasedOn_AvgLoadControllerImpl_2() {
-		CcdpUtils.setProperty("resourceIntf.ec2.min.number.free.agents", "3");
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
-		CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.cpu","75");
-		CcdpUtils.setProperty("taskContrIntf.allocate.avg.load.mem","15");
+	public void TaskAllocationBasedOn_AvgLoadControllerImpl_2() 
+	{
+	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode allocate = params.get("allocate").deepCopy();
+    allocate.put("avg-cpu-load", 75);
+    allocate.put("avg-mem-load", 15);
+    params.set("allocate", allocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 3);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
 
 		ccdpEngine= new CcdpMainApplication(null);
 
@@ -1090,10 +1219,22 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 
 	@Test (timeout=270000)//test fails if it takes longer than 4.5 min
-	public void MoreTaskAllocation() {
-		CcdpUtils.setProperty("task.allocator.intf.classname","com.axios.ccdp.controllers.AvgLoadControllerImpl");
-		CcdpUtils.setProperty("resourceIntf.default.min.number.free.agents", "1");
-		CcdpUtils.setProperty("taskContrIntf.deallocate.avg.load.time","1");//changing deallocation time for 1 min
+	public void MoreTaskAllocation() 
+	{
+	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
+    task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+    
+    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
+    ObjectNode deallocate = params.get("deallocate").deepCopy();
+    deallocate.put("avg-time-load", 1);
+    params.set("allocate", deallocate);
+    CcdpUtils.setTaskinParamsCfg(params);
+    
+    ObjectNode res_cfg = 
+        CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg(CcdpUtils.DEFAULT_RES_NAME, res_cfg);
 
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
@@ -1164,12 +1305,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		assertEquals(0,resources.get("EC2").size());
 
 		//make sure that in session Test3 here is one VM for NiFin and one for EC2
-		assertNotEquals(resources.get("Test3").get(0).getNodeTypeAsString(),resources.get("Test3").get(1).getNodeTypeAsString() );
+		assertNotEquals(resources.get("Test3").get(0).getNodeType(),resources.get("Test3").get(1).getNodeType() );
 
 		//the vm for EC2 in session test3 
 		//have to be single tasked since the task require CPU = 100
 		for(CcdpVMResource vm : resources.get("Test3")) {
-			if(vm.getNodeTypeAsString().equals("EC2"))
+			if(vm.getNodeType().equals("EC2"))
 				assertTrue(vm.isSingleTasked());
 		}
 

@@ -5,7 +5,7 @@ import java.util.Map;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Interface used to define the protocol used to send and receive tasking 
@@ -51,7 +51,7 @@ public interface CcdpConnectionIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config );
+  public void configure( JsonNode config );
   
   /**
    * Sends a message to the channel given as an argument.  The JSON object will 

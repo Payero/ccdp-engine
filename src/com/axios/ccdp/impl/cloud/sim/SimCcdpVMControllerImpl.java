@@ -13,8 +13,7 @@ import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
@@ -43,7 +42,7 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
    * @param config the object containing all the configuration parameters
    */
   @Override
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -70,12 +69,12 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     int max = imgCfg.getMaxReq();
     
-    CcdpNodeType type = imgCfg.getNodeType();
+    String type = imgCfg.getNodeType();
     String typeStr = type.toString();
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )
-      imgCfg.setSessionId( imgCfg.getNodeTypeAsString() );
+      imgCfg.setSessionId( imgCfg.getNodeType() );
     
     this.logger.info("Launching " + max + " Nodes of type " + typeStr );
     List<String> launched = new ArrayList<>();
@@ -267,7 +266,7 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
    *         criteria
    */
   @Override
-  public List<CcdpVMResource> getStatusFilteredByTags(ObjectNode filter)
+  public List<CcdpVMResource> getStatusFilteredByTags(JsonNode filter)
   {
     logger.debug("Getting Filtered Status using: " + filter);
     List<CcdpVMResource> all = this.getAllInstanceStatus();

@@ -13,8 +13,7 @@ import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.utils.CcdpConfigParser;
-import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 /**
@@ -142,7 +141,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the main 
    *         application to send and receive tasking events
    */
-  public CcdpConnectionIntf getCcdpConnectionInterface(ObjectNode config)
+  public CcdpConnectionIntf getCcdpConnectionInterface(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -160,7 +159,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the agent 
    *         get the resources
    */
-  public SystemResourceMonitorAbs getResourceMonitorInterface(ObjectNode config)
+  public SystemResourceMonitorAbs getResourceMonitorInterface(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -179,7 +178,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the resources
    */
-  public CcdpVMControllerIntf getCcdpResourceController(ObjectNode config)
+  public CcdpVMControllerIntf getCcdpResourceController(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -199,7 +198,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the storage resources
    */
-  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(ObjectNode config)
+  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -218,7 +217,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the tasking
    */
-  public CcdpVMControllerAbs getCcdpTaskingController(ObjectNode config)
+  public CcdpVMControllerAbs getCcdpTaskingController(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -236,7 +235,7 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the framework 
    *         to access the database
    */
-  public CcdpDatabaseIntf getCcdpDatabaseIntf(ObjectNode config)
+  public CcdpDatabaseIntf getCcdpDatabaseIntf(JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();
@@ -256,7 +255,7 @@ public class CcdpObjectFactory
    *         to access the database
    */
   public CcdpImgLoaderIntf getCcdpImgLoaderIntf(String nodeType, 
-                                                ObjectNode config)
+                                                JsonNode config)
   {
     String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
     String classname = config.get(key).asText();

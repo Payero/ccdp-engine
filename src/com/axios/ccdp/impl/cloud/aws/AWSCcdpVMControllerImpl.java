@@ -47,7 +47,7 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
@@ -123,7 +123,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    *         authenticate the user
    */
   @Override
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -219,9 +219,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )
-      imgCfg.setSessionId(imgCfg.getNodeTypeAsString());
+      imgCfg.setSessionId(imgCfg.getNodeType());
     
-    String type = imgCfg.getNodeTypeAsString();
+    String type = imgCfg.getNodeType();
     
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;
     
@@ -598,7 +598,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public List<CcdpVMResource> getStatusFilteredByTags( ObjectNode filter )
+  public List<CcdpVMResource> getStatusFilteredByTags( JsonNode filter )
   {
     logger.debug("Getting Filtered Status using: " + filter);
     List<CcdpVMResource> all = this.getAllInstanceStatus();

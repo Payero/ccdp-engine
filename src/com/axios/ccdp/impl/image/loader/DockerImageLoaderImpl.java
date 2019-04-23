@@ -3,21 +3,19 @@
  */
 package com.axios.ccdp.impl.image.loader;
 
-import java.util.Map;
 
 import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
- * Generates a DEFAULT image using the parameters in the given configuration
+ * Generates a Docker image using the parameters in the given configuration
  * object
  *  
  * @author Oscar E. Ganteaume
  *
  */
-public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
+public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
 {
   /**
    * Stores all the configurations for this image
@@ -60,16 +58,6 @@ public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
     img.setImageId (this.config.get("image-id").asText() );
     img.setMinReq( this.config.get("min-number-free-agents").asInt());
     img.setMaxReq( this.config.get("min-number-free-agents").asInt());
-    img.setSecGrp( this.config.get("security-group").asText() );
-    img.setSubnet( this.config.get("subnet-id").asText() );
-    img.setKeyFile( this.config.get("key-file-name").asText() );
-    img.setAssignmentCommand( this.config.get("assignment-command").asText() );
-    img.setRegion( this.config.get("region").asText() );
-    img.setRoleName( this.config.get("role-name").asText() );
-    img.setProxyUrl( this.config.get("proxy-url").asText() );
-    img.setProxyPort( this.config.get("proxy-port").asInt() );
-    img.setCredentialsFile( this.config.get("credentials-file").asText() );
-    img.setProfileName( this.config.get("credentials-profile-name").asText() );
     
     JsonNode node = this.config.get("startup-command");
     if( node != null && node.isArray() )
@@ -79,15 +67,6 @@ public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
         startupCommand += tmp.asText();
       
       img.setStartupCommand( startupCommand );
-    }
-    JsonNode nodeTags = this.config.get("tags");
-    if( nodeTags != null )
-    {
-      
-      @SuppressWarnings("unchecked")
-      Map<String, String> tags = 
-          new ObjectMapper().convertValue(nodeTags, Map.class);
-      img.setTags(tags);
     }
     
     return img;

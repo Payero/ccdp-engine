@@ -13,9 +13,9 @@ public class TestEngineWithAWSUnitTest extends CcdpMainApplicationTests
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception
 	{
-		CcdpVMcontroller = "com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl";
-		CcdpVMStorageController = "com.axios.ccdp.cloud.aws.AWSCcdpStorageControllerImpl";
-		ClassMonitorIntf = "com.axios.ccdp.utils.LinuxResourceMonitorImpl";
+		CcdpVMcontroller = "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl";
+		CcdpVMStorageController = "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl";
+		ClassMonitorIntf = "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl";
 		addSecond = 20;
 
 		ObjectMapper mapper = new ObjectMapper();

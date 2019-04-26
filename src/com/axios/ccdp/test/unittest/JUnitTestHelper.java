@@ -12,11 +12,11 @@ import static org.junit.Assert.*;
 
 public class JUnitTestHelper
 {
-  public static final String CFG_FILE_KEY = "config.file";
+//  public static final String CFG_FILE_KEY = "config.file";
+//  
+//  public static final String CFG_LOG4J_KEY = "log4j.cfg.file";
   
-  public static final String CFG_LOG4J_KEY = "log4j.cfg.file";
-  
-  public static String DEFAULT_CFG_FILE = "ccdp-config.properties";
+  public static String DEFAULT_CFG_FILE = "ccdp-config.json";
   
   public static Logger getLogger()
   {
@@ -32,7 +32,7 @@ public class JUnitTestHelper
   public static Logger getLogger(String name)
   {
     Logger logger = Logger.getLogger(name);
-    String cfg_file = System.getProperty(CFG_LOG4J_KEY);
+    String cfg_file = System.getProperty(CcdpUtils.SYS_KEY_LOG4J_CFG_FILE);
     
     if( cfg_file != null )
       PropertyConfigurator.configure(cfg_file);
@@ -47,7 +47,7 @@ public class JUnitTestHelper
     System.out.println("     Unit Test Setting Information     ");
     System.out.println("  The configuration file can be set by setting the ");
     System.out.println("  ccdp.cfg.file system property for example: ");
-    System.out.println("      ant -Dccdp.cfg.file=<new file> test ");
+    System.out.println("      ant -Dccdp.config.file=<new file> test ");
     System.out.println("");
     
     String path = System.getenv("CCDP_HOME");
@@ -67,7 +67,7 @@ public class JUnitTestHelper
     
     // getting the name of the configuration file .  If is null or invalid
     // attempts to use the default one
-    String fname = System.getProperty(CFG_FILE_KEY);
+    String fname = System.getProperty(CcdpUtils.CFG_KEY_CFG_FILE);
     if( fname != null )
     {
       // if it can't find the file set it to null to use default file

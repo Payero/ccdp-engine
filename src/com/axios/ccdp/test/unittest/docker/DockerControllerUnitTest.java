@@ -150,7 +150,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       if( path == null )
         path = System.getProperty("CCDP_HOME");
       
-      cfg_file =  path + "/config/ccdp-config.properties";
+      cfg_file =  path + "/config/ccdp-config.json";
     }
     logger.debug("The config file " + cfg_file);
     

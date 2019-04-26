@@ -64,7 +64,7 @@ public class AWSControlerUnitTest
     
   }
   
-//  @Test
+  @Test
   public void testThisIsATest()
   {
     org.junit.Assert.assertEquals(20, 20);

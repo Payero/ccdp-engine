@@ -72,17 +72,17 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	/**
 	 * Stores the name of the class used to interact with the cloud provider
 	 */
-	protected static String CcdpVMcontroller = "com.axios.ccdp.cloud.docker.DockerVMControllerImpl";
+	protected static String CcdpVMcontroller = "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl";
 
 	/**
 	 * Stores the name  of the class used handle different storage solution
 	 */
-	protected static String CcdpVMStorageController = "com.axios.ccdp.cloud.docker.DockerStorageControllerImpl";
+	protected static String CcdpVMStorageController = "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl";
 
 	/**
 	 * Stores the name of the class used to handle the system monitoring
 	 */
-	protected static String ClassMonitorIntf = "com.axios.ccdp.cloud.docker.DockerResourceMonitorImpl";
+	protected static String ClassMonitorIntf = "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl";
 	/**
 	 * Stores how many more second we want to add to the timer delay to allow the test and engine to process
 	 * information/request 
@@ -126,6 +126,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	//setting the controller and storage properties to the appropriate name
 		ObjectNode res_mgr = CcdpUtils.getResourceManagerIntfCfg().deepCopy();
 		res_mgr.put("classname", CcdpMainApplicationTests.CcdpVMcontroller);
+		String expDist = CcdpUtils.expandVars("${CCDP_HOME}/dist/ccdp-engine.tgz");
+    res_mgr.put("dist-file", expDist);  
+		res_mgr.put("docker-url", "http://172.17.0.1:2375");
 		CcdpUtils.setResourceManagerIntfCfg(res_mgr);
     
 		ObjectNode storage = CcdpUtils.getStorageIntfCfg().deepCopy();
@@ -134,7 +137,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     
     ObjectNode res_mon = CcdpUtils.getResourceMonitorIntfCfg().deepCopy();
     res_mon.put("classname", CcdpMainApplicationTests.ClassMonitorIntf);
-    CcdpUtils.setResourceManagerIntfCfg(res_mon);
+    CcdpUtils.setResourceMonitorIntfCfg(res_mon);
     
     ObjectNode def_cfg = 
         CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
@@ -560,12 +563,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     
     ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
-    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
     allocate.put("no-more-than", 5);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
+    task_cfg.set("allocate", allocate);
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
 
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
@@ -692,14 +693,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
+    allocate.put("no-more-than", 2);
+    task_cfg.set("allocate", allocate);
     CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
     
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
-    allocate.put("no-more-than", 2);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
-	  
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
@@ -789,13 +787,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
     ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
-    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
-    
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
     allocate.put("no-more-than", 2);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
+    task_cfg.set("allocate", allocate);
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
     
 		ccdpEngine= new CcdpMainApplication(null);
 		//waiting for the onEvent function to be called 
@@ -892,14 +887,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl");
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
+    allocate.put("no-more-than", 2);
+    task_cfg.set("allocate", allocate);
     CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
     
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
-    allocate.put("no-more-than", 2);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
-	  
     ObjectNode res_cfg = 
         CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();
     res_cfg.put("min-number-free-agents", 3);
@@ -1037,14 +1029,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
-    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
-    
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
     allocate.put("avg-cpu-load", 75);
     allocate.put("avg-mem-load", 15);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
+    task_cfg.set("allocate", allocate);
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
@@ -1137,14 +1126,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
-    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
-    
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode allocate = params.get("allocate").deepCopy();
+    ObjectNode allocate = task_cfg.get("allocate").deepCopy();
     allocate.put("avg-cpu-load", 75);
     allocate.put("avg-mem-load", 15);
-    params.set("allocate", allocate);
-    CcdpUtils.setTaskinParamsCfg(params);
+    task_cfg.set("allocate", allocate);
+    CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
+
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     res_cfg.put("min-number-free-agents", 3);
@@ -1223,13 +1210,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	{
 	  ObjectNode task_cfg = CcdpUtils.getTaskAllocatorIntfCfg().deepCopy();
     task_cfg.put("classname", "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl");
+    ObjectNode deallocate = task_cfg.get("deallocate").deepCopy();
+    deallocate.put("avg-time-load", 1);
+    task_cfg.set("deallocate", deallocate);
     CcdpUtils.setTaskAllocatorIntfCfg(task_cfg);
     
-    ObjectNode params = CcdpUtils.getTaskingParamsCfg().deepCopy();
-    ObjectNode deallocate = params.get("deallocate").deepCopy();
-    deallocate.put("avg-time-load", 1);
-    params.set("allocate", deallocate);
-    CcdpUtils.setTaskinParamsCfg(params);
     
     ObjectNode res_cfg = 
         CcdpUtils.getResourceCfg(CcdpUtils.DEFAULT_RES_NAME).deepCopy();

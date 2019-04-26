@@ -200,11 +200,10 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
       this.logger.warn("The heartbeat frequency was not set using 3 seconds");
     }
     
-    this.toMain = eng_cfg.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
+    this.toMain = task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     this.logger.info("Registering as " + hostId);
     this.connection.registerConsumer(hostId, hostId);
     this.connection.registerProducer(this.toMain);
-    
     boolean skip_hb = 
         eng_cfg.get( CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
     if( !skip_hb )

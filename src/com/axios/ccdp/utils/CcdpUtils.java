@@ -61,7 +61,7 @@ public class CcdpUtils
   public static final String LOG4J_CFG_FILENAME = "log4j.properties";
   
   /** Stores the property to determine if an agent should send HB or not **/
-  public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-hearbeats";  
+  public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-heartbeats";  
   /** Stores the number of seconds to send/receive heartbeats **/
   public static final String CFG_KEY_HB_FREQ = "heartbeat-req-secs";
   public static final String CFG_KEY_SKIP_TERMINATION = "do-not-terminate";
@@ -158,14 +158,6 @@ public class CcdpUtils
 //  /** Stores the name of the configuration key with the log folder location **/
 //  public static final String CFG_KEY_LOG_DIR = "ccdp.logs.dir";
 
-  
-  /****************************************************************************/
-  /**
-   * Defines all the different types of processing nodes supported for data 
-   * processing.  It is intended to be able to instantiate images based on the
-   * processing needs
-   */
-  public static List<String> NodeTypes = new ArrayList<>();
   /** Prints statements to the screen based on the verbosity level **/
   private static Logger logger = Logger.getLogger(CcdpUtils.class);
   /** Generates all the different JSON objects **/
@@ -334,6 +326,10 @@ public class CcdpUtils
   public static void loadProperties( String fname ) 
                         throws FileNotFoundException, IOException
   {
+    if( fname == null )
+    {
+      fname = CcdpUtils.getConfigValue( CcdpUtils.CFG_KEY_CFG_FILE );
+    }
     CcdpUtils.loadProperties( new File(fname) );
   }
 
@@ -714,7 +710,9 @@ public class CcdpUtils
    * */
   public static CcdpImageInfo getImageInfo(String type)
   {
-    if( type == null || !CcdpUtils.NodeTypes.contains( type ) )
+    List<String> types = CcdpUtils.parser.getNodeTypes();
+    
+    if( type == null || !types.contains( type ) )
       throw new InvalidArgumentException("Invalid Node Type: " + type);
     
     return CcdpUtils.images.get(type);
@@ -739,7 +737,7 @@ public class CcdpUtils
         continue;
       }
       CcdpImgLoaderIntf loader = 
-          factory.getCcdpImgLoaderIntf(node, imgCfg.deepCopy());
+          factory.getCcdpImgLoaderIntf(node, imgCfg);
       
       CcdpImageInfo img = loader.getImageInfo();
       CcdpUtils.images.put(node, img);
@@ -889,7 +887,7 @@ public class CcdpUtils
    * @return the string representation of what is stored in that key or null if
    *         not found
    */
-  public static String getConfigValue(String key )
+  public static String getConfigValue( String key )
   {
     JsonNode node = CcdpUtils.parser.getConfigValue(key);
     
@@ -1077,26 +1075,26 @@ public class CcdpUtils
     CcdpUtils.parser.setDatabaseIntfCfg(node);
   }
   
-  /**
-   * Gets all the configuration parameters used by the tasking parameters in
-   * the form of "allocate" and "deallocate"
-   * 
-   * @return an object containing all the different configuration parameters
-   */
-  public static JsonNode getTaskingParamsCfg()
-  {
-    return CcdpUtils.parser.getTaskingParamsCfg();
-  }
-  
-  /**
-   * Sets all the configuration parameters used by the tasking object
-   * 
-   * @param node an object containing all the different configuration parameters
-   */
-  public static void setTaskinParamsCfg(JsonNode node)
-  {
-    CcdpUtils.parser.setTaskingParamsCfg(node);
-  }
+//  /**
+//   * Gets all the configuration parameters used by the tasking parameters in
+//   * the form of "allocate" and "deallocate"
+//   * 
+//   * @return an object containing all the different configuration parameters
+//   */
+//  public static JsonNode getTaskingParamsCfg()
+//  {
+//    return CcdpUtils.parser.getTaskingParamsCfg();
+//  }
+//  
+//  /**
+//   * Sets all the configuration parameters used by the tasking object
+//   * 
+//   * @param node an object containing all the different configuration parameters
+//   */
+//  public static void setTaskinParamsCfg(JsonNode node)
+//  {
+//    CcdpUtils.parser.setTaskingParamsCfg(node);
+//  }
   
   /**
    * Gets all the resources configured under the resource provisioning task
@@ -1116,6 +1114,8 @@ public class CcdpUtils
   public static void setResourcesCfg(JsonNode node)
   {
     CcdpUtils.parser.setResourcesCfg(node);
+    // if the image changes then we need to reload them
+    CcdpUtils.loadImageInfo();
   }
   
   /**
@@ -1141,5 +1141,7 @@ public class CcdpUtils
   public static void setResourceCfg(String resName, JsonNode node)
   {
     CcdpUtils.parser.setResourceCfg(resName, node);
+    // if the image changes then we need to reload them
+    CcdpUtils.loadImageInfo();
   }
 }

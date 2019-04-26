@@ -14,9 +14,9 @@ public class TestEngineWithSimUnitTest extends CcdpMainApplicationTests
   @BeforeClass
   public static void setUpBeforeClass() throws Exception
   {
-    CcdpVMcontroller = "com.axios.ccdp.cloud.sim.SimCcdpVMControllerImpl";
-    CcdpVMStorageController = "com.axios.ccdp.cloud.sim.SimCcdpStorageControllerImpl";
-    ClassMonitorIntf = "com.axios.ccdp.utils.LinuxResourceMonitorImpl";
+    CcdpVMcontroller = "com.axios.ccdp.impl.cloud.sim.SimCcdpVMControllerImpl";
+    CcdpVMStorageController = "com.axios.ccdp.impl.cloud.sim.SimCcdpStorageControllerImpl";
+    ClassMonitorIntf = "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl";
 	addSecond = 5;
 	
 	ObjectMapper mapper = new ObjectMapper();

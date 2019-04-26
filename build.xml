@@ -39,6 +39,9 @@
  	<!--Scripts used to run -->
  	<property name="install.dir" location="bin" />
 
+  <!-- All the configuration files -->
+ <property name="config.dir" location="config" />
+
  	<!--The location of the javadoc directory -->
  	<property name="doc.dir" location="docs" />
 	
@@ -50,7 +53,7 @@
 	<property name="test.bld.dir" location="${build.dir}/test" />
 	
 	<property name="ccdp.config.file" 
-		value="${basedir}/config/ccdp-config.properties" />
+		value="${basedir}/config/ccdp-config.json" />
 	
 	<path id="classpath">
 	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -131,13 +134,6 @@
     </antcall>
    </target>
 	
-  <!-- Runs all the unit tests to test Engine with AWS-->
-  <target name="TestEngineWithAWS" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
-    </antcall>
-  </target>
-	
   <!-- Runs all the unit tests to test Engine with Sim-->
   <target name="TestEngineWithSim" depends="test-compile">
     <antcall target="junit.testing">
@@ -151,7 +147,15 @@
 	    <param name="test.pattern" value="TestEngineWithDockerUnitTest" />
 	  </antcall>
     </target>
-	
+
+  <!-- Runs all the unit tests to test Engine with AWS-->
+  <target name="TestEngineWithAWS" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
+    </antcall>
+  </target>
+
+  	
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">
     <junit printsummary="yes" haltonfailure="no" fork="true">
@@ -215,6 +219,7 @@
                  value="com.axios.ccdp.newgen.CcdpAgent"/>
     </manifest>
     <fileset dir="${main.dir}" includes="*.properties" />
+		<fileset dir="${config.dir}" includes="*.json" />
   	<fileset dir="${main.dir}"/>
 
     <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>

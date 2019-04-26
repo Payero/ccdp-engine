@@ -456,7 +456,8 @@ class CcdpInstaller:
       self.__logger.debug("Creating logs directory: %s" % logs)
       os.makedirs(logs)
     
-    cfg = os.path.join(inst_path, "config", "ccdp-config.properties")
+    #cfg = os.path.join(inst_path, "config", "ccdp-config.properties")
+    cfg = os.path.join(inst_path, "config", "ccdp-config.json")
     log = os.path.join(inst_path, "config", "log4j.properties")
     bin_dir = os.path.join(inst_path, "bin")
     os.chmod(bin_dir, 0777)

@@ -54,6 +54,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     catch( Exception e )
     {
       System.err.println("Could not setup environment");
+      e.printStackTrace();
     }
     
     JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
@@ -117,7 +118,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     }
   }
   
-  //@Test
+  @Test
   public void testMessageWithOptions()
   {
     this.logger.debug("Testing Message with Options");
@@ -135,6 +136,10 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     props.put("key-1", "value-1");
     props.put("key-2", "value-2");
     props.put("key-3", "value-3");
+    // Need to add the msg-type as it is done automatically by the CcdpMessage
+    int msgType = CcdpMessage.CcdpMessageType.UNDEFINED.msgType;
+    props.put("msg-type", String.valueOf(msgType)  );
+    
     JsonNode cfg = this.mapper.convertValue(props,  JsonNode.class);
     node.set("config", cfg);
     UndefinedMessage tstMsg = new UndefinedMessage();
@@ -156,6 +161,8 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
       Map<String, String> map = undMsg.getConfiguration();
       
       this.logger.debug("Got a latest " + load );
+      this.logger.debug("The Map " + map);
+      this.logger.debug("The Props " + props);
       assertEquals(props, map);
       assertEquals(msg, load);
     }

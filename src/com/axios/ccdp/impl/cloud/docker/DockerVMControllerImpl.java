@@ -106,9 +106,9 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     
     this.config = config.deepCopy();
     
-    if( config.has("dist.file") )
+    if( config.has("dist-file") )
     {
-      String filename = config.get("dist.file").asText();
+      String filename = config.get("dist-file").asText();
       logger.info("Getting Distribution file from: " + filename );
       File file = new File(filename);
       if( !file.isFile() || !file.canRead() )
@@ -120,13 +120,13 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     }
     else
     {
-      if( config.has("aws.access.id") && config.get("aws.access.id") != null && 
-          config.has("aws.secret.key") && config.get("aws.secret.key") != null )
+      if( config.has("aws-access-id") && config.get("aws-access-id") != null && 
+          config.has("aws-secret-key") && config.get("aws-secret-key") != null )
       {
         logger.info("Getting Distribution file from AWS S3 bucket");
         this.use_fs = false;
-        if( !config.has("aws.region") || config.get("aws.region") == null )
-          this.config.put("aws.region",  "us-east-1");
+        if( !config.has("aws-region") || config.get("aws-region") == null )
+          this.config.put("aws-region",  "us-east-1");
             
       }
       else
@@ -134,12 +134,12 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         throw new IllegalArgumentException("Need distribution file");
       }
     }
-    String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
+    String url = CcdpUtils.getConfigValue("docker-url");
     if( url == null )
     {
       logger.warn("Docker URL was not defined using default");
       url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
-      this.config.put("docker.url", url);
+      this.config.put("docker-url", url);
     }
     this.docker = new DefaultDockerClient(url);
     
@@ -183,7 +183,11 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       // Setting all the environment variables
       List<String> envs = new ArrayList<>();
       
-      String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
+      JsonNode res_mon = CcdpUtils.getResourceMonitorIntfCfg();
+      String url = "http://172.17.0.1:2375";
+      if( res_mon.has("docker-url") )
+        url = res_mon.get("docker-url").asText();
+      
       logger.info("Connecting to docker enging at: " + url);
       
       envs.add("DOCKER_HOST=" + url );
@@ -191,9 +195,9 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       // Add AWS specific ones if we are using AWS S3 Bucket
       if( !this.use_fs )
       {
-        envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws.region").asText());
-        envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws.secret.key").asText());
-        envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws.access.id").asText());
+        envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws-region").asText());
+        envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws-secret-key").asText());
+        envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws-access-id").asText());
       }
       
       // Parsing the command to start the docker container
@@ -231,7 +235,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         // we are copying the file to the container here
         if( this.use_fs )
         {
-          String filename = config.get("dist.file").asText();
+          String filename = config.get("dist-file").asText();
           FileInputStream fis = new FileInputStream(filename);
           this.docker.copyToContainer(fis, cid, "/data/ccdp");
         }

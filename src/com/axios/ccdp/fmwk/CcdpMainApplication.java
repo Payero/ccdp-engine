@@ -233,7 +233,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }
     }
     
-
     this.skip_hb = eng_cfg.get(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
 
     // Let's check what is out there....

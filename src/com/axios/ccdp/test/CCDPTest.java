@@ -1,12 +1,25 @@
 package com.axios.ccdp.test;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.StringTokenizer;
 
 import org.apache.log4j.Logger;
 
-
+import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.google.protobuf.UnmodifiableLazyStringList;
+import com.spotify.docker.client.DefaultDockerClient;
+import com.spotify.docker.client.DockerClient;
+import com.spotify.docker.client.DockerClient.ListImagesParam;
+import com.spotify.docker.client.messages.Container;
+import com.spotify.docker.client.messages.ContainerConfig;
+import com.spotify.docker.client.messages.ContainerCreation;
+import com.spotify.docker.client.messages.HostConfig;
+import com.spotify.docker.client.messages.Image;
+import com.spotify.docker.client.shaded.com.google.common.collect.ImmutableMap;
+import com.spotify.docker.client.shaded.com.google.common.collect.UnmodifiableIterator;
 
 
 public class CCDPTest 
@@ -35,18 +48,83 @@ public class CCDPTest
   private void runTest() throws Exception
   {
     this.logger.debug("Running the Test");
-    List<Integer> nums = new ArrayList<>();
-    for(int i = 0; i < 10; i++)
-      nums.add(i);
+    String url = "http://172.17.0.1:2375";
+    DockerClient client = new DefaultDockerClient(url);
+    this.logger.debug("Connected");
+    List<String> envs = new ArrayList<>();
+    logger.info("Connecting to docker enging at: " + url);
     
-    for( Integer n : nums )
+    envs.add("DOCKER_HOST=" + url );
+    envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
+    
+    // Parsing the command to start the docker container
+    // It should look like:
+    //    AWS: /data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -t /data/ccdp -D -n DOCKER
+    //    FS:  /data/ccdp/ccdp_install.py -t /data/ccdp -D -n DOCKER
+    //
+    CcdpImageInfo imgCfg = CcdpUtils.getImageInfo("DOCKER");
+    List<String> cmd = new ArrayList<>();
+    cmd.add("/data/ccdp/ccdp_install.py");
+    cmd.add("-t");
+    cmd.add("/data/ccdp");
+    cmd.add("-D");
+    cmd.add("-n");
+    cmd.add("DOCKER");
+    
+//    String cmd_line = imgCfg.getStartupCommand();
+//    StringTokenizer st = new StringTokenizer(cmd_line,  " ");
+//    while( st.hasMoreTokens() )
+//      cmd.add(st.nextToken());
+
+    HostConfig hostCfg = HostConfig.builder()
+        .networkMode("host")
+        .build();
+    
+    ContainerConfig cfg = ContainerConfig.builder()
+        .env(envs)
+        .hostConfig(hostCfg)
+        .image(imgCfg.getImageId())
+        .entrypoint(cmd)
+        .build();
+    
+    ContainerCreation cc = client.createContainer(cfg);
+    String cid = cc.id();
+    // Translating from Container id to a hostId
+    String hostId = cid.substring(0,  12);
+    logger.debug("Created Container " + hostId );
+    
+    client.startContainer( cc.id() );
+    client.close();
+    
+    
+  }
+  
+  public void imageInfo(DockerClient docker) throws Exception
+  {
+    this.logger.debug("Testing the Docker Client");
+    List<Image> quxImages =  docker.listImages();
+    for( Image img : quxImages )
     {
-      if( n % 2 == 0 )
+      try
       {
-        this.logger.debug("Removing " + n );
-        nums.remove(n);
+        this.logger.debug("Getting Image " + img.toString());
+        ImmutableMap<String, String> map = img.labels();
+        UnmodifiableIterator<String> keys = map.keySet().iterator();
+        while( keys.hasNext() )
+        {
+          String key = keys.next();
+          String val = map.get(key);
+          this.logger.debug("Label[" + key + "] = " + val);
+        }
       }
+      catch(Exception e)
+      {
+        this.logger.info("Got an exception while working with image");
+        continue;
+      }
+      
     }
+    
     
   }
   

@@ -10,7 +10,7 @@
       "i-0a1679a0cb4aba5dd"
     ],
     "skip-heartbeats": false,
-    "heartbeat-req-secs": 5,
+    "heartbeat-req-secs": 5
   },
   "interface-impls": {
     "connection": {
@@ -19,7 +19,18 @@
       "main-queue": "CCDP-Engine"  
     },
     "task-allocator": {
-      "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl"
+      "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl",
+      "allocate": {
+        "avg-cpu-load": 80,
+        "avg-mem-load": 15,
+        "avg-time-load": 2,
+        "no-more-than":  5
+      },
+      "deallocate": {
+        "avg-cpu-load": 20,
+        "avg-mem-load": 20,
+        "avg-time-load": 2
+      }
     },
     "resource-manager": {
       "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl"
@@ -40,23 +51,10 @@
       "db-resources-table": "ResourceStatus"
     }
   },
-  "tasking": {
-    "allocate": {
-      "avg-cpu-load": 80,
-      "avg-mem-load": 15,
-      "avg-time-load": 2,
-      "no-more-than":  5
-    },
-    "deallocate": {
-      "avg-cpu-load": 20,
-      "avg-mem-load": 20,
-      "avg-time-load": 2
-    }
-  },
   "resource-provisioning": {
     "resources": {
       "DEFAULT": {
-        "loader-class": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
+        "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
@@ -84,7 +82,7 @@
         "credentials-profile-name": "default"
       },
       "EC2": {
-        "loader-class": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
+        "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
@@ -112,7 +110,7 @@
         "credentials-profile-name": "default"
       },
       "NIFI": {
-        "loader-class": "com.axios.ccdp.impl.image.loader.NifiImageLoaderImpl",
+        "classname": "com.axios.ccdp.impl.image.loader.NifiImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
@@ -140,8 +138,8 @@
         "credentials-profile-name": "default"
       },
       "DOCKER": {
-        "loader-class": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
-        "image-id": "payero/centos:ccdp",
+        "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
+        "image-id": "payero/centos-7:ccdp",
         "min-number-free-agents": 0,
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
@@ -149,6 +147,7 @@
             "download", 
             "-d", 
             "s3://ccdp-settings/ccdp-engine.tgz", 
+            "${CCDP_HOME}/config/ccdp-config.json",
             "-w", 
             "-t", 
             "/data/ccdp",
@@ -159,5 +158,4 @@
       }
     }
   }
-
 }

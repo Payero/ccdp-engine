@@ -82,7 +82,7 @@ ARGS=""
 SRCH_APP_NAME="${JAVA_APP}"
 APP_NAME=`echo ${JAVA_APP} | sed 's/.*\.//'`
 JAVA_OPTS="-Dccdp.logs.dir=${CCDP_LOG_DIR} \
-					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.properties \
+					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.json \
 		       -Xmx1500m"
 
 export JAVA_OPTS

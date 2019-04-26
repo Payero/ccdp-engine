@@ -14,9 +14,9 @@ public class TestEngineWithDockerUnitTest extends CcdpMainApplicationTests
   @BeforeClass
   public static void setUpBeforeClass() throws Exception
   {
-    CcdpVMcontroller = "com.axios.ccdp.cloud.docker.DockerVMControllerImpl";
-    CcdpVMStorageController = "com.axios.ccdp.cloud.docker.DockerStorageControllerImpl";
-    ClassMonitorIntf = "com.axios.ccdp.cloud.docker.DockerResourceMonitorImpl";
+    CcdpVMcontroller = "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl";
+    CcdpVMStorageController = "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl";
+    ClassMonitorIntf = "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl";
     addSecond = 15;
    
     System.out.println("Im in the dockertest");

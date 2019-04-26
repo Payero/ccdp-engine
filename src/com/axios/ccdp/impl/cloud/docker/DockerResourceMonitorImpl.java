@@ -113,9 +113,9 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     
     this.setUnits( units );
     
-    if( config.has("docker.url") && config.get("docker.url") != null )
+    if( config.has("docker-url") && config.get("docker-url") != null )
     {
-      JsonNode obj = config.get("docker.url");
+      JsonNode obj = config.get("docker-url");
       url = obj.asText();
     }
     else

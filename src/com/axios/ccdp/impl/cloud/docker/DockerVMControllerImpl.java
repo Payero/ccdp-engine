@@ -41,8 +41,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private static Logger logger = Logger.getLogger(DockerVMControllerImpl.class
-      .getName());
+  private Logger logger = 
+                  Logger.getLogger(DockerVMControllerImpl.class.getName());
   
   /**
    * Stores all the data configuration for this object
@@ -208,6 +208,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       
       List<String> cmd = new ArrayList<>();
       String cmd_line = imgCfg.getStartupCommand();
+      this.logger.info("The Docker Startup Command: " + cmd_line);
       StringTokenizer st = new StringTokenizer(cmd_line,  " ");
       while( st.hasMoreTokens() )
         cmd.add(st.nextToken());

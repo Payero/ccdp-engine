@@ -87,14 +87,14 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
    */
   public void configure(JsonNode config)
   {
-    if( config.has("db.host") )
-      this.dbHost = config.get("db.host").asText();
-    if( config.has("db.port") )
-      this.dbPort = config.get("db.port").asInt();
-    if( config.has("db.name") )
-      this.dbName = config.get("db.name").asText();
-    if( config.has("status.collection") )
-      this.dbColl = config.get("resources.table").asText();
+    if( config.has("db-host") )
+      this.dbHost = config.get("db-host").asText();
+    if( config.has("db-port") )
+      this.dbPort = config.get("db-port").asInt();
+    if( config.has("db-name") )
+      this.dbName = config.get("db-name").asText();
+    if( config.has("db-resources-table") )
+      this.dbColl = config.get("db-resources-table").asText();
     
   }
 

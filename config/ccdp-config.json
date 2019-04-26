@@ -146,7 +146,7 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "/data/ccdp/ccdp-engine.tgz", 
             "${CCDP_HOME}/config/ccdp-config.json",
             "-w", 
             "-t", 

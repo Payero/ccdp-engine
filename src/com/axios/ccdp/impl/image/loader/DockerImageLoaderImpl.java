@@ -4,6 +4,8 @@
 package com.axios.ccdp.impl.image.loader;
 
 
+import org.apache.log4j.Logger;
+
 import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -17,6 +19,11 @@ import com.fasterxml.jackson.databind.JsonNode;
  */
 public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
 {
+  /**
+   * Generates debug print statements based on the verbosity level.
+   */
+  private Logger logger = 
+                    Logger.getLogger(DockerImageLoaderImpl.class.getName());
   /**
    * Stores all the configurations for this image
    */
@@ -64,8 +71,9 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
     {
       String startupCommand = "";
       for( JsonNode tmp : node )
-        startupCommand += tmp.asText();
-      
+      {
+        startupCommand += ( tmp.asText() + " " );
+      }
       img.setStartupCommand( startupCommand );
     }
     

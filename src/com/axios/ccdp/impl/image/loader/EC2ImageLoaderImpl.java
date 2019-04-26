@@ -76,7 +76,7 @@ public class EC2ImageLoaderImpl implements CcdpImgLoaderIntf
     {
       String startupCommand = "";
       for( JsonNode tmp : node )
-        startupCommand += tmp.asText();
+        startupCommand += ( tmp.asText() + " " );
       
       img.setStartupCommand( startupCommand );
     }

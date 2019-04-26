@@ -21,8 +21,8 @@ public class TestEngineWithDockerUnitTest extends CcdpMainApplicationTests
    
     System.out.println("Im in the dockertest");
     ObjectMapper mapper = new ObjectMapper();
-    ArrayNode base_cmd = mapper.createArrayNode();
-    base_cmd.add("data/ccdp/ccdp_install.py");
+    final ArrayNode base_cmd = mapper.createArrayNode();
+    base_cmd.add("/data/ccdp/ccdp_install.py");
     base_cmd.add("-t");
     base_cmd.add("/data/ccdp");
     base_cmd.add("-D");
@@ -40,14 +40,14 @@ public class TestEngineWithDockerUnitTest extends CcdpMainApplicationTests
     ObjectNode ec2_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     ec2_cfg.put("image-id", "payero/centos-7:ccdp");
     ArrayNode ec2_cmd = base_cmd.deepCopy();
-    def_cmd.add("EC2");
+    ec2_cmd.add("EC2");
     ec2_cfg.set("startup-command", ec2_cmd);
     CcdpUtils.setResourceCfg("EC2", ec2_cfg);
     
     ObjectNode nifi_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
     nifi_cfg.put("image-id", "payero/centos-7:ccdp");
     ArrayNode nifi_cmd = base_cmd.deepCopy();
-    def_cmd.add("NIFI");
+    nifi_cmd.add("NIFI");
     nifi_cfg.set("startup-command", nifi_cmd);
     CcdpUtils.setResourceCfg("NIFI", nifi_cfg);
     

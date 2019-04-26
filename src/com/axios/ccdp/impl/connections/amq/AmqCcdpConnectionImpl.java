@@ -103,7 +103,7 @@ public class AmqCcdpConnectionImpl
   {
     this.config = config.deepCopy();
     this.logger.debug("Using Configuration " + this.config.toString());
-    if( this.config.has(CcdpUtils.CFG_KEY_MAIN_CHANNEL) )
+    if( this.config.has( CcdpUtils.CFG_KEY_MAIN_CHANNEL) )
     {
       String channel = this.config.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
       this.registerProducer(channel);

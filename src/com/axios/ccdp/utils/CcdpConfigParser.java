@@ -1,12 +1,16 @@
 package com.axios.ccdp.utils;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
 
 import org.apache.log4j.Logger;
 
@@ -55,6 +59,8 @@ public class CcdpConfigParser
   private ObjectNode config = null;
   private ObjectMapper mapper = new ObjectMapper();
   
+  private String filename = null;
+  
   @SuppressWarnings("unused")
   private CcdpConfigParser()
   {
@@ -73,7 +79,6 @@ public class CcdpConfigParser
    */
   public CcdpConfigParser( String filename ) throws FileNotFoundException
   {
-    this(new FileInputStream(filename));
     this.logger.debug("Parsing JSON file " + filename);
     this.setFilename(filename);
   }
@@ -88,10 +93,29 @@ public class CcdpConfigParser
    */
   public CcdpConfigParser( InputStream stream )
   {
+    this.loadConfig(stream);
+  }
+  
+  /**
+   * Instantiates a new object using the the given stream.  If the stream
+   * is invalid or it cannot be read, it throws a RuntimeException
+   * 
+   * @param stream the byte stream with all the configuration parameters
+   * @throws RuntimeException If the filename is invalid or it cannot be read, 
+   *         it throws a RuntimeException
+   */
+  public void loadConfig( InputStream stream )
+  {
     try
     {
-      this.config = this.mapper.readTree(stream).deepCopy();
-//      this.expandAllVars();
+      StringBuilder textBuilder = new StringBuilder();
+      InputStreamReader reader = 
+          new InputStreamReader(stream, StandardCharsets.UTF_8);
+      Stream<String> strStream = new BufferedReader( reader ).lines();
+      strStream.forEach( 
+            s -> textBuilder.append(CcdpUtils.expandVars(s)).append("\n")
+         );
+      this.config = this.mapper.readTree(textBuilder.toString()).deepCopy();
     }
     catch( Exception e)
     {
@@ -100,7 +124,12 @@ public class CcdpConfigParser
       throw new RuntimeException("Could not parse the configuration file");
     }
   }
-
+  
+  /**
+   * Gets the current configuration used by the parser
+   * 
+   * @return the current configuration used by the parser
+   */
   public JsonNode getConfiguration()
   {
     return this.config;
@@ -123,7 +152,8 @@ public class CcdpConfigParser
       throw new IllegalArgumentException("The file " + fname + " is invalid");
     try
     {
-      this.config = this.mapper.readTree(file).deepCopy();
+      this.filename = fname;
+      this.loadConfig( new FileInputStream( fname ) );
     }
     catch( Exception e)
     {
@@ -131,6 +161,17 @@ public class CcdpConfigParser
       e.printStackTrace();
       throw new RuntimeException("Could not parse the configuration file");
     }
+  }
+  
+  /**
+   * 
+   * Gets the name of the file used to load the configurations
+   * 
+   * @return the name of the file used to load the configurations
+   */
+  public String getFilename()
+  {
+    return this.filename;
   }
 
   /**
@@ -320,28 +361,6 @@ public class CcdpConfigParser
     this.setImplementedCfg( CcdpConfigParser.KEY_DATABASE, node);
   }
   
-//  /**
-//   * Gets all the configuration parameters used by the tasking parameters in
-//   * the form of "allocate" and "deallocate"
-//   * 
-//   * @return an object containing all the different configuration parameters
-//   */
-//  public JsonNode getTaskingParamsCfg()
-//  {
-//    JsonNode impls = this.config.get( CcdpConfigParser.KEY_INTF_IMPLS );
-//    return impls.get( CcdpConfigParser.KEY_TASKING );
-//  }
-//  
-//  /**
-//   * Sets all the configuration parameters used by the tasking object
-//   * 
-//   * @param node an object containing all the different configuration parameters
-//   */
-//  public void setTaskingParamsCfg(JsonNode node)
-//  {
-//    this.config.set( CcdpConfigParser.KEY_INTF_IMPLS, node );
-//  }
-  
   /**
    * Gets all the resources configured under the resource provisioning task
    * 
@@ -483,69 +502,7 @@ public class CcdpConfigParser
     return str;
   }
 
-  /**
-   * Navigates through all the nodes in the configuration file to replace them
-   * with the actual value.
-   * 
-   */
-  private void expandAllVars()
-  {
-    // need to use a different object because we cannot modify the object we
-    // are traversing
-    ObjectNode expanded = this.config.deepCopy();
-    
-    Iterator<String> names = this.config.fieldNames();
-    while( names.hasNext() )
-    {
-      String name = names.next();
-      this.logger.debug("Expanding " + name);
-      JsonNode cfgValue = this.config.get(name);
-      JsonNode expValue = expanded.get(name);
-      JsonNode tmp = this.expandVars( expValue.deepCopy(), cfgValue );
-      if( tmp != null )
-        expanded.set(name,  tmp);
-    }
-    // now store the changes
-    this.config = expanded.deepCopy();
-  }
   
-  /**
-   * Walks through the whole configuration file to expand every environmental
-   * variable present in the file.  All the modifications are store in the 
-   * parent node.
-   *   
-   * @param parent the node to store the changes
-   * @param node the actual node with the values to change
-   * 
-   * @return a modified node with all the environmental variables expanded
-   */
-  private JsonNode expandVars(JsonNode parent, JsonNode node) 
-  {
-    Iterator<String> names = node.fieldNames();
-    while( names.hasNext() )
-    {
-      String name = names.next();
-      JsonNode value = node.get(name);
-      if( value.isArray() )
-      {
-        Iterator<JsonNode> items = value.iterator();
-        while( items.hasNext() )
-        {
-          return expandVars( value, items.next() );
-        }
-      }
-      else if( value.isContainerNode() )
-      {
-        return expandVars(node.deepCopy(), value);
-      }
-      else
-      {
-        String res = CcdpUtils.expandVars(value.asText());
-        ((ObjectNode)parent).put(name, res);
-      }
-    }
-    return parent;
-  }
 
   /**
    * Stores a new configuration for a given implemented class as specified 
@@ -576,6 +533,6 @@ public class CcdpConfigParser
     CcdpUtils.configLogger();
     
     CcdpConfigParser parser = new CcdpConfigParser( args[0] );
-    System.err.println("Configuration Used: \n" + parser.toPrettyPrint());
+    System.err.println("Configuration Used: \n" + parser.toPrettyPrint() );
   }
 }

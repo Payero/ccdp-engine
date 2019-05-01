@@ -1,5 +1,6 @@
 .classpath
 .settings
+.vscode
 
 # SonarQube results, don't think I need it
 .scannerwork/

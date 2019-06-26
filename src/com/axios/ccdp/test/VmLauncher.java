@@ -54,7 +54,7 @@ public class VmLauncher
    */
   private Logger logger = Logger.getLogger(VmLauncher.class.getName());
   
-  // Using the EC2 Loader instead of vm_config.json
+  // Using the EC2 Loader instead of vm_config.json, scott.bennett@caci.com
   public VmLauncher()
   {
     
@@ -73,6 +73,7 @@ public class VmLauncher
       }
   
       loader.configure("EC2", this.jsonCfg);
+      
       try
       {
         CcdpImageInfo image2 = loader.getImageInfo();
@@ -83,6 +84,8 @@ public class VmLauncher
         e.printStackTrace();
       }
     }
+    else
+     logger.error("Could not find ccdp-config.json");
   }
   
   // Oscar's original VmLauncher
@@ -326,7 +329,8 @@ public class VmLauncher
   
   public static void main( String[] args ) throws Exception
   {
-    String cfg_file = System.getProperty("ccdp.config.file");
+    // All of this is unneeded, uses EC2ImgLoaderImpl now
+    /*String cfg_file = System.getProperty("ccdp.config.file");
     
     //System.out.println(cfg_file);     -- Gets right path
     
@@ -342,10 +346,11 @@ public class VmLauncher
       System.err.println("Just provide the filename if wanted");
     
     //Oscar's call
-    new VmLauncher(fname);
+    //new VmLauncher(fname);
+    */
     
     // Scott's call
-    //new VmLauncher();
+    new VmLauncher();
   }
 
 }

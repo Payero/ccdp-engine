@@ -1,0 +1,2 @@
+Note to self:
+The aws_serv_server_key.pem in here is specific to srb. The _1.pem is for others.

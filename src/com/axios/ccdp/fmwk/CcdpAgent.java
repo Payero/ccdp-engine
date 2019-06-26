@@ -18,11 +18,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.KillTaskMessage;
@@ -74,7 +75,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   /**
    * Retrieves all the system's resources as a JSON object
    */
-  private SystemResourceMonitorIntf monitor = null; 
+  private SystemResourceMonitorAbs monitor = null; 
 //            new SystemResourceMonitorImpl(SystemResourceMonitorImpl.UNITS.MB);
   /**
    * Object used to send and receive messages such as incoming tasks to process
@@ -90,6 +91,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    * Stores the object responsible for keeping this application running
    */
   private ThreadController controller = null;
+  
+  /**
+   * Stores the object that interacts with the database
+   */
+  private CcdpDatabaseIntf dbClient = null;
   
   /**
    * Instantiates a new instance of the agent responsible for running all the
@@ -109,14 +115,18 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     
     ObjectNode res_mon_node = 
         CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
+    ObjectNode db_node = 
+        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_DB_INTF);
     
     this.monitor = factory.getResourceMonitorInterface(res_mon_node);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
+    this.dbClient = factory.getCcdpDatabaseIntf( db_node );
+    this.dbClient.connect();
+    
     this.logger.debug("Done with the connections: " + task_msg_node.toString());
-
     
     String hostId = this.monitor.getUniqueHostId();
     String hostname = null;
@@ -178,7 +188,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     else
     {
       this.logger.warn("Skipping Hearbeats");
-      this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+      //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+      this.dbClient.storeVMInformation(this.vmInfo);
     }
     
     this.runMain();
@@ -209,6 +220,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.vmInfo.setCPULoad(this.monitor.getSystemCpuLoad());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
     this.vmInfo.setFreeDiskSpace(this.monitor.getFreeDiskSpace());
+    this.vmInfo.setLastUpdatedTime(System.currentTimeMillis());
     double availableCPU = 100.0 - (this.vmInfo.getCPULoad()* 100);
     if (availableCPU < 0)
     	availableCPU = 0;
@@ -299,9 +311,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.trace("Sending Heartbeat to " + this.toMain);
+    this.logger.trace("Storing hearbeat");
     this.updateResourceInfo();
-    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    this.dbClient.storeVMInformation(this.vmInfo);
   }
   
 
@@ -463,7 +476,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     else
       this.logger.info("Shuting Down Agent");
     this.vmInfo.setStatus(ResourceStatus.SHUTTING_DOWN);
-    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    this.dbClient.storeVMInformation(this.vmInfo);
     
     if( this.timer != null )
       this.timer.stop();

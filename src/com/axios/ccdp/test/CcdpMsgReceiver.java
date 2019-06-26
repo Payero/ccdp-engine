@@ -1,9 +1,6 @@
 package com.axios.ccdp.test;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.commons.cli.CommandLine;
@@ -15,8 +12,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.amq.AmqReceiver;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
+import com.axios.ccdp.impl.connections.amq.AmqReceiver;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.EndSessionMessage;
 import com.axios.ccdp.messages.KillTaskMessage;
@@ -47,10 +44,7 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
    * Receives JMS Tasking Messages to the framework
    */
   private AmqReceiver receiver;
-  /**
-   * Writes the events to the file
-   */
-  private BufferedWriter writer = null;
+
   
   public CcdpMsgReceiver( String broker, String channel, String outfile ) 
   {
@@ -68,19 +62,7 @@ public class CcdpMsgReceiver implements CcdpMessageConsumerIntf
     if( broker == null || channel == null )
       usage("Need to configure the broker and the channel properly");
     
-    if( outfile != null )
-    {
-      this.logger.debug("Saving events in " + outfile);
-      try
-      {
-        FileWriter fw = new FileWriter(outfile);
-        this.writer = new BufferedWriter(fw);
-      }
-      catch( IOException e )
-      {
-        
-      }
-    }
+    
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.receiver.connect(broker, channel);
   }  

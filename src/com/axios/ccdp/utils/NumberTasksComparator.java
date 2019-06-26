@@ -2,8 +2,6 @@ package com.axios.ccdp.utils;
 
 import java.util.Comparator;
 
-import org.apache.log4j.Logger;
-
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 

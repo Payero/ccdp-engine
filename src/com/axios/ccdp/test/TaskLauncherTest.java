@@ -14,9 +14,8 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.connections.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.fmwk.CcdpTaskRunnerTest;
-import com.axios.ccdp.messages.ThreadRequestMessage;
+import com.axios.ccdp.intfs.CcdpTaskLauncher;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;

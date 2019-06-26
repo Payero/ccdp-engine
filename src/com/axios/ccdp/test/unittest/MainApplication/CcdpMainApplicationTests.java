@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -14,13 +15,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Ignore;
 
-
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
@@ -155,11 +154,10 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		//waiting for the engine to get settle and launch vms if need
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-		for(String sid : resources.keySet()){
-			int numberOfVM = resources.get(sid).size();
-			assertEquals(0,numberOfVM);
-		}
+		List<CcdpVMResource> resources = ccdpEngine.getAllCcdpVMResources();
+		int numberOfVM = resources.size();
+		assertEquals(0,numberOfVM);
+		
 	}
 
 	/**
@@ -179,9 +177,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-		for(String sid : resources.keySet()){
-			int numberOfVM = resources.get(sid).size();
+		Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+		while( sessions.hasNext() )
+		{
+		  String sid = sessions.next();
+		  List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+			int numberOfVM = list.size();
 			if(sid.equals("DEFAULT")) {
 				assertEquals(3,numberOfVM);
 			}else {
@@ -189,7 +190,8 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 			}
 		}
 		waitUntilVMisRunning("DEFAULT");
-		String vmStatus = resources.get("DEFAULT").get(0).getStatus().toString();
+		String vmStatus = 
+		    ccdpEngine.getCcdpVMResourcesBySID("DEFAULT").get(0).getStatus().toString();
 		assertEquals("RUNNING",vmStatus);
 	}
 	/**
@@ -208,9 +210,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-		for(String sid : resources.keySet()){
-			int numberOfVM = resources.get(sid).size();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+			int numberOfVM = list.size();
 			if(sid.equals("EC2")) {
 				assertEquals(1,numberOfVM);
 			}else {
@@ -218,7 +223,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 			}
 		}
 		waitUntilVMisRunning("EC2");
-		String vmStatus = resources.get("EC2").get(0).getStatus().toString();
+		String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("EC2").get(0).getStatus().toString();
 		assertEquals("RUNNING",vmStatus);
 	}
 	/**
@@ -237,9 +242,12 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
-		for(String sid : resources.keySet()){
-			int numberOfVM = resources.get(sid).size();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+			int numberOfVM = list.size();
 			if(sid.equals("NIFI")) {
 				assertEquals(1,numberOfVM);
 			}else {
@@ -248,7 +256,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		}
 
 		waitUntilVMisRunning("NIFI");
-		String vmStatus = resources.get("NIFI").get(0).getStatus().toString();
+		String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("NIFI").get(0).getStatus().toString();
 		assertEquals("RUNNING",vmStatus);
 	}
 
@@ -266,8 +274,15 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		//waiting for the onEvent function to be called the fist time 
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
-
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+		
+		Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		assertEquals(1,resources.get("DEFAULT").size());
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(1,resources.get("NIFI").size());
@@ -313,7 +328,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		assertEquals(1,resources.get("DEFAULT").size());
 		waitUntilVMisRunning("DEFAULT");
 
@@ -353,7 +375,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 		
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		
 		assertEquals(1,resources.get("EC2").size());
 		assertEquals(1,resources.get("NIFI").size());
@@ -407,7 +436,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		int numberOfVM = resources.get("DEFAULT").size();
 		assertEquals(1,numberOfVM);
 
@@ -460,7 +496,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 
 		//making sure there are two VMs running based on the config properties
 		assertEquals(1,resources.get("DEFAULT").size());
@@ -605,7 +648,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 
 		assertEquals(4,resources.get("Test1").size());
 
@@ -688,7 +738,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		pauseTime = ccdpEngine.getTimerPeriod()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 
 		assertEquals(2,resources.get("Group1").size());
 		assertEquals(1,resources.get("Group2").size());
@@ -746,7 +803,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		//making sure there are two VMs running based on the config properties
 		assertEquals(3,resources.get("DEFAULT").size());
 
@@ -873,7 +937,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		//making sure there are two VMs running based on the config properties
 		assertEquals(1,resources.get("EC2").size());
 
@@ -956,7 +1027,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		//making sure there are two VMs running based on the config properties
 		assertEquals(3,resources.get("EC2").size());
 
@@ -1022,7 +1100,14 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
 		CcdpUtils.pause(pauseTime);
 
-		Map<String, List<CcdpVMResource>> resources = ccdpEngine.getResources();
+    Map<String, List<CcdpVMResource>> resources = new HashMap<>();
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      resources.put(sid, list);
+    }
 		//making sure there are two VMs running based on the config properties
 		assertEquals(1,resources.get("DEFAULT").size());
 
@@ -1165,11 +1250,11 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 */
 	private void waitUntilVMisRunning(String sid) {
 		boolean stateUpdated = false;
-
+    List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
 		while(!stateUpdated) {
-			if(ccdpEngine.getResources().get(sid).size()==0)
+			if(list.size()==0)
 				break;
-			for(CcdpVMResource vm : ccdpEngine.getResources().get(sid)) {
+			for(CcdpVMResource vm : list ) {
 				if(ResourceStatus.RUNNING.equals(vm.getStatus())) {
 					stateUpdated = true;
 					break;

@@ -865,8 +865,6 @@ public class CcdpVMResource implements Serializable
     }
     
     return str;
-    
-    
   }
   
   /**

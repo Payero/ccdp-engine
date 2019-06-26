@@ -2,21 +2,18 @@ package com.axios.ccdp.test.unittest;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
-import com.axios.ccdp.cloud.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class AWSControlerUnitTest

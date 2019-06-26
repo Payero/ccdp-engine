@@ -3,7 +3,6 @@ package com.axios.ccdp.resources;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;

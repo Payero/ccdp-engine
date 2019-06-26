@@ -4,7 +4,11 @@
 from optparse import OptionParser
 import logging
 from pprint import pformat
-import boto3, botocore
+try:
+  import boto3, botocore
+except:
+  print("Could not find AWS libraries")
+
 import os, sys, traceback
 import tarfile, json
 from subprocess import call

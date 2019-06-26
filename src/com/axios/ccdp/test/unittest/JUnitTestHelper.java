@@ -18,11 +18,6 @@ public class JUnitTestHelper
   
   public static String DEFAULT_CFG_FILE = "ccdp-config.properties";
   
-  /**
-   * Generates debug print statements based on the verbosity level.
-   */
-  private static Logger logger = Logger.getLogger(JUnitTestHelper.class.getName());
-
   public static Logger getLogger()
   {
     return JUnitTestHelper.getLogger(JUnitTestHelper.class);

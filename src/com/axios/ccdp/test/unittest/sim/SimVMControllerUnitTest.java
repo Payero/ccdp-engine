@@ -13,13 +13,12 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
-import com.axios.ccdp.cloud.sim.SimCcdpVMControllerImpl;
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.impl.cloud.sim.SimCcdpVMControllerImpl;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.RunTaskMessage;

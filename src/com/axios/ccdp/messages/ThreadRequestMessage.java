@@ -1,7 +1,6 @@
 package com.axios.ccdp.messages;
 
 
-import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 
 

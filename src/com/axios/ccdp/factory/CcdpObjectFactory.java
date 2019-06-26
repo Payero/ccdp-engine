@@ -1,11 +1,17 @@
 package com.axios.ccdp.factory;
 
-import com.axios.ccdp.connections.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.connections.intfs.CcdpStorageControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpTaskingControllerIntf;
-import com.axios.ccdp.connections.intfs.CcdpVMControllerIntf;
-import com.axios.ccdp.connections.intfs.SystemResourceMonitorIntf;
-import com.axios.ccdp.controllers.CcdpVMControllerAbs;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+
+import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
+import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.axios.ccdp.intfs.CcdpTaskingControllerIntf;
+import com.axios.ccdp.intfs.CcdpVMControllerIntf;
+
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -73,10 +79,27 @@ public class CcdpObjectFactory
       throw new RuntimeException( msg );
     }
     
+    
     try
     {
       Class<?> instantiation = Class.forName(classname);
-      Object obj = instantiation.newInstance();
+      Constructor<?> def = null;
+      Constructor<?>[] consts = instantiation.getConstructors();
+      if( consts.length > 0 )
+      {
+        for(Constructor<?> tst : consts )
+        {
+          if ( tst.getParameterTypes().length == 0 )
+          {
+            def = tst;
+            break;
+          }
+        }
+      }
+      if( def == null )
+        throw new RuntimeException("Could not find the default constructor");
+      Class<?>[] params = def.getParameterTypes();
+      Object obj = instantiation.getDeclaredConstructor(params).newInstance();
       if( clazz.isInstance(obj) )
         return obj;
       else
@@ -99,6 +122,14 @@ public class CcdpObjectFactory
     catch (IllegalAccessException e)
     {
       throw new RuntimeException("Illegal Access for " + classname );
+    }
+    catch (NoSuchMethodException e)
+    {
+      throw new RuntimeException("No Such Method for " + classname );
+    }
+    catch (InvocationTargetException e)
+    {
+      throw new RuntimeException("Invocation Target for " + classname );
     }
   }
   
@@ -128,11 +159,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the agent 
    *         get the resources
    */
-  public SystemResourceMonitorIntf getResourceMonitorInterface(ObjectNode config)
+  public SystemResourceMonitorAbs getResourceMonitorInterface(ObjectNode config)
   {
     String key = CcdpUtils.CFG_KEY_RES_MON_CLASSNAME;
-    Object obj = this.getNewInstance(key, SystemResourceMonitorIntf.class);
-    SystemResourceMonitorIntf impl = (SystemResourceMonitorIntf)obj;
+    Object obj = this.getNewInstance(key, SystemResourceMonitorAbs.class);
+    SystemResourceMonitorAbs impl = (SystemResourceMonitorAbs)obj;
     impl.configure(config);
     return impl;
   }
@@ -191,4 +222,23 @@ public class CcdpObjectFactory
     impl.configure(config);
     return impl; 
   }
+  
+  /**
+   * Gets the object responsible for accessing the database.  It stores, update,
+   * and delete entries from the database
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the framework 
+   *         to access the database
+   */
+  public CcdpDatabaseIntf getCcdpDatabaseIntf(ObjectNode config)
+  {
+    String key = CcdpUtils.CFG_KEY_DATABASE_CLASSNAME;
+    Object obj = this.getNewInstance(key, CcdpDatabaseIntf.class);
+    CcdpDatabaseIntf impl = (CcdpDatabaseIntf)obj;
+    impl.configure(config);
+    return impl;
+  }
+  
+  
 }

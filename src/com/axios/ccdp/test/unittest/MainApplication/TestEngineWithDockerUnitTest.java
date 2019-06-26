@@ -1,9 +1,7 @@
 package com.axios.ccdp.test.unittest.MainApplication;
 
-import static org.junit.Assert.*;
 
 import org.junit.BeforeClass;
-import org.junit.Test;
 
 import com.axios.ccdp.utils.CcdpUtils;
 

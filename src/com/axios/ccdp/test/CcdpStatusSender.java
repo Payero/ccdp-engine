@@ -19,7 +19,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.services.devicefarm.model.ArgumentException;
-import com.axios.ccdp.connections.amq.AmqSender;
+import com.axios.ccdp.impl.connections.amq.AmqSender;
 import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -27,7 +27,6 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
-import com.axios.ccdp.utils.ThreadedTimerTask;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,10 +46,6 @@ public class CcdpStatusSender implements TaskEventIntf
    */
   private static HelpFormatter formatter = new HelpFormatter();
   /**
-   * How long before generating more messages to send and add to the queue
-   */
-  private static long EVENT_CYCLE = 10000;
-  /**
    * Stores all the options that can be used by this application
    */
   private static Options options = new Options();
@@ -67,10 +62,6 @@ public class CcdpStatusSender implements TaskEventIntf
    */
   private ObjectNode resource = null;
   /**
-   * Calls the onEvent method every so often
-   */
-  private ThreadedTimerTask timer = null;
-  /**
    * Determines when to stop the application from running
    */
   private ThreadController controller = new ThreadController();
@@ -82,10 +73,7 @@ public class CcdpStatusSender implements TaskEventIntf
    * Stores all the messages that need to be send
    */
   private Queue<ResourceUpdateMessage> messages = new LinkedList<>();
-  /**
-   * Stores the name of the queue to send data to the engine
-   */
-  private String toEngine = null;
+
   
   /**
    * Instantiates a new Message Sender and performs different operations
@@ -103,8 +91,6 @@ public class CcdpStatusSender implements TaskEventIntf
     String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
     String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
     
-    this.toEngine = channel.trim();
-    
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);
     try
@@ -116,7 +102,6 @@ public class CcdpStatusSender implements TaskEventIntf
         // makes sure all the configurations are set
         this.normalizeEntries(json);
         // starts calling the onEvent method
-        this.timer = new ThreadedTimerTask(this, EVENT_CYCLE, EVENT_CYCLE);
         this.started = System.currentTimeMillis();
         // runs until it either times out or is killed
         this.runMain();

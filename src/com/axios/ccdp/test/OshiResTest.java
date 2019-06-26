@@ -20,6 +20,7 @@ import oshi.software.os.FileSystem;
 import oshi.software.os.NetworkParams;
 import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
+import oshi.software.os.OperatingSystemVersion;
 import oshi.util.FormatUtil;
 import oshi.util.Util;
 
@@ -44,11 +45,16 @@ public class OshiResTest
     os.getManufacturer();
     os.getVersion();
     os.getProcessId();
+    OperatingSystemVersion ov = os.getVersion();
+    
     this.logger.debug("Family: " + os.getFamily() );
     this.logger.debug("Bitness: " + os.getBitness() );
     this.logger.debug("Manufacturer: " + os.getManufacturer() );
-    this.logger.debug("Version: " + os.getVersion() );
-    this.logger.debug("ProcessId: " + os.getProcessId() );
+    this.logger.debug("OS Version: " + ov.getVersion() );
+    this.logger.debug("OS Code Name: " + ov.getCodeName() );
+    this.logger.debug("OS Build Number: " + ov.getBuildNumber() );
+    
+    
     
 
     this.logger.info("\n\n\nChecking Processor...");

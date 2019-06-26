@@ -250,13 +250,13 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
     logger.trace("encoded value is " + new String(bytesEncoded));
-    
+        
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
          .withSecurityGroupIds(imgCfg.getSecGrp())
          .withSubnetId(imgCfg.getSubnet())
          .withKeyName(imgCfg.getKeyFile());
-    
+
     String role = imgCfg.getRoleName(); 
     if( role != null )
     {
@@ -267,8 +267,46 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       request.setIamInstanceProfile(iam);
     }
     
+    // Stuff I added
+    AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+    ClientConfiguration cc = new ClientConfiguration();
+    
+    /*String url = imgCfg.getProxyUrl();
+    if( url != null )
+    {
+      logger.debug("Adding a Proxy " + url);
+      cc.setProxyHost(url);
+    }
+    
+    int port = imgCfg.getProxyPort();
+    if( port > 0 )
+    {
+      logger.debug("Adding a Proxy Port " + port);
+      cc.setProxyPort(port);
+    }*/
+    
+    if( credentials != null )
+    {
+      this.ec2 = new AmazonEC2Client(credentials, cc);
+    }
+    else
+    {
+      this.ec2 = new AmazonEC2Client(cc);
+    }
+    
+    // Add region
+    String region = imgCfg.getRegion();
+    if( region != null )
+    {
+      logger.debug("Setting Region " + region);
+      Region reg = RegionUtils.getRegion(region);
+      this.ec2.setRegion(reg);
+    }
+    
     RunInstancesResult result = this.ec2.runInstances(request);
+    logger.debug("run result");
     SdkHttpMetadata shm = result.getSdkHttpMetadata();
+    logger.debug("get meta");
     
     int code = shm.getHttpStatusCode();
     if( code == 200 )
@@ -431,13 +469,14 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     logger.debug("Getting all the Instances Status");
     Map<String, CcdpVMResource> resources = new HashMap<>();
-    
+
     DescribeInstanceStatusRequest descInstReq = 
         new DescribeInstanceStatusRequest()
             .withIncludeAllInstances(true);
     DescribeInstanceStatusResult descInstRes = 
                               this.ec2.describeInstanceStatus(descInstReq);
     
+    logger.debug("I get here"); //I dont get here
     List<InstanceStatus> state = descInstRes.getInstanceStatuses();
     
     Iterator<InstanceStatus> states = state.iterator();
@@ -707,7 +746,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         CcdpUtils.getImageInfo(CcdpConfigParser.EC2_IMG_NAME);
     String fname = img.getCredentialsFile();
     String profile = img.getProfileName();
-    
+    //System.out.println("fname, profile: " + fname +", " + profile);
     return AWSCcdpVMControllerImpl.getAWSCredentials(fname, profile);
   }
 
@@ -742,6 +781,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     if( profile == null )
       profile = "default";
+    
+    //System.out.println("credsFile, profile: " + credsFile + ", " + profile);
     
     AWSCredentials credentials = null;
     
@@ -824,8 +865,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( file.isFile() )
     {
       ProfilesConfigFile cfgFile = new ProfilesConfigFile(file);
+      logger.debug(cfgFile.toString() + ", " + profile);
       creds = 
           new ProfileCredentialsProvider( cfgFile, profile ).getCredentials();
+      logger.debug(creds.toString());
     }
     else
     {

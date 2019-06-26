@@ -350,6 +350,7 @@ public class CcdpUtils
     if( file.isFile() )
     {
       InputStream stream = new FileInputStream(file);
+      //System.out.println("File path: " + file.getPath());
       CcdpUtils.loadProperties(stream);
     }
     else
@@ -710,6 +711,7 @@ public class CcdpUtils
    * */
   public static CcdpImageInfo getImageInfo(String type)
   {
+    //System.out.println("getImageInfo type: " + type);
     List<String> types = CcdpUtils.parser.getNodeTypes();
     
     if( type == null || !types.contains( type ) )

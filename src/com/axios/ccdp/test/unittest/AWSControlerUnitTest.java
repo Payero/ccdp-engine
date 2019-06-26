@@ -5,7 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.Assert.*;
+
 import org.apache.log4j.Logger;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
@@ -30,15 +34,43 @@ public class AWSControlerUnitTest
   private JsonNode jsonCfg;
   AWSCcdpVMControllerImpl aws = null;
   
-  
-  public AWSControlerUnitTest()
+  @BeforeClass
+  public static void initialize()
   {
-    JUnitTestHelper.initialize(); 
+    JUnitTestHelper.initialize();
+  }
+  
+  @Before
+  public void AWSControlerUnitTestSetUP()
+  {
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
     String cfg_file = System.getProperty("ccdp.config.file");
-    this.logger.debug("The config file " + cfg_file);
+    this.logger.debug("The config file: " + cfg_file);
+    if( cfg_file != null )
+    {
+      try
+      {
+        CcdpUtils.loadProperties(cfg_file);
+        
+        this.jsonCfg = CcdpUtils.getResourceCfg("EC2"); 
+      }
+      catch( Exception e )
+      {
+        e.printStackTrace();
+      }
+    }
+    
+    this.logger.debug("Running");
+  }
+  /*public AWSControlerUnitTest()
+  {
+    CcdpUtils.configLogger();
+    this.aws = new AWSCcdpVMControllerImpl();
+    this.jsonCfg = this.mapper.createObjectNode();
+    String cfg_file = System.getProperty("ccdp.config.file");
+    this.logger.debug("The config file: " + cfg_file);
     if( cfg_file != null )
     {
       try
@@ -62,12 +94,12 @@ public class AWSControlerUnitTest
 //    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_SUBNET_ID, "subnet-d7008b8f");
 //    this.jsonCfg.put(AWSCcdpVMControllerImpl.FLD_KEY_FILE, "aws_serv_server_key");
     
-  }
+  }*/
   
-  @Test
+  //@Test
   public void testThisIsATest()
   {
-    org.junit.Assert.assertEquals(20, 20);
+    assertEquals(20, 20);
   }
   
   //@Test(expected = IllegalArgumentException.class)
@@ -91,8 +123,8 @@ public class AWSControlerUnitTest
     this.logger.debug("Testing a valid credentials creation");
     this.aws.configure(this.jsonCfg);
   }
-  
-  //@Test
+
+  @Test
   public void testStartInstance()
   {
     this.logger.debug("Running Test Start Instance using " + this.jsonCfg);
@@ -107,7 +139,7 @@ public class AWSControlerUnitTest
     List<String> launched = new ArrayList<>();
     if( inclusive )
     {
-      String user_data = "#!/bin/bash\n\n "
+      String user_data = "#!/bin/bash "
           + "/data/ccdp_env.py -a download -i\n";
       imgCfg.setStartupCommand(user_data);
       Map<String, String> tags = new HashMap<String, String>();
@@ -141,8 +173,8 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    List<CcdpVMResource> items = this.aws.getAllInstanceStatus();
-    
+    List<CcdpVMResource> items = this.aws.getAllInstanceStatus(); // Fails in here somewhere
+    //this.logger.debug("I get here"); -- I don't get here**
     for(CcdpVMResource vm : items )
     {
       this.logger.debug("Instance[" + vm.toString() );

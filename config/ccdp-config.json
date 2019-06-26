@@ -15,7 +15,7 @@
   "interface-impls": {
     "connection": {
       "classname": "com.axios.ccdp.impl.connections.amq.AmqCcdpConnectionImpl",
-      "broker": "failover://tcp://localhost:61616",
+      "broker": "failover://tcp://ax-ccdp.com:61616",
       "main-queue": "CCDP-Engine"  
     },
     "task-allocator": {
@@ -45,7 +45,7 @@
     },
     "database": {
       "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
-      "db-host": "localhost",
+      "db-host": "ax-ccdp.com",
       "db-port": 27017,
       "db-name": "CCDP",
       "db-resources-table": "ResourceStatus"
@@ -73,12 +73,14 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": 1234,
-        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "__credentials-file": "/home/oeg/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "EC2": {
@@ -101,12 +103,15 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": 1234,
-        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "__credentials-file": "/home/oeg/.aws/credentials",
+        
         "credentials-profile-name": "default"
       },
       "NIFI": {
@@ -129,7 +134,8 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",

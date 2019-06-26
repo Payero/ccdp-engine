@@ -203,6 +203,7 @@ public class VmLauncher
       request.setIamInstanceProfile(iips);
     }
     AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+    //System.out.println(credentials.toString());
     
     ClientConfiguration cc = new ClientConfiguration();
     
@@ -287,6 +288,9 @@ public class VmLauncher
   public static void main( String[] args ) throws Exception
   {
     String cfg_file = System.getProperty("ccdp.config.file");
+    
+    //System.out.println(cfg_file);     -- Gets right path
+    
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     String fname = null;

@@ -478,6 +478,7 @@ public class CcdpImageInfo
   @JsonGetter("credentials-file")
   public String getCredentialsFile()
   {
+    //System.out.println("Getting credFile with value: " + credentialsFile);
     return credentialsFile;
   }
 
@@ -489,6 +490,7 @@ public class CcdpImageInfo
   @JsonSetter("credentials-file")
   public void setCredentialsFile(String credentialsFile)
   {
+    //System.out.println("Setting credFile to: " + credentialsFile);
     this.credentialsFile = credentialsFile;
   }
 

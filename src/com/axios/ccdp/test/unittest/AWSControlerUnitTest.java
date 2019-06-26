@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -43,6 +44,7 @@ public class AWSControlerUnitTest
   @Before
   public void AWSControlerUnitTestSetUP()
   {
+    System.out.println("******************************************************************");
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
@@ -66,6 +68,7 @@ public class AWSControlerUnitTest
   }
   /*public AWSControlerUnitTest()
   {
+    JUnitTestHelper.initialize();
     CcdpUtils.configLogger();
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
@@ -102,7 +105,7 @@ public class AWSControlerUnitTest
     assertEquals(20, 20);
   }
   
-  //@Test(expected = IllegalArgumentException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testConfigNull()
   {
     this.logger.debug("Testing a null JSON Object");
@@ -156,16 +159,14 @@ public class AWSControlerUnitTest
     assert(launched.size() == 1);
   }
   
-  //@Test 
+  @Test 
   public void testTerminateInstance()
   {
     this.logger.debug("Running Test Stop Instance");
     this.aws.configure(this.jsonCfg);
     List<String> ids = new ArrayList<>();
     ids.add("i-0299eb42ecdb10143");
-    
     this.aws.terminateInstances(ids);
-
   }
   
   @Test
@@ -173,15 +174,14 @@ public class AWSControlerUnitTest
   {
     this.logger.debug("Testing Getting all instances status");
     this.aws.configure(this.jsonCfg);
-    List<CcdpVMResource> items = this.aws.getAllInstanceStatus(); // Fails in here somewhere
-    //this.logger.debug("I get here"); -- I don't get here**
+    List<CcdpVMResource> items = this.aws.getAllInstanceStatus();
     for(CcdpVMResource vm : items )
     {
       this.logger.debug("Instance[" + vm.toString() );
     }
   }
   
-  //@Test
+  @Test
   public void testGetFilteredInstances()
   {
     this.logger.debug("Testing Getting all instances status");
@@ -197,7 +197,7 @@ public class AWSControlerUnitTest
     
   }
   
-  //@Test
+  @Test
   public void testGetFilteredInstancesById()
   {
     this.logger.debug("Testing Getting Instance by Id");
@@ -206,4 +206,44 @@ public class AWSControlerUnitTest
     this.logger.debug("Items: " + node);
   }
   
+  @Test
+  public void startAndTerminateInstances() throws Exception
+  {
+    // Hard code Brecky and Host-Agent to be sure to not terminate
+    //String Brecky = "i-0fa470f3da73d8ac0";
+    //String HostAgent = "i-07bbd73987fb47b15";
+    
+    List<String> newInstances = new ArrayList<>();
+    
+    this.aws.configure(this.jsonCfg);
+    CcdpImageInfo 
+    imgCfg = CcdpUtils.getImageInfo("EC2");
+    imgCfg.setMinReq(1);
+    imgCfg.setMaxReq(1);
+    
+    // Start a new instances
+    try 
+    {
+        newInstances = this.aws.startInstances(imgCfg);
+    }
+    catch ( Exception e )
+    {
+      e.printStackTrace();
+    }
+    
+    TimeUnit.SECONDS.sleep(15);
+    
+    this.aws.getAllInstanceStatus();
+    
+    TimeUnit.SECONDS.sleep(15);
+    
+    try
+    {
+      this.aws.terminateInstances(newInstances);
+    }
+    catch ( Exception e )
+    {
+      e.printStackTrace();
+    }
+  }
 }

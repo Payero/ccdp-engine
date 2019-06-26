@@ -304,9 +304,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     RunInstancesResult result = this.ec2.runInstances(request);
-    logger.debug("run result");
     SdkHttpMetadata shm = result.getSdkHttpMetadata();
-    logger.debug("get meta");
     
     int code = shm.getHttpStatusCode();
     if( code == 200 )
@@ -476,7 +474,6 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     DescribeInstanceStatusResult descInstRes = 
                               this.ec2.describeInstanceStatus(descInstReq);
     
-    logger.debug("I get here"); //I dont get here
     List<InstanceStatus> state = descInstRes.getInstanceStatuses();
     
     Iterator<InstanceStatus> states = state.iterator();
@@ -494,7 +491,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       {
       case "pending":
         res.setStatus(ResourceStatus.INITIALIZING);
-        System.out.println("STATUS SET TO NITIALIZING");
+        //System.out.println("STATUS SET TO NITIALIZING");
         break;
       case "running":
         res.setStatus(ResourceStatus.RUNNING);

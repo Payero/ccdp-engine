@@ -154,6 +154,7 @@
       },
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
+        "__image-id": "ubuntu",
         "image-id": "payero/centos-7:ccdp",
         "min-number-free-agents": 0,
         "startup-command": [

@@ -103,6 +103,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   public static void initialize()
   {
     JUnitTestHelper.initialize();
+    System.out.println("I GET HERE");
     Logger.getRootLogger().setLevel(Level.WARN);
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     if( url == null )
@@ -112,7 +113,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     }
     assertNotNull(url);
     dockerClient = new DefaultDockerClient(url);
-    
+    System.out.println("I GET HERE");
   }
   
   /**
@@ -173,7 +174,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Simple test to make sure the startup and tear down works properly
    */
-  @Test
+  //@Test
   public void testSetupRoutine()
   {
     logger.debug("Testing Setup Routine");

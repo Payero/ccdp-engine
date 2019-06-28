@@ -33,13 +33,13 @@
       }
     },
     "resource-manager": {
-      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl"
     },
     "storage": {
-      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
     },
     "resource-monitor": {
-      "classname": "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
     },

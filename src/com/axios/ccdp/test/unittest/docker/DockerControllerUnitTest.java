@@ -200,8 +200,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
     logger.debug("Before startInstances()");
     
-    //this.running_vms = this.docker.startInstances(image);
-    //assertTrue("Wrong number of instances", this.running_vms.size() == 1);
+    this.running_vms = this.docker.startInstances(image);
+    assertTrue("Wrong number of instances", this.running_vms.size() == 1);
   }
   
   
@@ -222,6 +222,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
+    System.out.println("NUM VMS " + this.running_vms.size());
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
   }
   
@@ -405,7 +406,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start multiple instances and stopping just one
    */
-  //@Test
+  @Test
   public void checksTasksRunningOnVMTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
@@ -700,7 +701,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         try
         {
           logger.debug("Removing Container " + id);
-          //dockerClient.removeContainer(id);          
+          dockerClient.removeContainer(id);          
         }
         catch (Exception e)
         {

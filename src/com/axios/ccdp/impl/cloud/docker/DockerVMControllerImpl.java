@@ -105,7 +105,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       throw new IllegalArgumentException("The config cannot be null");
     
     this.config = config.deepCopy();
-    
+    System.out.println("To String: " + this.config.toString());
     if( config.has("dist-file") )
     {
       String filename = config.get("dist-file").asText();

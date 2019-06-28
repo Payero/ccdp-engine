@@ -103,17 +103,16 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   public static void initialize()
   {
     JUnitTestHelper.initialize();
-    System.out.println("I GET HERE");
     Logger.getRootLogger().setLevel(Level.WARN);
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     if( url == null )
     {
-      logger.warn("Docker URL was not defined using default");
+      logger.warn("Docker URL was not defined, using default");
       url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
     }
     assertNotNull(url);
     dockerClient = new DefaultDockerClient(url);
-    System.out.println("I GET HERE");
+    logger.debug("Done initialize()");
   }
   
   /**
@@ -199,9 +198,10 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
+    logger.debug("Before startInstances()");
     
-    this.running_vms = this.docker.startInstances(image);
-    assertTrue("Wrong number of instances", this.running_vms.size() == 1);
+    //this.running_vms = this.docker.startInstances(image);
+    //assertTrue("Wrong number of instances", this.running_vms.size() == 1);
   }
   
   
@@ -457,7 +457,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability of getting the instance id of a non-existing instance, 
    * a request with null, and a valid instance id
    */
-  //@Test
+  @Test
   public void getInstanceStateTest()
   {
     ResourceStatus state = this.docker.getInstanceState(null);
@@ -699,8 +699,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         String id = c.id();
         try
         {
-          logger.debug("Removing Container" + id);
-          dockerClient.removeContainer(id);          
+          logger.debug("Removing Container " + id);
+          //dockerClient.removeContainer(id);          
         }
         catch (Exception e)
         {

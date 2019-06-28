@@ -170,7 +170,9 @@
             "-D",
             "-n",
             "DOCKER"
-          ]
+          ],
+        "dist-file":"/nishome/srbenne/CCDP/ccdp-engine.tgz",
+        "credentials-file": "/nishome/srbenne/.aws/credentials"
       }
     }
   }

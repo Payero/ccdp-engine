@@ -137,7 +137,9 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     try
     {
       this.longCid = DockerResourceMonitorImpl.getContainerID(fname);
+      //this.logger.debug("long cid: " + this.longCid); -- This is null, results in a NullPointerException
       this.shortCid = this.longCid.substring(0, 12);
+      //this.logger.debug("short cid: " + this.shortCid);
 
       this.docker = new DefaultDockerClient(url);
       this.prevStats = this.docker.stats(this.longCid);

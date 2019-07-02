@@ -105,7 +105,6 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       throw new IllegalArgumentException("The config cannot be null");
     
     this.config = config.deepCopy();
-    System.out.println("To String: " + this.config.toString());
     if( config.has("dist-file") )
     {
       String filename = config.get("dist-file").asText();
@@ -118,9 +117,10 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       }
       this.use_fs = true;
     }
-    //maybe?
+    //Use environment vars
     else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && System.getenv(ACCESS_SECRET_ENV_VAR) != null)
     {
+      logger.info("Getting Distribution File from AWS S3 using Env Vars");
       this.config.put("aws-access-id", System.getenv(ACCESS_KEY_ID_ENV_VAR));
       this.config.put("aws-secret-key", System.getenv(ACCESS_SECRET_ENV_VAR));
       this.config.put("aws-region", "us-east-1");

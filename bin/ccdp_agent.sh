@@ -66,6 +66,6 @@ export JAVA_APP="com.axios.ccdp.fmwk.CcdpAgent"
 export BASE_NAME="CcdpAgent"
 export CCDP_JAR_NAME="ccdp-engine.jar"
 export CCDP_SKIP_REDIRECTION=1
-export CCDP_NODE_TYPE=DOCKER
+export CCDP_NODE_TYPE="DOCKER"
 
 ${CCDP_HOME}/bin/run_service.sh $@

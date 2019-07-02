@@ -49,9 +49,9 @@ of agents is not limited.
 - Need to add different images based on node types!!
 - How to handle lambda tasks
 - Add launching jar files using lambda
-- Integrate NiFi into it
+- <s>Integrate NiFi into it</s>
 - If a task fails, it retries properly and eventually fails, but it never gets removed
-- 
+- Use the Abstract Factory approach to allocating the resource manager, monitor and storage
 
 
 

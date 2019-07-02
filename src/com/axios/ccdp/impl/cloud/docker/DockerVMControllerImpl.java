@@ -118,6 +118,14 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       }
       this.use_fs = true;
     }
+    //maybe?
+    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && System.getenv(ACCESS_SECRET_ENV_VAR) != null)
+    {
+      this.config.put("aws-access-id", System.getenv(ACCESS_KEY_ID_ENV_VAR));
+      this.config.put("aws-secret-key", System.getenv(ACCESS_SECRET_ENV_VAR));
+      this.config.put("aws-region", "us-east-1");
+      this.use_fs = false;
+    }
     else
     {
       if( config.has("aws-access-id") && config.get("aws-access-id") != null && 
@@ -132,6 +140,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       else
       {
         throw new IllegalArgumentException("Need distribution file");
+        //this.use_fs = false;
       }
     }
     String url = CcdpUtils.getConfigValue("docker-url");

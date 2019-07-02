@@ -53,6 +53,8 @@ public class CCDPTest
       
       envs.add("DOCKER_HOST=" + url );
       envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
+      envs.add("AWS_ACCESS_KEY_ID=" + System.getenv("AWS_ACCESS_KEY_ID"));
+      envs.add("AWS_SECRET_ACCESS_KEY=" + System.getenv("AWS_SECRET_ACCESS_KEY"));
       
       // Parsing the command to start the docker container
       // It should look like:
@@ -62,12 +64,17 @@ public class CCDPTest
       CcdpImageInfo imgCfg = CcdpUtils.getImageInfo("DOCKER");
       List<String> cmd = new ArrayList<>();
       cmd.add("/data/ccdp/ccdp_install.py");
+      //new 
+      cmd.add("-a");
+      cmd.add("download");
+      cmd.add("-d");
+      cmd.add("s3://ccdp-dist/ccdp-engine.tgz");
+      cmd.add("-w");
       cmd.add("-t");
       cmd.add("/data/ccdp");
       cmd.add("-D");
-      cmd.add("-n");
-      cmd.add("DOCKER");
-      
+      //cmd.add("-n");
+      //cmd.add("DOCKER");
 //      String cmd_line = imgCfg.getStartupCommand();
 //      StringTokenizer st = new StringTokenizer(cmd_line,  " ");
 //      while( st.hasMoreTokens() )
@@ -83,6 +90,8 @@ public class CCDPTest
           .image(imgCfg.getImageId())
           .entrypoint(cmd)
           .build();
+      
+      System.out.println(cfg.toString());
       
       ContainerCreation cc = client.createContainer(cfg);
       String cid = cc.id();

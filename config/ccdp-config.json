@@ -154,10 +154,20 @@
       },
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
-        "__image-id": "ubuntu",
         "image-id": "payero/centos-7:ccdp",
         "min-number-free-agents": 0,
         "startup-command": [
+          	"/data/ccdp/ccdp_install.py",
+          	"-a",
+          	"download",
+          	"-d",
+          	"s3://ccdp-dist/ccdp-engine.tgz",
+          	"-w",
+          	"-t",
+          	"/data/ccdp",
+          	"-D"
+          ],
+        "__startup-command": [
             "/data/ccdp/ccdp_install.py",
             "-a", 
             "download", 
@@ -171,8 +181,9 @@
             "-n",
             "DOCKER"
           ],
-        "dist-file":"/nishome/srbenne/CCDP/ccdp-engine.tgz",
-        "credentials-file": "/nishome/srbenne/.aws/credentials"
+        "__dist-file":"/data/ccdp/ccdp-engine.tgz",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "credentials-profile-name": "default"
       }
     }
   }

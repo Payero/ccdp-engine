@@ -380,7 +380,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("the size of the list is " + vms.size());
     CcdpVMResource vm = vms.get(1);
     String testId = vm.getInstanceId();
-    logger.debug("Stopping VM " + testId);
+    logger.debug("Going to stop VM " + testId);
     List<String> stopIds = new ArrayList<>();
     stopIds.add(vm.getInstanceId());
     logger.debug("Waiting to get updated heartbeats");
@@ -467,7 +467,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.docker.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -489,7 +489,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability to retrieve Status of the Remote resources based on the
    * tags associated with that server
    */
-  //@Test
+  @Test
   public void getStatusFilteredByTagsTest()
   {
     List<String> iids = new ArrayList<>();
@@ -498,7 +498,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -590,7 +590,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   //@Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);

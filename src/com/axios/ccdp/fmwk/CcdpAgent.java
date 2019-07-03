@@ -620,7 +620,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
-    type = "DOCKER";
+    //type = "DOCKER";
     new CcdpAgent(type);
 
   }

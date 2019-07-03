@@ -308,9 +308,9 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.trace("Storing hearbeat");
+    this.logger.debug("Storing heartbeat");
     this.updateResourceInfo();
-    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
     this.dbClient.storeVMInformation(this.vmInfo);
   }
   

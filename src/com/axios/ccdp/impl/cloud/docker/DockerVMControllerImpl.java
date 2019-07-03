@@ -200,7 +200,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         if( res_mon.has("docker-url") )
           url = res_mon.get("docker-url").asText();
         
-        logger.info("Connecting to docker enging at: " + url);
+        logger.info("Connecting to docker engine at: " + url);
         
         envs.add("DOCKER_HOST=" + url );
         envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");

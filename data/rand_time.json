@@ -3,12 +3,12 @@
     [
       {
         "session-id":"test-1", 
-        "node-type": "DOCKER", 
+        "node-type": "DEFAULT", 
         "command": 
             [
               "/projects/users/srbenne/workspace/engine/python/ccdp_mod_test.py", 
               "-a", "testRandomTime", 
-              "-p", "min=10,max=20"
+              "-p", "min=20,max=30"
             ]
        }
     ]

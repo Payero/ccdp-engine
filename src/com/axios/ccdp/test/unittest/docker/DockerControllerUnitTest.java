@@ -296,9 +296,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     String channel = this.running_vms.get(0);
-    logger.debug("Waiting 15 seconds for " + channel);
+    logger.debug("Waiting 25 seconds for " + channel);
     
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(25);
     boolean found_it = false;
     
     logger.debug("There are " + this.heartbeats.size() + " heartbeats in the list");
@@ -320,6 +320,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         }
       }        
     }
+    assertTrue("There are no heartbeats in the list", this.heartbeats.size() > 0);
     assertTrue("The Session ID is different", found_it);
   }
   

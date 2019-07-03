@@ -107,12 +107,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     if( url == null )
     {
-      logger.warn("Docker URL was not defined using default");
+      logger.warn("Docker URL was not defined, using default");
       url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
     }
     assertNotNull(url);
     dockerClient = new DefaultDockerClient(url);
-    
+    logger.debug("Done initialize()");
   }
   
   /**
@@ -173,7 +173,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Simple test to make sure the startup and tear down works properly
    */
-  @Test
+  //@Test
   public void testSetupRoutine()
   {
     logger.debug("Testing Setup Routine");
@@ -198,6 +198,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
+    logger.debug("Before startInstances()");
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -221,6 +222,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
+    System.out.println("NUM VMS " + this.running_vms.size());
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
   }
   
@@ -299,7 +301,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpUtils.pause(15);
     boolean found_it = false;
     
-    logger.debug("There " + this.heartbeats.size() + " heartbeats in the list");
+    logger.debug("There are " + this.heartbeats.size() + " heartbeats in the list");
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
     {
@@ -378,7 +380,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("the size of the list is " + vms.size());
     CcdpVMResource vm = vms.get(1);
     String testId = vm.getInstanceId();
-    logger.debug("Stopping VM " + testId);
+    logger.debug("Going to stop VM " + testId);
     List<String> stopIds = new ArrayList<>();
     stopIds.add(vm.getInstanceId());
     logger.debug("Waiting to get updated heartbeats");
@@ -404,7 +406,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to start multiple instances and stopping just one
    */
-  //@Test
+  @Test
   public void checksTasksRunningOnVMTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
@@ -456,7 +458,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability of getting the instance id of a non-existing instance, 
    * a request with null, and a valid instance id
    */
-  //@Test
+  @Test
   public void getInstanceStateTest()
   {
     ResourceStatus state = this.docker.getInstanceState(null);
@@ -465,7 +467,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.docker.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -486,6 +488,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to retrieve Status of the Remote resources based on the
    * tags associated with that server
+   * Method not implemented, see DockerVMContollerImpl
    */
   //@Test
   public void getStatusFilteredByTagsTest()
@@ -496,7 +499,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -584,11 +587,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   /**
    * Tests the ability to get a single instance based on the id.
+   * Method not implemented, see DockerVMControllerImpl
    */
   //@Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
@@ -698,7 +702,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         String id = c.id();
         try
         {
-          logger.debug("Removing Container" + id);
+          logger.debug("Removing Container " + id);
           dockerClient.removeContainer(id);          
         }
         catch (Exception e)

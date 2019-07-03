@@ -105,6 +105,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   public CcdpAgent(String type)
   {
     this.logger.info("Running the Agent");
+
     this.controller = new ThreadController();
     
     // creating the factory that generates the objects used by the agent
@@ -112,7 +113,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     
     JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     
-    JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg(); 
+    JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
     this.monitor = factory.getResourceMonitorInterface(res_mon_node);
@@ -123,7 +124,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     this.dbClient = factory.getCcdpDatabaseIntf( db_node );
     this.dbClient.connect();
     
-    this.logger.debug("Done with the connections: " + task_msg_node.toString());
+    this.logger.info("Done with the connections: " + task_msg_node.toString());
     
     String hostId = this.monitor.getUniqueHostId();
     String hostname = null;
@@ -595,7 +596,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       }
       catch( Exception e )
       {
-        System.err.println("Invalid Node Type " + val + " using DEFAULT");
+        System.err.println("Ooof, Invalid Node Type " + val + " using DEFAULT");
       }
     }
     else  // attempting to get it from the environment variable
@@ -610,7 +611,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         }
         catch( Exception e )
         {
-          System.err.println("Invalid Node Type " + env + " using DEFAULT");
+          System.err.println("BLAH, Invalid Node Type " + env + " using DEFAULT");
         }
       }
     }
@@ -619,6 +620,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
+    type = "DOCKER";
     new CcdpAgent(type);
 
   }

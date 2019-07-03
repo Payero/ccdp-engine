@@ -82,6 +82,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Before
   public void setUpTest()
   {
+    System.out.println("****************************************************************************** \n");
     this.controller = new SimCcdpVMControllerImpl();
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();

@@ -105,7 +105,6 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       throw new IllegalArgumentException("The config cannot be null");
     
     this.config = config.deepCopy();
-    
     if( config.has("dist-file") )
     {
       String filename = config.get("dist-file").asText();
@@ -117,6 +116,15 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         throw new IllegalArgumentException(err);
       }
       this.use_fs = true;
+    }
+    //Use environment vars
+    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && System.getenv(ACCESS_SECRET_ENV_VAR) != null)
+    {
+      logger.info("Getting Distribution File from AWS S3 using Env Vars");
+      this.config.put("aws-access-id", System.getenv(ACCESS_KEY_ID_ENV_VAR));
+      this.config.put("aws-secret-key", System.getenv(ACCESS_SECRET_ENV_VAR));
+      this.config.put("aws-region", "us-east-1");
+      this.use_fs = false;
     }
     else
     {
@@ -132,6 +140,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       else
       {
         throw new IllegalArgumentException("Need distribution file");
+        //this.use_fs = false;
       }
     }
     String url = CcdpUtils.getConfigValue("docker-url");
@@ -166,86 +175,91 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     {
       int min = imgCfg.getMinReq();
       int max = imgCfg.getMaxReq();
+      int numLaunched = 0;
       if( min == 0 )
         min = 1;
      
       if( max == 0 )
         max = 1;
-  
-      // if the session id is not assigned, then use the node type
-      String session_id = imgCfg.getSessionId();
-      if( session_id == null )
-        imgCfg.setSessionId(imgCfg.getNodeType());
       
-      String type = imgCfg.getNodeType();
-      
-      logger.info("Starting VM of type " + type + " for session " + session_id ) ;
-      // Setting all the environment variables
-      List<String> envs = new ArrayList<>();
-      
-      JsonNode res_mon = CcdpUtils.getResourceMonitorIntfCfg();
-      String url = "http://172.17.0.1:2375";
-      if( res_mon.has("docker-url") )
-        url = res_mon.get("docker-url").asText();
-      
-      logger.info("Connecting to docker enging at: " + url);
-      
-      envs.add("DOCKER_HOST=" + url );
-      envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
-      // Add AWS specific ones if we are using AWS S3 Bucket
-      if( !this.use_fs )
+      while (numLaunched < max) 
       {
-        envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws-region").asText());
-        envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws-secret-key").asText());
-        envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws-access-id").asText());
-      }
-      
-      // Parsing the command to start the docker container
-      // It should look like:
-      //    AWS: /data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -t /data/ccdp -D -n DOCKER
-      //    FS:  /data/ccdp/ccdp_install.py -t /data/ccdp -D -n DOCKER
-      //
-      
-      List<String> cmd = new ArrayList<>();
-      String cmd_line = imgCfg.getStartupCommand();
-      this.logger.info("The Docker Startup Command: " + cmd_line);
-      StringTokenizer st = new StringTokenizer(cmd_line,  " ");
-      while( st.hasMoreTokens() )
-        cmd.add(st.nextToken());
-  
-      HostConfig hostCfg = HostConfig.builder()
-          .networkMode("host")
-          .build();
-      // Now starting as many containers as asked
-      //for(int i = 0; i < max; i++ )
-      //{
-        ContainerConfig cfg = ContainerConfig.builder()
-            .env(envs)
-            .hostConfig(hostCfg)
-            .image(imgCfg.getImageId())
-            .entrypoint(cmd)
-            .build();
-        ContainerCreation cc = this.docker.createContainer(cfg);
-        String cid = cc.id();
-        // Translating from Container id to a hostId
-        String hostId = cid.substring(0,  12);
+        // if the session id is not assigned, then use the node type
+        String session_id = imgCfg.getSessionId();
+        if( session_id == null )
+          imgCfg.setSessionId(imgCfg.getNodeType());
         
-        logger.debug("Created Container " + hostId );
-        launched.add(hostId);
+        String type = imgCfg.getNodeType();
         
-        // we are copying the file to the container here
-        if( this.use_fs )
+        logger.info("Starting VM of type " + type + " for session " + session_id ) ;
+        // Setting all the environment variables
+        List<String> envs = new ArrayList<>();
+        
+        JsonNode res_mon = CcdpUtils.getResourceMonitorIntfCfg();
+        String url = "http://172.17.0.1:2375";
+        if( res_mon.has("docker-url") )
+          url = res_mon.get("docker-url").asText();
+        
+        logger.info("Connecting to docker enging at: " + url);
+        
+        envs.add("DOCKER_HOST=" + url );
+        envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
+        // Add AWS specific ones if we are using AWS S3 Bucket
+        if( !this.use_fs )
         {
-          String filename = config.get("dist-file").asText();
-          FileInputStream fis = new FileInputStream(filename);
-          this.docker.copyToContainer(fis, cid, "/data/ccdp");
+          envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws-region").asText());
+          envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws-secret-key").asText());
+          envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws-access-id").asText());
         }
         
-        this.docker.startContainer( cid );
-      //}
-      
-      logger.info("May want to add tags as well???");
-      //Map<String, String> tags = imgCfg.getTags();
+        // Parsing the command to start the docker container
+        // It should look like:
+        //    AWS: /data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -t /data/ccdp -D -n DOCKER
+        //    FS:  /data/ccdp/ccdp_install.py -t /data/ccdp -D -n DOCKER
+        //
+        
+        List<String> cmd = new ArrayList<>();
+        String cmd_line = imgCfg.getStartupCommand();
+        this.logger.info("The Docker Startup Command: " + cmd_line);
+        StringTokenizer st = new StringTokenizer(cmd_line,  " ");
+        while( st.hasMoreTokens() )
+          cmd.add(st.nextToken());
+    
+        HostConfig hostCfg = HostConfig.builder()
+            .networkMode("host")
+            .build();
+        // Now starting as many containers as asked
+        //for(int i = 0; i < max; i++ )
+        //{
+          ContainerConfig cfg = ContainerConfig.builder()
+              .env(envs)
+              .hostConfig(hostCfg)
+              .image(imgCfg.getImageId())
+              .entrypoint(cmd)
+              .build();
+          ContainerCreation cc = this.docker.createContainer(cfg);
+          String cid = cc.id();
+          // Translating from Container id to a hostId
+          String hostId = cid.substring(0,  12);
+          
+          logger.debug("Created Container " + hostId );
+          launched.add(hostId);
+          
+          // we are copying the file to the container here
+          if( this.use_fs )
+          {
+            String filename = config.get("dist-file").asText();
+            FileInputStream fis = new FileInputStream(filename);
+            this.docker.copyToContainer(fis, cid, "/data/ccdp");
+          }
+          
+          this.docker.startContainer( cid );
+        //}
+        
+        logger.info("May want to add tags as well???");
+        //Map<String, String> tags = imgCfg.getTags();
+        numLaunched += 1;
+      }
     }
     catch( Exception e )
     {

@@ -66,8 +66,10 @@ public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
     img.setAssignmentCommand( this.config.get("assignment-command").asText() );
     img.setRegion( this.config.get("region").asText() );
     img.setRoleName( this.config.get("role-name").asText() );
-    img.setProxyUrl( this.config.get("proxy-url").asText() );
-    img.setProxyPort( this.config.get("proxy-port").asInt() );
+    if( this.config.has("proxy-url") )
+      img.setProxyUrl( this.config.get("proxy-url").asText() );
+    if( this.config.has("proxy-port") )
+      img.setProxyPort( this.config.get("proxy-port").asInt() );
     img.setCredentialsFile( this.config.get("credentials-file").asText() );
     img.setProfileName( this.config.get("credentials-profile-name").asText() );
     

@@ -15,7 +15,7 @@
   "interface-impls": {
     "connection": {
       "classname": "com.axios.ccdp.impl.connections.amq.AmqCcdpConnectionImpl",
-      "broker": "failover://tcp://localhost:61616",
+      "broker": "failover://tcp://ax-ccdp.com:61616",
       "main-queue": "CCDP-Engine"  
     },
     "task-allocator": {
@@ -33,19 +33,19 @@
       }
     },
     "resource-manager": {
-      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl"
     },
     "storage": {
-      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
     },
     "resource-monitor": {
-      "classname": "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
     },
     "database": {
       "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
-      "db-host": "localhost",
+      "db-host": "ax-ccdp.com",
       "db-port": 27017,
       "db-name": "CCDP",
       "db-resources-table": "ResourceStatus"
@@ -57,11 +57,12 @@
         "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
-        "security-group": "sg-54410d2f",
+        "security-group": "sg-9e30a2ed",
+        "__security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
-            "session-id": "Service-Node", "Name": "Host-Agent"
+            "session-id": "Service-Node", "Name": "SRB-Test-Agent"
           },
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
@@ -73,23 +74,29 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
         "region": "us-east-1",
-        "role-name": "my-Role",
-        "proxy-url": "my-url-to-ge/to/the/proxy",
-        "proxy-port": 1234,
-        "credentials-file": "/home/oeg/.aws/credentials",
+        "role-name": "EMR_EC2_DefaultRole",
+        "__role-name": "my-Role",
+        "proxy-url": "",
+        "__proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": -1,
+        "__proxy-port": 1234,
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "__credentials-file": "/home/oeg/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "EC2": {
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
-        "security-group": "sg-54410d2f",
+        "security-group": "sg-9e30a2ed",
+        "__security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
-            "session-id": "Service-Node", "Name": "Host-Agent"
+            "session-id": "Service-Node", "Name": "SRB-Test-Agent"
           },
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
@@ -101,12 +108,19 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
         "region": "us-east-1",
-        "role-name": "my-Role",
-        "proxy-url": "my-url-to-ge/to/the/proxy",
-        "proxy-port": 1234,
-        "credentials-file": "/home/oeg/.aws/credentials",
+        "role-name": "EMR_EC2_DefaultRole",
+        "__role-name": "my-Role",
+        "proxy-url": "",
+        "__proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": -1,
+        "__proxy-port": 1234,
+        "_credentials-file": "",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "__credentials-file": "/home/oeg/.aws/credentials",
+        
         "credentials-profile-name": "default"
       },
       "NIFI": {
@@ -129,7 +143,8 @@
             "-t", 
             "/data/ccdp"
           ],
-        "assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "__assignment-command": "/home/oeg/scripts/test.sh",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
@@ -142,6 +157,17 @@
         "image-id": "payero/centos-7:ccdp",
         "min-number-free-agents": 0,
         "startup-command": [
+          	"/data/ccdp/ccdp_install.py",
+          	"-a",
+          	"download",
+          	"-d",
+          	"s3://ccdp-dist/ccdp-engine.tgz",
+          	"-w",
+          	"-t",
+          	"/data/ccdp",
+          	"-D"
+          ],
+        "__startup-command": [
             "/data/ccdp/ccdp_install.py",
             "-a", 
             "download", 
@@ -154,7 +180,10 @@
             "-D",
             "-n",
             "DOCKER"
-          ]
+          ],
+        "__dist-file":"/data/ccdp/ccdp-engine.tgz",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
+        "credentials-profile-name": "default"
       }
     }
   }

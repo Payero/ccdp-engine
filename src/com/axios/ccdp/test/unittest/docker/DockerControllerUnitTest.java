@@ -251,10 +251,10 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     asgn_msg.setSessionId("docker-session");
     this.connection.sendCcdpMessage(channel, asgn_msg);
     
-    logger.debug("Pausing a little");
+    logger.debug("Waiting 45 seconds for " + channel);    
     // let's wait a couple of seconds to give the agent time to set the session
     // id and send an updated heartbeat message
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(45);
     boolean found_it = false;
     
     // iterating through all the messages
@@ -296,9 +296,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     String channel = this.running_vms.get(0);
-    logger.debug("Waiting 25 seconds for " + channel);
+    logger.debug("Waiting 45 seconds for " + channel);
     
-    CcdpUtils.pause(25);
+    CcdpUtils.pause(45);
     boolean found_it = false;
     
     logger.debug("There are " + this.heartbeats.size() + " heartbeats in the list");
@@ -423,9 +423,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("Wrong number of instances", ids.size() == 3);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     
+    logger.debug("Waiting 60 seconds for VMs to spool up");  
+    CcdpUtils.pause(60);
+    
     CcdpVMResource vm = vms.get(1);
     String testId = vm.getInstanceId();
-    assertTrue("The Session ID is different", "NIFI".equals(vm.getAssignedSession()));
+    assertTrue("The Session ID is different", "DOCKER".equals(vm.getAssignedSession()));
     
     CcdpTaskRequest task1 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
     CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);

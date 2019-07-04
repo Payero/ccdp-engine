@@ -477,6 +477,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         long now = System.currentTimeMillis();
         long resTime = vm.getLastUpdatedTime();
         long diff = now - resTime;
+        this.logger.debug("Diff Time for " + id + ": " + diff);
         if( diff >= this.agent_time_limit )
         {
           String txt = "The Agent " + id + " Status " + vm.getStatus() +

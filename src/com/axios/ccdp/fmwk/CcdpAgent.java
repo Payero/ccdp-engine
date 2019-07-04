@@ -310,7 +310,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
   {
     this.logger.debug("Storing heartbeat");
     this.updateResourceInfo();
-    this.connection.sendHeartbeat(this.toMain, this.vmInfo);
+    //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
     this.dbClient.storeVMInformation(this.vmInfo);
   }
   
@@ -590,20 +590,17 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     }
     
     String type = CcdpUtils.DEFAULT_RES_NAME;
-    System.out.println(CcdpUtils.getNodeTypes().toString());
-
     if( cmd.hasOption('n') )
     {
       String val = cmd.getOptionValue('n');
       try
       {
-        // getNodeTypes is throwing a null ptr exception
         if( CcdpUtils.getNodeTypes().indexOf(val) >= 0 )
           type = val;
       }
       catch( Exception e )
       {
-        System.err.println("Ooof, Invalid Node Type " + val + " using DEFAULT");
+        System.err.println("Invalid Node Type " + val + " using DEFAULT");
       }
     }
     else  // attempting to get it from the environment variable
@@ -618,7 +615,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         }
         catch( Exception e )
         {
-          System.err.println("BLAH, Invalid Node Type " + env + " using DEFAULT");
+          System.err.println("Invalid Node Type " + env + " using DEFAULT");
         }
       }
     }
@@ -627,7 +624,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
-    //type = "DOCKER";
     new CcdpAgent(type);
 
   }

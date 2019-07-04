@@ -155,7 +155,7 @@
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
         "image-id": "payero/centos-7:ccdp12",
-        "min-number-free-agents": 0,
+        "min-number-free-agents": 1,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
           	"-a",
@@ -182,8 +182,7 @@
             "DOCKER"
           ],
         "__dist-file":"/data/ccdp/ccdp-engine.tgz",
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "credentials-profile-name": "default"
+        "credentials-file": "/nishome/srbenne/.aws/credentials"
       }
     }
   }

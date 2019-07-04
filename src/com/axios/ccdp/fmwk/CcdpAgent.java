@@ -559,7 +559,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       String fname = CcdpUtils.expandVars(System.getProperty(key));
       File file = new File( fname );
       if( file.isFile() )
+      {
         cfg_file = fname;
+        CcdpUtils.loadProperties(file);
+        loaded = true;
+      }
       else
         usage("The config file (" + fname + ") is invalid");
     }
@@ -586,11 +590,14 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     }
     
     String type = CcdpUtils.DEFAULT_RES_NAME;
+    System.out.println(CcdpUtils.getNodeTypes().toString());
+
     if( cmd.hasOption('n') )
     {
       String val = cmd.getOptionValue('n');
       try
       {
+        // getNodeTypes is throwing a null ptr exception
         if( CcdpUtils.getNodeTypes().indexOf(val) >= 0 )
           type = val;
       }

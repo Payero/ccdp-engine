@@ -160,7 +160,6 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 * Testing the checkFreeVMRequirements() function
 	 * Making sure there are no vms running
 	 */
-
 	@Test
 	public void ZeroFreeVMTest()
 	{
@@ -254,7 +253,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 * Making sure there is only one vm running and is of session NIFI
 	 */
 
-	@Test(timeout=120000)//test fails if it takes longer than 2 min
+	//@Test(timeout=120000)//test fails if it takes longer than 2 min
 	public void OneFreeVMforNifi()
 	{
 		this.logger.info("Running OneFreeVMforNifi");

@@ -38,18 +38,11 @@ public class MongoCleaner
   private static Options options = new Options();
   
   /**
-   * Removes all the queues and topics from ActiveMQ.  Both, queues and topics,
-   * should be a comma delimited list of names to delete.  To remove all the
-   * topics or queues then the word ALL should be used (case insensitive).
-   * 
-   * @param url the URL where the ActiveMQ server is listening for connections
-   * @param queues a comma delimited list of queues to delete or 'ALL' to 
-   *               remove all of them (case insensitive)
-   * @param topics a comma delimited list of topics to delete or 'ALL' to 
-   *               remove all of them (case insensitive)
+   * Removes all MongoDB entries
+   * @throws InterruptedException throws exception if wait for heartbeat is interrupted
    */
   
-  public MongoCleaner() throws Exception
+  public MongoCleaner() throws InterruptedException
   {
     this.logger.debug("Cleaning MongoDB Records");
     CcdpMongoDbImpl dbConnection = null;

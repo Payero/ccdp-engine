@@ -1746,6 +1746,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
     this.logger.info("Starting New Resources of type " + typeStr + 
                      " For Session " + sid);
+    
+    this.logger.info("imgInfo: " + imgInfo.toPrettyPrint());
 
     if( !this.sessions.contains(sid) )
       this.sessions.add(sid);

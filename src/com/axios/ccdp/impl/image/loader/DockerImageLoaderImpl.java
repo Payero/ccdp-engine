@@ -77,7 +77,6 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
       }
       img.setStartupCommand( startupCommand );
     }
-    logger.debug("Got img: " + img.toPrettyPrint());
     return img;
   }
 

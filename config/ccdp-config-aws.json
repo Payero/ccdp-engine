@@ -55,7 +55,8 @@
     "resources": {
       "DEFAULT": {
         "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
+        "image-id":"ami-00a7bdc4873460f98",
+        "__image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-9e30a2ed",
         "__security-group": "sg-54410d2f",
@@ -69,7 +70,7 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-dist/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine12A.tgz", 
             "-w", 
             "-t", 
             "/data/ccdp"
@@ -89,7 +90,8 @@
       },
       "EC2": {
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
+        "image-id": "ami-00a7bdc4873460f98",
+        "__image-id": "ami-00960e391c6790e70",
         "min-number-free-agents": 0,
         "security-group": "sg-9e30a2ed",
         "__security-group": "sg-54410d2f",
@@ -103,7 +105,7 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-dist/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine12A.tgz", 
             "-w", 
             "-t", 
             "/data/ccdp"

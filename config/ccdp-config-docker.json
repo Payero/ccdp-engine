@@ -161,7 +161,7 @@
           	"-a",
           	"download",
           	"-d",
-          	"s3://ccdp-dist/ccdp-engine.tgz",
+          	"s3://ccdp-dist/ccdp-engine12D.tgz",
           	"-w",
           	"-t",
           	"/data/ccdp",

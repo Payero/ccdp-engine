@@ -63,7 +63,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Stores the command to execute at startup
    */
-  public static final String USER_DATA =  "#!/bin/bash\n\n ";
+  public static final String USER_DATA =  "#!/bin/bash";
   
   /**
    * Generates debug print statements based on the verbosity level.

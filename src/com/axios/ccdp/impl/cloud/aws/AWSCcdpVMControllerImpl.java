@@ -63,7 +63,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Stores the command to execute at startup
    */
-  public static final String USER_DATA =  "#!/bin/bash\n\n ";
+  public static final String USER_DATA =  "#!/bin/bash\n";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -240,7 +240,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       //Not need to send -s session id anymore because the nodeType is passed instead
       //if ( session_id != null )
         //user_data += " -s " + session_id;
-      logger.info("Using User Data: " + user_data);
+      logger.info("Using User Data: \n" + user_data);
     }
     else
     {

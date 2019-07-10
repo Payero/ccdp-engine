@@ -284,6 +284,37 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("NIFI").get(0).getStatus().toString();
 		assertEquals("RUNNING",vmStatus);
 	}
+	
+ @Test (timeout=120000)//test fails if it takes longer than 2 min
+ public void OneFreeVMforDocker()
+  {
+    this.logger.info("Running OneFreeVMforDocker");
+    ObjectNode docker_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    docker_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", docker_cfg);
+    
+    ccdpEngine= new CcdpMainApplication(null);
+    assertNotNull("The application should not be null", ccdpEngine);
+    //waiting for the engine to get settle and launch vms if need
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
+    CcdpUtils.pause(pauseTime);
+
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      int numberOfVM = list.size();
+      if(sid.equals("DOCKER")) {
+        assertEquals(1,numberOfVM);
+      }else {
+        assertEquals(0,numberOfVM);
+      }
+    }
+    waitUntilVMisRunning("DOCKER");
+    String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("DOCKER").get(0).getStatus().toString();
+    assertEquals("RUNNING",vmStatus);
+  }
 
 	/**
 	 * Testing that the engine launches free VMs when needed based on the config file

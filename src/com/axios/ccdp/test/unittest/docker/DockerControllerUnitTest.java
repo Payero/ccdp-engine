@@ -20,6 +20,7 @@ import com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl;
 import com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
@@ -53,6 +54,10 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Object used to send and receive messages 
    */
   private CcdpConnectionIntf connection;
+  /**
+   * Object used to interact with the database
+   */
+  private CcdpDatabaseIntf dbClient = null;
   /**
    * Stores all incoming messages other than heartbeats
    */
@@ -126,6 +131,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     
+    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
@@ -133,7 +139,13 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.connection.setConsumer(this);
     logger.debug("Done with the connections: " + task_msg_node.toString());
     
+    this.dbClient = factory.getCcdpDatabaseIntf(db_node);
+    this.dbClient.connect();
+    logger.debug("Done with DB connection: " + db_node.toString());
+    
+    
     assertNotNull("Could not setup a connection with broker", this.connection);
+    assertNotNull("Could not setup a database connection", this.dbClient);
     String uuid = UUID.randomUUID().toString();
     String channel = 
         task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
@@ -256,6 +268,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     // id and send an updated heartbeat message
     CcdpUtils.pause(45);
     boolean found_it = false;
+    logger.debug("Num Heartbeats: " + this.heartbeats.size());
     
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
@@ -405,9 +418,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   
   /**
-   * Tests the ability to start multiple instances and stopping just one
+   * Tests the ability to check tasks assigned to VM using MainApp tasking
    */
-  @Test
+  //@Test
   public void checksTasksRunningOnVMTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");

@@ -44,7 +44,7 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
   {
     this.nodeType = nodeType;
     this.config = config;
-    logger.debug("Configure completed");
+    //logger.debug("Configure completed");
   }
 
   /**

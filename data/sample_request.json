@@ -8,12 +8,12 @@
           {"task-id": "thread-1-task-1",
            "node-type": "ec2",
            "configuration": { "cycles": 10000 },
-           "input-ports": None,
+           "input-ports": "",
            "output-ports": [ 
                   {"port-id": "thread-1-task-1-out-port-1",
-                   "to-port": [ "thread-1-task-2-in-port-1" ],
+                   "to-port": [ "thread-1-task-2-in-port-1" ]
                   
-                  }
+                  }]
           },
           {"task-id": "thread-1-task-2",
            "node-type": "ec2",
@@ -25,10 +25,10 @@
                           ],
            "output-ports": [ 
                   {"port-id": "thread-1-task-2-out-port-1",
-                   "to-port": [ "thread-1-task-3-in-port-1" ],
+                   "to-port": [ "thread-1-task-3-in-port-1" ]
                   
-                  }
-          },
+                  }]
+          }
         
         ]
     

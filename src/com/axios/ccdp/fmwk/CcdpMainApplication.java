@@ -189,9 +189,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     JsonNode task_ctr_node = CcdpUtils.getTaskAllocatorIntfCfg();
     JsonNode res_ctr_node = CcdpUtils.getResourceManagerIntfCfg();
+    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
+
 //    ObjectNode storage_node =
 //        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
-    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
+
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
 
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
@@ -199,6 +201,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.controller = factory.getCcdpResourceController(res_ctr_node);
 //    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
     this.dbClient = factory.getCcdpDatabaseIntf(db_node);
+    this.dbClient.configure(db_node);
     this.dbClient.connect();
 
     this.connection.configure(task_msg_node);

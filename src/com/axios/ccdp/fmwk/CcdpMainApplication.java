@@ -403,7 +403,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public void onEvent()
   {
-    //this.logger.debug("Checking Resources");
+    this.logger.debug("Checking Resources");
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
     {

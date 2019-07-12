@@ -250,7 +250,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
     image.setMaxReq(1);
-    image.setSessionId("docker-session");
+    String sessionIdToSet = "docker-session";
+    image.setSessionId(sessionIdToSet);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
@@ -260,13 +261,23 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     String channel = this.running_vms.get(0);
     
     AssignSessionMessage asgn_msg = new AssignSessionMessage();
-    asgn_msg.setSessionId("docker-session");
+    asgn_msg.setSessionId(sessionIdToSet);
     this.connection.sendCcdpMessage(channel, asgn_msg);
     
     logger.debug("Waiting 45 seconds for " + channel);    
     // let's wait a couple of seconds to give the agent time to set the session
     // id and send an updated heartbeat message
     CcdpUtils.pause(45);
+    
+    // Lazy compare for if a heartbeat was sent
+    assertTrue( "Last Updated is equal to last assignment, so no heartbeat!",
+       this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime() );
+    logger.debug(this.dbClient.getVMInformation(channel).getAssignedSession());
+    // How in the world are these not equal
+    assertEquals( sessionIdToSet, this.dbClient.getVMInformation(channel).getAssignedSession() );
+    
+    //THIS DOESN'T WORK NOW THAT MONGO IS USED FOR HEARTBEATS!
+    /*
     boolean found_it = false;
     logger.debug("Num Heartbeats: " + this.heartbeats.size());
     
@@ -288,7 +299,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       }        
     }
     assertTrue("Could not find a matching Session ID", found_it);
-
+    */
   }
 
   /**
@@ -314,6 +325,15 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpUtils.pause(45);
     boolean found_it = false;
     
+    // Lazy compare for if a heartbeat was sent
+    assertTrue("Last Updated is equal to last assignment, so no heartbeat!",
+       this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime());
+  
+    // Not lazy way to do this: loop for a number of heartbeats (you know the frequency)
+    // and count a heartbeat for every time the last updated changes
+    
+    // THIS METHOD DOESN'T WORK NOW THAT HEARTBEATS ARE MANAGED BY MONGO!
+    /*
     logger.debug("There are " + this.heartbeats.size() + " heartbeats in the list");
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
@@ -335,8 +355,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     }
     assertTrue("There are no heartbeats in the list", this.heartbeats.size() > 0);
     assertTrue("The Session ID is different", found_it);
+  */
   }
-  
+    
   /**
    * Tests the ability to start and stop an instance
    */

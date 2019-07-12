@@ -403,7 +403,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public void onEvent()
   {
-    this.logger.debug("Checking Resources");
+    //this.logger.debug("Checking Resources");
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
     {
@@ -480,7 +480,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         long now = System.currentTimeMillis();
         long resTime = vm.getLastUpdatedTime();
         long diff = now - resTime;
-        this.logger.debug("Diff Time for " + id + ": " + diff);
+        //this.logger.debug("Diff Time for " + id + ": " + diff);
         if( diff >= this.agent_time_limit )
         {
           String txt = "The Agent " + id + " Status " + vm.getStatus() +
@@ -1582,6 +1582,42 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                           " tasks, skipping termination");
                       continue;
                     }
+                    
+                    // If there isn't another VM in "RUNNING" state (i.e. it just launched and isn't running yet), skip termination
+                    boolean freeResource = false;
+                    for ( CcdpVMResource vm : avails )
+                    {
+                      String vmId = vm.getInstanceId();
+                      if ( vmId == id )
+                        continue;
+                      
+                      if (ResourceStatus.RUNNING.equals( vm.getStatus() ))
+                      {
+                        if( !this.skipTermination.contains(vmId) )
+                        {
+                          if( !vmId.startsWith(CcdpMainApplication.VM_TEST_PREFIX) )
+                          {
+                            if ( vm.getNumberTasks() == 0 ) 
+                            {
+                              // This VM is free, mark and break
+                              freeResource = true;
+                              break;
+                            }
+                             else
+                            {
+                              this.logger.debug("VM " + vmId + "cannot be the free VM, trying another");
+                            }
+                           }
+                          }
+                        }
+                      }
+                    if ( freeResource == true )
+                    {
+                      this.logger.debug("There is a free VM to be the new free resource, terminating " + id);
+                    }
+                    else
+                      continue;
+                    
                     res.setStatus(ResourceStatus.SHUTTING_DOWN);
                     terminate.add(id);
                     this.dbClient.storeVMInformation(res);

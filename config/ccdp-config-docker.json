@@ -155,7 +155,7 @@
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
         "image-id": "payero/centos-7:ccdp12",
-        "min-number-free-agents": 1,
+        "min-number-free-agents": 0,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
           	"-a",

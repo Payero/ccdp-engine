@@ -3,11 +3,12 @@
     [
       {
         "session-id":"oeg-1", 
+        "node-type": "DOCKER",
         "cpu": 0.1,  
         "mem": 128, 
         "command": 
           [
-            "/home/oeg/dev/oeg/PyMods/src/test/ccdp_mod_test.py", 
+            "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
             "-a", "testCpuUsage", 
             "-p", "10"
           ]

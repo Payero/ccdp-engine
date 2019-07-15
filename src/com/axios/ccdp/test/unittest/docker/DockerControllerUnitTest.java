@@ -249,6 +249,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   /**
    * Tests the ability to start an instance with a specific Session ID
+   * This test failed when ran with all other tests, possible lack of PC power
+   * To fix this, probably just increase initial wait, or run by itself
    */
   @Test
   public void startInstanceWithSessionIdTest()

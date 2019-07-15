@@ -159,13 +159,16 @@ public class AWSControlerUnitTest
     assert(launched.size() == 1);
   }
   
+  /*
+   * To get this test to pass, you may need to copy a running ID from AWS Console/EC2 Dashboard
+   */
   @Test 
   public void testTerminateInstance()
   {
     this.logger.debug("Running Test Stop Instance");
     this.aws.configure(this.jsonCfg);
     List<String> ids = new ArrayList<>();
-    ids.add("i-0299eb42ecdb10143");
+    ids.add("i-0252e383ba4f98e01");
     this.aws.terminateInstances(ids);
   }
   

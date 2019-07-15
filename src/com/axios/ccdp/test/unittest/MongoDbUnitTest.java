@@ -8,9 +8,7 @@ import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.axios.ccdp.fmwk.CcdpAgent;
 import com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl;
-import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 

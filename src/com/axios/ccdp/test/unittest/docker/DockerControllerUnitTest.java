@@ -75,6 +75,10 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    */
   private JsonNode jsonCfg;
   /**
+   * Stores engine config for the tests
+   */
+  private JsonNode engCfg;
+  /**
    * Generates all the JSON objects used during the tests
    */
   private ObjectMapper mapper = new ObjectMapper();
@@ -172,6 +176,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       {
         CcdpUtils.loadProperties(cfg_file);
         this.jsonCfg = CcdpUtils.getResourceCfg("DOCKER");
+        this.engCfg = CcdpUtils.getEngineCfg();
         this.docker.configure(this.jsonCfg);
       }
       catch( Exception e )
@@ -267,15 +272,43 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("Waiting 45 seconds for " + channel);    
     // let's wait a couple of seconds to give the agent time to set the session
     // id and send an updated heartbeat message
-    CcdpUtils.pause(45);
-    
-    // Lazy compare for if a heartbeat was sent
-    assertTrue( "Last Updated is equal to last assignment, so no heartbeat!",
-       this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime() );
-    logger.debug(this.dbClient.getVMInformation(channel).getAssignedSession());
-    // How in the world are these not equal
+    boolean lazyCheck = false;
+    // Lazy check for sent heartbeats to Mongo
+    if ( lazyCheck )
+    {
+      logger.debug("Doing lazy check for heartbeats");
+      CcdpUtils.pause(45);
+      
+      // Lazy compare for if a heartbeat was sent
+      assertTrue( "Last Updated is equal to last assignment, so no heartbeat!",
+         this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime() );
+    }
+    // Less lazy check for heartbeats
+    else 
+    {
+      logger.debug("Doing less lazy check for heartbeats");
+      CcdpUtils.pause(25);
+      
+      // Config stuff, set last baseline;
+      int numHeartbeats = 0;
+      long HBfreq = engCfg.get(CcdpUtils.CFG_KEY_HB_FREQ).asLong();
+      long lastUpdate = this.dbClient.getVMInformation(channel).getLastAssignmentTime();
+      long current;
+      // Check for a change in last updated, signaling a HB, using HB frequency
+      for (int i = 0; i < 4; i++)
+      {
+        current = this.dbClient.getVMInformation(channel).getLastUpdatedTime();
+        if ( current != lastUpdate)
+          numHeartbeats ++;
+        lastUpdate = current;
+        CcdpUtils.pause(HBfreq);
+      }
+      logger.debug("There were " + numHeartbeats + " heartbeats registered");
+      assertTrue("There were no heartbeats", numHeartbeats > 0);
+    }
+    // Also do SID test
     assertEquals( sessionIdToSet, this.dbClient.getVMInformation(channel).getAssignedSession() );
-    
+
     //THIS DOESN'T WORK NOW THAT MONGO IS USED FOR HEARTBEATS!
     /*
     boolean found_it = false;
@@ -321,16 +354,41 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     String channel = this.running_vms.get(0);
     logger.debug("Waiting 45 seconds for " + channel);
-    
-    CcdpUtils.pause(45);
-    boolean found_it = false;
+    //boolean found_it = false;
+    boolean lazyCheck = false;
     
     // Lazy compare for if a heartbeat was sent
-    assertTrue("Last Updated is equal to last assignment, so no heartbeat!",
-       this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime());
-  
-    // Not lazy way to do this: loop for a number of heartbeats (you know the frequency)
-    // and count a heartbeat for every time the last updated changes
+    if ( lazyCheck )
+    {
+      logger.debug("Doing lazy heartbeat check");
+      CcdpUtils.pause(45);
+       
+      assertTrue("Last Updated is equal to last assignment, so no heartbeat!",
+         this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime());
+    }
+    // Less lazy compare for if a heartbeat was sent
+    else
+    {
+      logger.debug("Doing less lazy heartbeat check");
+      CcdpUtils.pause(25);
+
+      // Config stuff, set time baseline for last
+      long HBfreq = engCfg.get(CcdpUtils.CFG_KEY_HB_FREQ).asLong();      
+      int numHeartbeats = 0;
+      long lastUpdate = this.dbClient.getVMInformation(channel).getLastAssignmentTime();
+      long current;
+      // Check for a change in last updated, singaling a HB, using HB frequency.
+      for (int i = 0; i < 4; i++)
+      {
+        current = this.dbClient.getVMInformation(channel).getLastUpdatedTime();
+        if ( current != lastUpdate)
+          numHeartbeats ++;
+        lastUpdate = current;
+        CcdpUtils.pause(HBfreq);
+      }
+      logger.debug("There were " + numHeartbeats + " heartbeats registered");
+      assertTrue("There were no heartbeats", numHeartbeats > 0);
+    }
     
     // THIS METHOD DOESN'T WORK NOW THAT HEARTBEATS ARE MANAGED BY MONGO!
     /*

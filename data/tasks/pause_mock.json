@@ -3,7 +3,7 @@
     [
       {
         "session-id":"test-1", 
-        "node-type": "DEFAULT", 
+        "node-type": "DOCKER", 
         "command": [ "MOCK_PAUSE", "15" ]
        }
     ]

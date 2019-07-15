@@ -2,6 +2,8 @@ package com.axios.ccdp.test.unittest.docker;
 
 import static org.junit.Assert.*;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,10 +30,12 @@ import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.RunTaskMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.test.CcdpMsgSender;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -498,6 +502,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   /**
    * Tests the ability to check tasks assigned to VM using MainApp tasking
+   * Make sure no other docker containers are running when this test is run
+   * The "MOCK PAUSE" job doesn't actually work, so This test inherently doesn't work.
    */
   //@Test
   public void checksTasksRunningOnVMTest()
@@ -525,7 +531,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     //assertTrue("The Session ID is different", "DOCKER".equals(vm.getAssignedSession()));
     
     CcdpTaskRequest task1 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
-    CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
+    //CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
+    
     CcdpUtils.pause(0.2);
     vms = this.docker.getAllInstanceStatus();
     
@@ -535,16 +542,17 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       ResourceStatus status = this.docker.getInstanceState(iid);
       assertNotNull("Could not find Resource " + iid, status);
       logger.debug("VM Status " + status);
-      assertTrue("The VM is not stopped", status.equals(ResourceStatus.RUNNING));
+      assertTrue("The VM is not running", status.equals(ResourceStatus.RUNNING));
       if( testId.equals(iid) )
       {
         List<CcdpTaskRequest> tasks = res.getTasks();
-        assertTrue("Did not find task", tasks.size() == 2);
+        assertTrue("Did not find task", tasks.size() == 1);
         for( CcdpTaskRequest task : tasks )
         {
           
           String tid = task.getTaskId();
-          if( !tid.equals(task1.getTaskId() ) && !tid.equals(task2.getTaskId()) )
+          //if( !tid.equals(task1.getTaskId() ) && !tid.equals(task2.getTaskId()) )
+          if( !tid.equals(task1.getTaskId() ))
             fail("The running Task does not match");
         }
       }
@@ -722,6 +730,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Sends a task message to the intended VM.  
    * 
+   * @param iid the instance id for the VM
    * @param action what to do either paused, cpu, or
    * @param time for how long
    * 
@@ -734,9 +743,15 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpTaskRequest task = new CcdpTaskRequest();
     
     task.setSessionId("test-session");
+    task.setNodeType("DOCKER");
     List<String> cmd = new ArrayList<>();
-    cmd.add(action);
-    cmd.add(Long.toString(time));
+    //cmd.add(action);
+    //cmd.add(Long.toString(time));
+    cmd.add("/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testRandTime");
+    cmd.add("-p");
+    cmd.add("min=15,max=20");
     task.setCommand(cmd);
     RunTaskMessage msg = new RunTaskMessage();
     logger.debug("Task: " + task.toString());
@@ -759,6 +774,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("Got a new Message: " + msgType.toString());
     switch( msgType )
     {
+      // This shouldn't ever happen, using Mongo for Resource updates
       case RESOURCE_UPDATE:
         ResourceUpdateMessage msg = (ResourceUpdateMessage)message;
         this.heartbeats.add(msg);
@@ -768,6 +784,11 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         String tid = task.getTaskId();
         CcdpTaskRequest.CcdpTaskState state = task.getState();
         logger.debug(tid + " Updated task to " + state.toString());
+        this.messages.add(message);
+        break;
+      case ERROR_MSG:
+        ErrorMessage err = (ErrorMessage)message;
+        logger.debug(err.getErrorMessage());
       default:
         this.messages.add(message);
     }

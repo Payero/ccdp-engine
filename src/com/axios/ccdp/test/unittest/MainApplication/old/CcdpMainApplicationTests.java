@@ -1,4 +1,4 @@
-package com.axios.ccdp.test.unittest.MainApplication;
+package com.axios.ccdp.test.unittest.MainApplication.old;
 
 import static org.junit.Assert.*;
 
@@ -91,10 +91,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	protected static double addSecond = 15;
 
 	@BeforeClass
-	public static void initialization() {
-		//load the config file before every test case
+	public static void initialization() 
+	{
 		JUnitTestHelper.initialize();
-		System.out.println("Im in the class with the test cases");
 	}
 	@Before
 	public  void setUpTest()
@@ -126,8 +125,8 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	//setting the controller and storage properties to the appropriate name
 		ObjectNode res_mgr = CcdpUtils.getResourceManagerIntfCfg().deepCopy();
 		res_mgr.put("classname", CcdpMainApplicationTests.CcdpVMcontroller);
-		String expDist = CcdpUtils.expandVars("${CCDP_HOME}/dist/ccdp-engine.tgz");
-    res_mgr.put("dist-file", expDist);  
+		//String expDist = CcdpUtils.expandVars("${CCDP_HOME}/dist/ccdp-engine.tgz");
+    //res_mgr.put("dist-file", expDist);  
 		res_mgr.put("docker-url", "http://172.17.0.1:2375");
 		CcdpUtils.setResourceManagerIntfCfg(res_mgr);
     
@@ -151,11 +150,20 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     ObjectNode nif_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
     nif_cfg.put("min-number-free-agents", 0);
     CcdpUtils.setResourceCfg("NIFI", nif_cfg);
-
+    
 		System.out.println("\n ***************************************************************************** \n");
+    //ccdpEngine = new CcdpMainApplication(null);
 
 	}
 
+	/**
+	 * Did setup even work?
+	 */
+	@Test
+	public void testSetupCompletion()
+	{
+	  this.logger.info("Set up complete.");
+	}
 	/**
 	 * Testing the checkFreeVMRequirements() function
 	 * Making sure there are no vms running
@@ -300,6 +308,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     CcdpUtils.pause(pauseTime);
 
     Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+   
     while( sessions.hasNext() )
     {
       String sid = sessions.next();
@@ -1473,6 +1482,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		ccdpEngine.stopCCDPApplication(true);
 		this.connection.disconnect();
 		this.taskMap.clear();
+		this.logger.debug("Tear down complete");
 	}
 
 

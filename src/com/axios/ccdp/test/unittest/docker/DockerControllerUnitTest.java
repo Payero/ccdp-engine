@@ -500,9 +500,11 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   
   /**
-   * Tests the ability to check tasks assigned to VM using MainApp tasking
-   * Make sure no other docker containers are running when this test is run
-   * The "MOCK PAUSE" job doesn't actually work, so This test inherently doesn't work.
+   * Tests the ability to check tasks assigned to VM using MainApp tasking.
+   * Make sure no other docker containers are running when this test is run.
+   * Changed "MOCK PAUSE" job to cmd in {HOME}/data/rand_time_docker.json.
+   * Originally, this test failed because it got VM info from dockerClient instead
+   * of just using Mongo...................why?
    */
   @Test
   public void checksTasksRunningOnVMTest()
@@ -516,7 +518,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("The minimum should be ", image.getMinReq() == 1);
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
-   this.running_vms = this.docker.startInstances(image);
+    this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     

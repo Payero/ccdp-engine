@@ -504,7 +504,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Make sure no other docker containers are running when this test is run
    * The "MOCK PAUSE" job doesn't actually work, so This test inherently doesn't work.
    */
-  //@Test
+  @Test
   public void checksTasksRunningOnVMTest()
   {
     CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
@@ -516,12 +516,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("The minimum should be ", image.getMinReq() == 1);
     assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
-    List<String> ids = this.docker.startInstances(image);
-    assertTrue("Wrong number of instances", ids.size() == 1);
+   this.running_vms = this.docker.startInstances(image);
+    assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     
-    logger.debug("Waiting 40 seconds for VMs to spool up");  
-    CcdpUtils.pause(40);
+    logger.debug("Waiting 45 seconds for VMs to spool up");  
+    CcdpUtils.pause(45);
     
     CcdpVMResource vm = vms.get(0);
     String testId = vm.getInstanceId();
@@ -529,22 +529,27 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     
     //assertTrue("The Session ID is different", "DOCKER".equals(vm.getAssignedSession()));
     
-    CcdpTaskRequest task1 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
+    // I don't think any of this works, changing it -SRB
+    CcdpTaskRequest task1 = this.sendTaskRequest(testId);
     //CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
     
-    CcdpUtils.pause(0.2);
-    vms = this.docker.getAllInstanceStatus();
+    
+    CcdpUtils.pause(15);
+    //vms = this.docker.getAllInstanceStatus();
+    vms = this.dbClient.getAllVMInformation();
+    logger.debug(vms.toString());
     
     for( CcdpVMResource res : vms )
     {
       String iid = res.getInstanceId();
       ResourceStatus status = this.docker.getInstanceState(iid);
       assertNotNull("Could not find Resource " + iid, status);
-      logger.debug("VM Status " + status);
+      logger.debug("VM Status " + status + " with IID " + iid);
       assertTrue("The VM is not running", status.equals(ResourceStatus.RUNNING));
       if( testId.equals(iid) )
       {
         List<CcdpTaskRequest> tasks = res.getTasks();
+        logger.debug(tasks.toString());
         assertTrue("Did not find task", tasks.size() == 1);
         for( CcdpTaskRequest task : tasks )
         {
@@ -735,7 +740,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * 
    * @return the task that was sent
    */
-  private CcdpTaskRequest sendTaskRequest(String iid, String action, long time)
+  private CcdpTaskRequest sendTaskRequest(String iid)
   {
     assertNotNull("The Instance ID cannot be null", iid);
     
@@ -744,13 +749,11 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     task.setSessionId("test-session");
     task.setNodeType("DOCKER");
     List<String> cmd = new ArrayList<>();
-    //cmd.add(action);
-    //cmd.add(Long.toString(time));
     cmd.add("/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
     cmd.add("-a");
-    cmd.add("testRandTime");
+    cmd.add("testRandomTime");
     cmd.add("-p");
-    cmd.add("min=15,max=20");
+    cmd.add("min=10,max=15");
     task.setCommand(cmd);
     RunTaskMessage msg = new RunTaskMessage();
     logger.debug("Task: " + task.toString());
@@ -773,8 +776,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("Got a new Message: " + msgType.toString());
     switch( msgType )
     {
-      // This shouldn't ever happen, using Mongo for Resource updates
       case RESOURCE_UPDATE:
+        // This shouldn't ever happen, using Mongo for Resource updates
         ResourceUpdateMessage msg = (ResourceUpdateMessage)message;
         this.heartbeats.add(msg);
         break;

@@ -92,7 +92,7 @@
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
         "image-id":"ami-0c82c390543920339",
         "__image-id": "ami-00a7bdc4873460f98",
-        "min-number-free-agents": 1,
+        "min-number-free-agents": 0,
         "__security-group": "sg-9e30a2ed",
         "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",

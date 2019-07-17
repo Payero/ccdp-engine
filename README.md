@@ -17,7 +17,7 @@ modules
    
 ### Minimum Requirements:
 
-- Java SDK 8
+- Java SDK <s>8</s> 12
 - Ant 1.7
 
 ### Installing

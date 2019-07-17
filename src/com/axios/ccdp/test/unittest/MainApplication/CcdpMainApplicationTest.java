@@ -4,6 +4,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +31,7 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.test.CcdpMsgSender;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.AmqCleaner;
 import com.axios.ccdp.utils.CcdpUtils;
@@ -440,13 +443,13 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   }
   
   /*
-   * This test shows that the MainApp can launch a docker VM that executes a task on creation
-   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
+   * This test shows that the MainApp can launch a AWS VM that executes a task on creation
+   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void EC2StartupTask() 
   {
-    logger.debug("Starting DockerStartupTask Test!");
+    logger.debug("Starting DefaultStartupTask Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -473,6 +476,170 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     CcdpUtils.pause(35);
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test shows that the MainApp can launch a default VM that executes a task on creation
+   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
+   */
+  @Test
+  public void DefaultStartupTask() 
+  {
+    logger.debug("Starting DefaultStartupTask Test!");
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // start application with rand_time task
+    // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
+    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json");
+    CcdpUtils.pause(50);
+   
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 VM running.", running_vms.size() == 1);
+    CcdpVMResource vm = running_vms.get(0);
+    // LIEK ABOVE, WHY DOES A DEFAULT NODE JUST CHANGE TO EC2??
+    assertTrue("The VM should be of node type DEFAULT","EC2".equals(vm.getNodeType()));
+    assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
+    
+    // Let task complete, should despawn VM 
+    CcdpUtils.pause(35);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test determines if Docker containers are spawned an terminated correctly to keep the
+   * number of free agents correctly
+   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
+   */
+  @Test
+  public void SpawnAndDespawnDocker()
+  {
+    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine and spawning FA");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(50);
+    
+    logger.debug("Check that there is still only 1 VM");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 VM", running_vms.size() == 1);
+    String original = running_vms.get(0).getInstanceId();
+    
+    // Send task, it should spawn a new vm and give the task to the old vm
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    try
+    {
+      logger.debug("Sending task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+    }
+    
+    // Wait for new VM to spawn up
+    CcdpUtils.pause(20);
+    
+    // Test proper execution
+    logger.debug("Checking to see if there is 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be two VMs running", running_vms.size() == 2);
+    for (CcdpVMResource vm : running_vms)
+    {
+      if ( vm.getInstanceId().equals(original))
+        assertTrue("The original VM should have the assigned task", vm.getNumberTasks() > 0);
+    }
+    
+    //Wait for task to complete
+    CcdpUtils.pause(15);
+    logger.debug("Task should be done now, check there is only 1 VM and it isn't the original");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
+    assertFalse("The original VM should have been despawned", running_vms.get(0).getInstanceId().equals(original));
+  }
+  
+  @Test
+  public void SpawnAndDespawnEC2()
+  {
+    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine and spawning FA");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(45);
+    
+    logger.debug("Check that there is still only 1 VM");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 VM", running_vms.size() == 1);
+    String original = running_vms.get(0).getInstanceId();
+    
+    // Send task, it should spawn a new vm and give the task to the old vm
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    try
+    {
+      logger.debug("Sending task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+    }
+    
+    // Wait for new VM to spawn up
+    CcdpUtils.pause(15);
+    
+    // Test proper execution
+    logger.debug("Checking to see if there is 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be two VMs running", running_vms.size() == 2);
+    for (CcdpVMResource vm : running_vms)
+    {
+      if ( vm.getInstanceId().equals(original))
+        assertTrue("The original VM should have the assigned task", vm.getNumberTasks() > 0);
+    }
+    
+    //Wait for task to complete
+    CcdpUtils.pause(60);
+    logger.debug("Task should be done now, check there is only 1 VM and it isn't the original");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
+    assertFalse("The original VM should have been despawned", running_vms.get(0).getInstanceId().equals(original));
   }
   
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/

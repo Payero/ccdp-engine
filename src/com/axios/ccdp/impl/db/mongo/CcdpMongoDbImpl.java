@@ -227,12 +227,13 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformationOfType( String type )
   {
     List<CcdpVMResource> result = new ArrayList<>();
+    List<CcdpVMResource> holder = new ArrayList<>();
     FindIterable<Document> docs = this.statusColl.find();
     for( Document doc : docs )
     {
       try
       {
-        result.add( this.getCcdpVMResource(doc) );
+        holder.add( this.getCcdpVMResource(doc) );
       }
       catch( JsonProcessingException jpe )
       {
@@ -240,10 +241,10 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
         continue;
       }
     }
-    for ( CcdpVMResource vm : result)
+    for ( CcdpVMResource vm : holder)
     {
-      if ( !type.equals(vm.getNodeType()))
-        result.remove(vm);
+      if ( type.equals(vm.getNodeType()))
+        result.add(vm);
     }
     return result;
   }

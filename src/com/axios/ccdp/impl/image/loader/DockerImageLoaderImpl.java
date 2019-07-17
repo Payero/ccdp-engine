@@ -4,7 +4,7 @@
 package com.axios.ccdp.impl.image.loader;
 
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
@@ -22,8 +22,8 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = 
-                    Logger.getLogger(DockerImageLoaderImpl.class.getName());
+  //private Logger logger = 
+  //                  Logger.getLogger(DockerImageLoaderImpl.class.getName());
   /**
    * Stores all the configurations for this image
    */

@@ -242,6 +242,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.runAssignmentTask(sessionMsg.getAssignCommand());
         break;
       case RESOURCE_UPDATE:
+        break;
       case RUN_TASK:
         RunTaskMessage taskMsg = (RunTaskMessage)message;
         this.launchTask(taskMsg.getTask());

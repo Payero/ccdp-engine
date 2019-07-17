@@ -2036,6 +2036,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
+   * Gets all the resources being used by the engine of specified type
+   * 
+   * @return all the resources being used by the engine of specified type
+   */
+  public List<CcdpVMResource> getAllCcdpVMResourcesOfType( String type )
+  {
+    return this.dbClient.getAllVMInformationOfType( type );
+  }
+  
+  /**
    * Gets all the resources assigned to a specific session
    * 
    * @param SID the session ID to search for the resources

@@ -50,6 +50,13 @@ public interface CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformation();
   
   /**
+   * Gets a list of all the resources stored in the database of the specified type.
+   * 
+   * @return a list of the resources stored in the database of the specified type
+   */
+  public List<CcdpVMResource> getAllVMInformationOfType( String type );
+  
+  /**
    * Gets a list of all the resources stored in the database whose session id
    * matches the given one 'sid'
    * 

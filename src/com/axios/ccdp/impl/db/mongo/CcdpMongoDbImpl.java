@@ -220,6 +220,35 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   }
 
   /**
+   * Gets a list of all the resources stored in the database of specified type.
+   * 
+   * @return a list of the resources stored in the database of the specified type
+   */
+  public List<CcdpVMResource> getAllVMInformationOfType( String type )
+  {
+    List<CcdpVMResource> result = new ArrayList<>();
+    FindIterable<Document> docs = this.statusColl.find();
+    for( Document doc : docs )
+    {
+      try
+      {
+        result.add( this.getCcdpVMResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM " + jpe.getMessage() );
+        continue;
+      }
+    }
+    for ( CcdpVMResource vm : result)
+    {
+      if ( !type.equals(vm.getNodeType()))
+        result.remove(vm);
+    }
+    return result;
+  }
+  
+  /**
    * Gets a list of all the resources stored in the database whose session id
    * matches the given one 'sid'
    * 

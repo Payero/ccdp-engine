@@ -8,7 +8,7 @@
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
               "-a", "testRandomTime", 
-              "-p", "min=5,max=30"
+              "-p", "min=10,max=15"
             ]
        }
     ]

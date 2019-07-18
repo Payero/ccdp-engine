@@ -206,11 +206,11 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     engine = new CcdpMainApplication(null);
     CcdpUtils.pause(30);
     
-    running_vms = engine.getAllCcdpVMResourcesOfType("DOCKER");
+    running_vms = engine.getAllCcdpVMResources();
     assertTrue("There was a VM started", running_vms.size() == 0);
     
     // Check with Mongo to ensure no VMs
-    List<CcdpVMResource> MongoRecord = dbClient.getAllVMInformationOfType("DOCKER");
+    List<CcdpVMResource> MongoRecord = dbClient.getAllVMInformation();
     for ( CcdpVMResource vm : MongoRecord )
     {
       if ( vm.getStatus().equals(ResourceStatus.RUNNING) )
@@ -395,7 +395,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should be a running VM", running_vms.size() == 1);
     
     // Check for node type
-    // **** THE NODE TYPE FOR DEFAULT HANGES TO EC2 BY ITSELF, WHY? *****
+    // Default Nodes change their node type to EC2 because they use the same start
+    // script and tarball as EC2 instances. This could be fixed easily but is that really necessary...?
     CcdpVMResource vm = running_vms.get(0);
     assertTrue("The node should be of type DEFAULT", "EC2".equals(vm.getNodeType()));
     
@@ -505,7 +506,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should only be 1 VM running.", running_vms.size() == 1);
     CcdpVMResource vm = running_vms.get(0);
-    // LIEK ABOVE, WHY DOES A DEFAULT NODE JUST CHANGE TO EC2??
+    
+    // Node type for defaults is EC2, see Default task above....
     assertTrue("The VM should be of node type DEFAULT","EC2".equals(vm.getNodeType()));
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     

@@ -334,7 +334,8 @@ public class CcdpMainApplicationTest_AWS implements CcdpMessageConsumerIntf
     assertTrue("There should be a running VM", running_vms.size() == 1);
     
     // Check for node type
-    // **** THE NODE TYPE FOR DEFAULT HANGES TO EC2 BY ITSELF, WHY? *****
+    // Default Nodes change their node type to EC2 because they use the same start
+    // script and tarball as EC2 instances. This could be fixed easily but is that really necessary...?
     CcdpVMResource vm = running_vms.get(0);
     assertTrue("The node should be of type DEFAULT", "EC2".equals(vm.getNodeType()));
     
@@ -408,7 +409,9 @@ public class CcdpMainApplicationTest_AWS implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should only be 1 VM running.", running_vms.size() == 1);
     CcdpVMResource vm = running_vms.get(0);
-    // LIEK ABOVE, WHY DOES A DEFAULT NODE JUST CHANGE TO EC2??
+    
+    // Default Nodes change their node type to EC2 because they use the same start
+    // script and tarball as EC2 instances. This could be fixed easily but is that really necessary...?
     assertTrue("The VM should be of node type DEFAULT","EC2".equals(vm.getNodeType()));
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     

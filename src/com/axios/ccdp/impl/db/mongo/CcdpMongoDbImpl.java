@@ -222,6 +222,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   /**
    * Gets a list of all the resources stored in the database of specified type.
    * 
+   * @param type the type of node to filter the return list for
    * @return a list of the resources stored in the database of the specified type
    */
   public List<CcdpVMResource> getAllVMInformationOfType( String type )

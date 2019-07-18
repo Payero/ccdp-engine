@@ -2038,11 +2038,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   /**
    * Gets all the resources being used by the engine of specified type
    * 
+   * @param node_type the type of nodes to be returned
    * @return all the resources being used by the engine of specified type
    */
-  public List<CcdpVMResource> getAllCcdpVMResourcesOfType( String type )
+  public List<CcdpVMResource> getAllCcdpVMResourcesOfType( String node_type )
   {
-    return this.dbClient.getAllVMInformationOfType( type );
+    return this.dbClient.getAllVMInformationOfType( node_type );
   }
   
   /**

@@ -52,9 +52,10 @@ public interface CcdpDatabaseIntf
   /**
    * Gets a list of all the resources stored in the database of the specified type.
    * 
+   * @param node_type the type of node to filter the return list for
    * @return a list of the resources stored in the database of the specified type
    */
-  public List<CcdpVMResource> getAllVMInformationOfType( String type );
+  public List<CcdpVMResource> getAllVMInformationOfType( String node_type );
   
   /**
    * Gets a list of all the resources stored in the database whose session id

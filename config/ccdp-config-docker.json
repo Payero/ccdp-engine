@@ -33,7 +33,7 @@
       }
     },
     "resource-manager": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.HybridVMControllerImpl"
     },
     "storage": {
       "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"

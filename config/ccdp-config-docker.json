@@ -39,7 +39,8 @@
       "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
     },
     "resource-monitor": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
+      "__classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
+      "classname": "com.axios.ccdp.impl.monitors.HybridResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
     },

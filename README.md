@@ -18,7 +18,7 @@ modules
 ### Minimum Requirements:
 
 - Java SDK <s>8</s> 12
-- Ant 1.7
+- Ant <s>1.7</s> 1.10
 
 ### Installing
 
@@ -51,7 +51,5 @@ of agents is not limited.
 - Add launching jar files using lambda
 - <s>Integrate NiFi into it</s>
 - If a task fails, it retries properly and eventually fails, but it never gets removed
-- Use the Abstract Factory approach to allocating the resource manager, monitor and storage
-
-
+- Develop Hybrid support, allowing both Docker and AWS instances to be run at the same time using CCDP
 

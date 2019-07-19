@@ -36,10 +36,10 @@
       "classname": "com.axios.ccdp.impl.cloud.HybridVMControllerImpl"
     },
     "storage": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
     },
     "resource-monitor": {
-      "__classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
+      "__classname": "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
       "classname": "com.axios.ccdp.impl.monitors.HybridResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
@@ -56,10 +56,9 @@
     "resources": {
       "DEFAULT": {
         "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
+        "image-id":"ami-0c82c390543920339",
         "min-number-free-agents": 0,
-        "security-group": "sg-9e30a2ed",
-        "__security-group": "sg-54410d2f",
+        "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
@@ -70,13 +69,14 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine12A.tgz", 
             "-w", 
             "-t", 
-            "/data/ccdp"
+            "/data/ccdp/"
           ],
-        "__assignment-command": "/home/oeg/scripts/test.sh",
-        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "__assignment-command": "/nishome/srbenne/Scripts/test2.sh",
+        "assignment-command": "touch ~/hi.txt",
+        "_comment":"This is the aws VM path",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
         "__role-name": "my-Role",
@@ -90,10 +90,10 @@
       },
       "EC2": {
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
-        "min-number-free-agents": 0,
-        "security-group": "sg-9e30a2ed",
-        "__security-group": "sg-54410d2f",
+        "image-id":"ami-0c82c390543920339",
+        "__image-id": "ami-00a7bdc4873460f98",
+        "min-number-free-agents": 1,
+        "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
@@ -104,13 +104,14 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine12A.tgz", 
             "-w", 
             "-t", 
-            "/data/ccdp"
+            "/data/ccdp/"
           ],
-        "__assignment-command": "/home/oeg/scripts/test.sh",
-        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "__assignment-command": "/nishome/srbenne/Scripts/test2.sh",
+        "assignment-command": "touch ~/hi.txt",
+        "_comment":"This is the aws VM path",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
         "__role-name": "my-Role",
@@ -156,7 +157,7 @@
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
         "image-id": "payero/centos-7:ccdp12",
-        "min-number-free-agents": 0,
+        "min-number-free-agents": 1,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
           	"-a",

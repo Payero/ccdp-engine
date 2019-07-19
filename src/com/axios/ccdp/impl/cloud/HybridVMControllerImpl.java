@@ -1,3 +1,7 @@
+// Scott Bennett, scott.bennett@caci.com
+// An adaptation to Oscar's VM controllers, allowing both styles of VMs
+// to be spawned from a VM controller perspective
+
 package com.axios.ccdp.impl.cloud;
 
 import java.util.ArrayList;
@@ -23,7 +27,7 @@ public class HybridVMControllerImpl implements CcdpVMControllerIntf
 
   // A Docker and an AWS Controller as member
   
-  CcdpVMControllerIntf DockerController = null, AWSController = null;
+  private CcdpVMControllerIntf DockerController = null, AWSController = null;
   
   public HybridVMControllerImpl()
   {

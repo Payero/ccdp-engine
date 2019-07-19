@@ -39,7 +39,6 @@
       "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
     },
     "resource-monitor": {
-      "__classname": "com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
       "classname": "com.axios.ccdp.impl.monitors.HybridResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
@@ -74,18 +73,13 @@
             "-t", 
             "/data/ccdp/"
           ],
-        "__assignment-command": "/nishome/srbenne/Scripts/test2.sh",
         "assignment-command": "touch ~/hi.txt",
         "_comment":"This is the aws VM path",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
-        "__role-name": "my-Role",
         "proxy-url": "",
-        "__proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": -1,
-        "__proxy-port": 1234,
         "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "__credentials-file": "/home/oeg/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "EC2": {
@@ -109,20 +103,15 @@
             "-t", 
             "/data/ccdp/"
           ],
-        "__assignment-command": "/nishome/srbenne/Scripts/test2.sh",
         "assignment-command": "touch ~/hi.txt",
         "_comment":"This is the aws VM path",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
-        "__role-name": "my-Role",
         "proxy-url": "",
         "__proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": -1,
-        "__proxy-port": 1234,
         "_credentials-file": "",
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "__credentials-file": "/home/oeg/.aws/credentials",
-        
+        "credentials-file": "/nishome/srbenne/.aws/credentials",        
         "credentials-profile-name": "default"
       },
       "NIFI": {
@@ -146,7 +135,6 @@
             "/data/ccdp"
           ],
         "assignment-command": "/nishome/srbenne/Scripts/test.sh",
-        "__assignment-command": "/home/oeg/scripts/test.sh",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",

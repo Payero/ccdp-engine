@@ -177,7 +177,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /****************** CCDP MAIN APPLICATION UNIT TESTS! *****************/
   
-  @Test
+  //@Test
   public void testSetupCompletion()
   {
     logger.info("Set up ran to completion");
@@ -185,7 +185,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to make sure that the main app doesn't start any unwanted session
-   * This should work for both configs, but it won't be meaningful until hybrid controllers are implemented
    */
   @Test
   public void NoFreeVms()
@@ -220,7 +219,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to make sure that the main app doesn't start an unwanted docker session
-   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void NoFreeVms_Docker()
@@ -229,7 +227,13 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
-    CcdpUtils.setResourceCfg("DOCKER", res_cfg);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
     // Start the engine and wait for it to get started
     engine = new CcdpMainApplication(null);
@@ -249,16 +253,21 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to make sure that the main app doesn't start an unwanted EC2 session
-   * The AWS CFG must be linked to ccdp-config for this to be meaningful
    */
   @Test
   public void NoFreeVms_EC2()
   {
     logger.debug("Starting NoFreeVms_EC2 Test!");
     
-    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 2);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
     CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
     // Start the engine and wait for it to get started
     engine = new CcdpMainApplication(null);
@@ -279,14 +288,19 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to make sure that the main app doesn't start an unwanted EC2 session
-   * The AWS CFG must be linked to ccdp-config for this to be meaningful
    */
   @Test
   public void NoFreeVms_Default()
   {
     logger.debug("Starting NoFreeVms_Default Test!");
     
-    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
     CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
@@ -318,7 +332,13 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Set in the config that there should be 1 free Docker agent
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
-    CcdpUtils.setResourceCfg("DOCKER", res_cfg);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
     // Start the engine and wait for it to get started
     engine = new CcdpMainApplication(null);
@@ -341,16 +361,21 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to create 1 free EC2 VM for use
-   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void OneFreeVm_EC2()
   {
     logger.debug("Starting OneFreeVm_EC2 Test!");
     // Set in the config that there should be 1 free Docker agent
-    ObjectNode res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 2);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
     CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
     // Start the engine and wait for it to get started
     engine = new CcdpMainApplication(null);
@@ -374,14 +399,19 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * A test to create 1 free Default VM for use
-   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void OneFreeVm_Default()
   {
     logger.debug("Starting OneFreeVm_Default Test!");
     // Set in the config that there should be 1 free Default agent
-    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
     CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
@@ -391,7 +421,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     CcdpUtils.pause(80);
     
     // Check for the free agent
-    running_vms = engine.getAllCcdpVMResources();
+    running_vms = engine.getAllCcdpVMResourcesOfType("EC2");
     assertTrue("There should be a running VM", running_vms.size() == 1);
     
     // Check for node type
@@ -409,7 +439,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * This test shows that the MainApp can launch a docker VM that executes a task on creation
-   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void DockerStartupTask() 
@@ -429,7 +458,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
     engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json");
-    CcdpUtils.pause(30);
+    CcdpUtils.pause(25);
    
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should only be 1 VM running.", running_vms.size() == 1);
@@ -445,7 +474,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * This test shows that the MainApp can launch a AWS VM that executes a task on creation
-   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void EC2StartupTask() 
@@ -481,7 +509,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   
   /*
    * This test shows that the MainApp can launch a default VM that executes a task on creation
-   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void DefaultStartupTask() 
@@ -520,7 +547,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   /*
    * This test determines if Docker containers are spawned an terminated correctly to keep the
    * number of free agents correctly
-   * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void SpawnAndDespawnDocker()
@@ -563,7 +589,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(20);
+    CcdpUtils.pause(15);
     
     // Test proper execution
     logger.debug("Checking to see if there is 2 VMs");
@@ -576,7 +602,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for task to complete
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(20);
     logger.debug("Task should be done now, check there is only 1 VM and it isn't the original");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
@@ -586,7 +612,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   /*
    * This test determines if EC2 instances are spawned an terminated correctly to keep the
    * number of free agents correctly
-   * The AWS CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
   public void SpawnAndDespawnEC2()
@@ -648,6 +673,86 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
     assertFalse("The original VM should have been despawned", running_vms.get(0).getInstanceId().equals(original));
   }
+  
+  /*
+   * This test spawns a docker instance to do a task after a VM of another type
+   * is already running
+   */
+  @Test
+  public void spawnDockerForTask()
+  {
+    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine and spawning FA");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(45);
+    
+    logger.debug("Check that there are still only 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 VM", running_vms.size() == 2);
+    List<String> originals = new ArrayList<>();
+    for (CcdpVMResource running : running_vms)
+    {
+      String id = running.getInstanceId();
+      originals.add(id);
+    }
+    
+    // Send task, it should spawn a new vm and give the task to the old vm
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    try
+    {
+      logger.debug("Sending task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+    }
+    
+    // Wait for new VM to spawn up
+    CcdpUtils.pause(25);
+    
+    // Test proper execution
+    logger.debug("Checking to see if there is 3 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be two VMs running", running_vms.size() == 3);
+    for (CcdpVMResource vm : running_vms)
+    {
+      if ( !originals.contains(vm.getInstanceId()) )
+      {
+        assertTrue("The Docker VM should have the assigned task", vm.getNumberTasks() > 0);
+      }
+    }
+    
+    //Wait for task to complete
+    CcdpUtils.pause(30);
+    logger.debug("Task should be done now, check there is only 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 2);
+    for (CcdpVMResource vm : running_vms)
+    {
+      if ( "DOCKER".equals(vm.getNodeType()) )
+      {
+        fail("The Docker VM is running still.");
+      }
+    }
+
+  }
+  
   
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/
   

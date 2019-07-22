@@ -33,14 +33,13 @@
       }
     },
     "resource-manager": {
-      "classname": "com.axios.ccdp.impl.cloud.HybridVMControllerImpl"
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl"
     },
     "storage": {
       "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
     },
     "resource-monitor": {
-      "__classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
-      "classname": "com.axios.ccdp.impl.monitors.HybridResourceMonitorImpl",
+      "classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
       "units": "MB",
       "docker-url": "http://172.17.0.1:2375"
     },
@@ -156,7 +155,7 @@
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
         "image-id": "payero/centos-7:ccdp12",
-        "min-number-free-agents": 0,
+        "min-number-free-agents": 1,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
           	"-a",

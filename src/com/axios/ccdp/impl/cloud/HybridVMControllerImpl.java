@@ -1,6 +1,7 @@
 // Scott Bennett, scott.bennett@caci.com
 // An adaptation to Oscar's VM controllers, allowing both styles of VMs
-// to be spawned from a VM controller perspective
+// to be spawned from a VM controller perspective and have their respective
+// traffic router correctly.
 
 package com.axios.ccdp.impl.cloud;
 

@@ -1,3 +1,8 @@
+// Scott Bennett, scott.bennett@caci.com
+// This class allows the main application to do resource monitoring for both a Linux (AWS)
+// and a Docker VM by creating instances of both and routing traffic to the appropriate
+// monitor.
+
 package com.axios.ccdp.impl.monitors;
 
 import java.util.Arrays;

@@ -182,8 +182,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       if( max == 0 )
         max = 1;
       
-      while (numLaunched < max) 
-      {
+      //while (numLaunched < max) 
+      //{
         // if the session id is not assigned, then use the node type
         String session_id = imgCfg.getSessionId();
         if( session_id == null )
@@ -259,7 +259,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         logger.info("May want to add tags as well???");
         //Map<String, String> tags = imgCfg.getTags();
         numLaunched += 1;
-      }
+      //}
     }
     catch( Exception e )
     {

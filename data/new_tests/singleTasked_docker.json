@@ -4,6 +4,7 @@
       {
         "session-id":"test-1", 
         "node-type": "DOCKER",
+        "cpu": 110,
         "command":
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 

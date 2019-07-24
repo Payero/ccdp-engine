@@ -995,6 +995,89 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   }
   
   /*
+   * This test sends a task that should spawn a session in "single-tasked" mode, a mode designed
+   * for tasks that require a lot of cpu. Then another regular task is sent. A second VM should
+   * be spawned for this
+   */
+  @Test
+  public void singleTaskedTest()
+  {
+    logger.info("Starting singleTasked Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    // Assign 110 CPU task
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/singleTasked_docker.json";
+    try
+    {
+      logger.debug("Sending CPU-heavy task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    
+    // Assign 2 regular CPU task
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    int sentTasks = 0;
+    final int maxNumTasks = 2;
+    while (sentTasks < maxNumTasks)
+    {
+      try
+      {
+        logger.debug("Sending CPU-heavy task");
+        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+        String job = new String(data, "utf-8");
+        new CcdpMsgSender(null, job, null, null);
+        sentTasks ++;
+      }
+      catch ( Exception e )
+      {
+        logger.error("Error loading file, exception thrown");
+        e.printStackTrace();
+        fail("Sending task failed");
+      }
+    }
+    CcdpUtils.pause(20);
+    
+    // Check for 2 VMs
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be two VMs", running_vms.size() == 2);
+    for ( CcdpVMResource res : running_vms)
+    {
+      if ( !res.isSingleTasked() )
+        assertTrue("This VM should have 2 tasks", res.getNumberTasks() == 2);
+      else
+        assertTrue("A single-tasked VM should only have 1 task, duh", res.getNumberTasks() == 1);
+    }
+    
+    CcdpUtils.pause(45);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be no VMs", running_vms.size() == 0);
+  } 
+  
+  /*
    * This test assigns tasks to a VM until it exceeds the max number of tasks
    * allowed on a VM, and see if a new VM is spawned
    * ENSURE THAT AVGLOADCONTROLLERIMPL IS SET IN CCDP-CONFIG

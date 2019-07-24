@@ -19,13 +19,10 @@ import org.junit.Test;
 
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
-import com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl;
-import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ErrorMessage;
-import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
@@ -35,13 +32,12 @@ import com.axios.ccdp.test.CcdpMsgSender;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.AmqCleaner;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.MongoCleaner;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.spotify.docker.client.DockerClient;
 
 // These tests are to test the state and functionality of the Main CCDP Engine Application as of 07/2019
+// Written by Scott Bennett, scott.bennett@caci.com
 public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
 {
 
@@ -50,10 +46,12 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    */
   private static Logger logger = Logger
       .getLogger(CcdpMainApplicationTest.class.getName());
-  /**
-   * Object used to send and receive messages 
+
+  /*
+   * Used for mapping config settings
    */
-  private CcdpConnectionIntf connection;
+  private ObjectMapper mapper = new ObjectMapper();
+
   /**
    * Object used to interact with the database
    */
@@ -63,35 +61,11 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    */
   private List<CcdpMessage> messages = null;
   /**
-   * Stores the object to query the docker engine
-   */
-  private static DockerClient dockerClient = null;
-  /**
-   * Stores the configuration for the tests
-   */
-  private JsonNode jsonCfg;
-  /**
-   * Stores engine config for the tests
-   */
-  private JsonNode engCfg;
-  /**
-   * Generates all the JSON objects used during the tests
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  /**
    * Stores all the VMS created so they could be cleaned up
    * at the end of each test
    */
   private List<CcdpVMResource> running_vms = null;
-  /**
-   * The actual object to test
-   */
-  private DockerVMControllerImpl docker = null;
-  /**
-   * Flag indicating whether or not all the created Docker Containers need to 
-   * be deleted in tear down
-   */
-  private boolean rem_containers = true;
+
   /*
    * The main engine object to be tested
    */
@@ -189,7 +163,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void NoFreeVms()
   {
-    logger.debug("Starting NoFreeVms Test!");
+    logger.info("Starting NoFreeVms Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -223,7 +197,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void NoFreeVms_Docker()
   {
-    logger.debug("Starting NoFreeVms_Docker Test!");
+    logger.info("Starting NoFreeVms_Docker Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -257,7 +231,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void NoFreeVms_EC2()
   {
-    logger.debug("Starting NoFreeVms_EC2 Test!");
+    logger.info("Starting NoFreeVms_EC2 Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 2);
@@ -292,7 +266,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void NoFreeVms_Default()
   {
-    logger.debug("Starting NoFreeVms_Default Test!");
+    logger.info("Starting NoFreeVms_Default Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
@@ -328,7 +302,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void OneFreeVm_Docker()
   {
-    logger.debug("Starting OneFreeVm_Docker Test!");
+    logger.info("Starting OneFreeVm_Docker Test!");
+    
     // Set in the config that there should be 1 free Docker agent
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
@@ -365,7 +340,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void OneFreeVm_EC2()
   {
-    logger.debug("Starting OneFreeVm_EC2 Test!");
+    logger.info("Starting OneFreeVm_EC2 Test!");
+    
     // Set in the config that there should be 1 free Docker agent
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 2);
@@ -403,7 +379,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void OneFreeVm_Default()
   {
-    logger.debug("Starting OneFreeVm_Default Test!");
+    logger.info("Starting OneFreeVm_Default Test!");
+    
     // Set in the config that there should be 1 free Default agent
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
@@ -443,7 +420,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void DockerStartupTask() 
   {
-    logger.debug("Starting DockerStartupTask Test!");
+    logger.info("Starting DockerStartupTask Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -480,7 +457,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void EC2StartupTask() 
   {
-    logger.debug("Starting DefaultStartupTask Test!");
+    logger.info("Starting DefaultStartupTask Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -517,7 +494,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void DefaultStartupTask() 
   {
-    logger.debug("Starting DefaultStartupTask Test!");
+    logger.info("Starting DefaultStartupTask Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -555,7 +532,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void SpawnAndDespawnDocker()
   {
-    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    logger.info("Starting DockerSpawnAndDespawn Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 1);
@@ -620,7 +597,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void SpawnAndDespawnEC2()
   {
-    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    logger.info("Starting DockerSpawnAndDespawn Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -685,7 +662,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void spawnDockerForTask()
   {
-    logger.debug("Starting DockerSpawnAndDespawn Test!");
+    logger.info("Starting DockerSpawnAndDespawn Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -764,7 +741,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void spawnEC2ForTask()
   {
-    logger.debug("Starting EC2SpawnAndDespawn Test!");
+    logger.info("Starting EC2SpawnAndDespawn Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 2);
@@ -779,7 +756,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Start engine and give free agent time to spawn
     logger.debug("Starting engine and spawning FA");
     engine = new CcdpMainApplication(null);
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(35);
     
     logger.debug("Check that there are still only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
@@ -843,7 +820,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void spawnDefaultForTask()
   {
-    logger.debug("Starting DefaultSpawnAndDespawn Test!");
+    logger.info("Starting DefaultSpawnAndDespawn Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 2);
@@ -858,7 +835,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Start engine and give free agent time to spawn
     logger.debug("Starting engine and spawning FA");
     engine = new CcdpMainApplication(null);
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(35);
     
     logger.debug("Check that there are still only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
@@ -912,7 +889,212 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         fail("The Docker VM is running still.");
       }
     }
+  }
+  
+  /*
+   * This test assigns tasks to a VM until it exceeds the max number of tasks
+   * allowed on a VM, and see if a new VM is spawned
+   * ENSURE THAT NUMBERTASKSCONTROLLERIMPL IS SET IN CCDP-CONFIG
+   */
+  @Test
+  public void NumberTasksControllerTest()
+  {
+    logger.info("Starting NumberTasksController Test!");
+    final int NumTasksToLaunch = 5;
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    // Assign 5 tasks
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";
+    int sentTasks = 0;
+    
+    while (sentTasks < NumTasksToLaunch)
+    {
+      try
+      {
+        logger.debug("Sending task " + (sentTasks + 1));
+        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+        String job = new String(data, "utf-8");
+        new CcdpMsgSender(null, job, null, null);
+        sentTasks++;
+      }
+      catch ( Exception e )
+      {
+        logger.error("Error loading file, exception thrown");
+        e.printStackTrace();
+        fail("Sending task failed");
+      }
+    }
+    CcdpUtils.pause(35);
+    // Check there is one VM with three tasks
+    logger.debug("Checking for 1 VM with 5 Tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 1 VM", running_vms.size() == 1);
+    CcdpVMResource vm = running_vms.get(0);
+    assertTrue("The VM should have 5 tasks", vm.getNumberTasks() == 5);
+    
+    String originalID = vm.getInstanceId();
+    
+    // Send one more task
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
 
+    try
+    {
+      logger.debug("Sending task " + (sentTasks + 1));
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    CcdpUtils.pause(10);
+    
+    //Check VMs state
+    logger.debug("Check if there are 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 2 VMs", running_vms.size() == 2);
+    for ( CcdpVMResource res : running_vms)
+    {
+      if (res.getInstanceId().equals(originalID))
+        assertTrue("This VM should have 5 tasks", res.getNumberTasks() == 5);
+      else
+        assertTrue("This VM should only have 1 task", res.getNumberTasks() == 1);
+    }
+    
+    //Wait for everything to complete
+    CcdpUtils.pause(30);
+    logger.debug("Checking original VM termianted");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 VM running", running_vms.size() == 1);
+    assertTrue("The 5 tasked VM should have despawned", running_vms.get(0).getInstanceId() != originalID);
+    
+    CcdpUtils.pause(30);
+    logger.debug("Checking all VMs were removed");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("All VMs should have despawned", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test assigns tasks to a VM until it exceeds the max number of tasks
+   * allowed on a VM, and see if a new VM is spawned
+   * ENSURE THAT AVGLOADCONTROLLERIMPL IS SET IN CCDP-CONFIG
+   * This no work
+   */
+  //@Test
+  public void AvgLoadControllerTest()
+  {
+    logger.info("Starting AvgLoadController Test!");
+    final int NumTasksToLaunch = 5;
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    // Assign 5 tasks
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";
+    int sentTasks = 0;
+    
+    while (sentTasks < NumTasksToLaunch)
+    {
+      try
+      {
+        logger.debug("Sending task " + (sentTasks + 1));
+        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+        String job = new String(data, "utf-8");
+        new CcdpMsgSender(null, job, null, null);
+        sentTasks++;
+      }
+      catch ( Exception e )
+      {
+        logger.error("Error loading file, exception thrown");
+        e.printStackTrace();
+        fail("Sending task failed");
+      }
+    }
+    CcdpUtils.pause(35);
+    // Check there is one VM with three tasks
+    logger.debug("Checking for 1 VM with 5 Tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    //assertTrue("There should be 1 VM", running_vms.size() == 1);
+    CcdpVMResource vm = running_vms.get(0);
+    //assertTrue("The VM should have 5 tasks", vm.getNumberTasks() == 5);
+    
+    String originalID = vm.getInstanceId();
+    
+    // Send one more task
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+
+    try
+    {
+      logger.debug("Sending task " + (sentTasks + 1));
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    CcdpUtils.pause(10);
+    
+    //Check VMs state
+    logger.debug("Check if there are 2 VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    //assertTrue("There should be 2 VMs", running_vms.size() == 2);
+    //for ( CcdpVMResource res : running_vms)
+    //{
+    //   //assertTrue("This VM should have 5 tasks", res.getNumberTasks() == 5);
+    //  else
+        //assertTrue("This VM should only have 1 task", res.getNumberTasks() == 1);
+   // }
+    
+    //Wait for everything to complete
+    CcdpUtils.pause(30);
+    logger.debug("Checking original VM termianted");
+    running_vms = engine.getAllCcdpVMResources();
+    //assertTrue("There should only be 1 VM running", running_vms.size() == 1);
+    //assertTrue("The 5 tasked VM should have despawned", running_vms.get(0).getInstanceId() != originalID);
+    
+    CcdpUtils.pause(30);
+    logger.debug("Checking all VMs were removed");
+    running_vms = engine.getAllCcdpVMResources();
+    //assertTrue("All VMs should have despawned", running_vms.size() == 0);
   }
   
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/

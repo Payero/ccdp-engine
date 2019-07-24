@@ -33,6 +33,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
   public AvgLoadControllerImpl()
   {
     super();
+    this.logger.debug("New AvgLoadControllerImpl called");
+
   }
 
   /**
@@ -60,11 +62,14 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    */
   public void configure(JsonNode config)
   {
+    if (config == null)
+      throw new RuntimeException("The configuration cannot be null");
+    
     // set all the defaults first
     ObjectNode allocate = this.mapper.createObjectNode();
     allocate.put("cpu", 70);
     allocate.put("mem", 70);
-    allocate.put("time", 2);
+    allocate.put("time", 3);
     allocate.put("max-tasks", -1);
     
     ObjectNode deallocate = this.mapper.createObjectNode();

@@ -19,7 +19,8 @@
       "main-queue": "CCDP-Engine"  
     },
     "task-allocator": {
-      "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl",
+      "__classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl",
+      "classname": "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl",
       "allocate": {
         "avg-cpu-load": 80,
         "avg-mem-load": 15,

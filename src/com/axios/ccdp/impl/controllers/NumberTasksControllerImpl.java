@@ -48,6 +48,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
   public NumberTasksControllerImpl()
   {
     super();
+    this.logger.debug("New NumberTasksControllerImpl called");
   }
 
   /**
@@ -167,7 +168,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     
     int avgLoad = (int)( total_tasks / sz);
     
-    if( avgLoad >= this.max_tasks )
+    if( avgLoad > this.max_tasks )
     {
       String txt = "Need Resources: the Average Load " + avgLoad + 
           " is greater than allowed " + this.max_tasks;

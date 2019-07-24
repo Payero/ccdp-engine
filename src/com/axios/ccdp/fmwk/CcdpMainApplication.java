@@ -197,6 +197,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
 
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
+    this.tasker.configure(task_ctr_node);
 
     this.controller = factory.getCcdpResourceController(res_ctr_node);
 //    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
@@ -1958,14 +1959,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
   /**
    * Sends a summary of the system to the logger handlers
+   * 7/23, This actually prints the session-id as the node type which is wrong
    */
   private void showSystemChange()
   {
     StringBuffer buf = new StringBuffer();
-    buf.append("\nNodeType:\n");
-
+    //buf.append("\nNodeType:\n");
+    buf.append("\nSession ID:\n");
+    
     String header = String.format("\n\t%-20s %-15s %-10s %-13s\n",
-        "Instance ID", "Session ID", "State", "Single Tasked");
+    //    "Instance ID", "Session ID", "State", "Single Tasked");
+          "Instance ID", "Node Type", "State", "Single Tasked");
     Iterator<String> ids = this.sessions.iterator();
     while( ids.hasNext() )
     {
@@ -1986,7 +1990,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       for( CcdpVMResource info : list )
       {
         String id = info.getInstanceId();
-        String sid = info.getAssignedSession();
+        //String sid = info.getAssignedSession();
+        String nodeType = info.getNodeType();
         ResourceStatus stat = info.getStatus();
         if( stat == null )
           stat = ResourceStatus.FAILED;
@@ -1994,7 +1999,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
         boolean single = info.isSingleTasked();
         String line = String.format("\t%-20s %-15s %-10s %3s %-5b %35s\n",
-            id, sid, status, "   ", single, "Tasks");
+        //    id, sid, status, "   ", single, "Tasks");
+              id, nodeType, status, "   ", single, "Tasks");
         buf.append(line);
         String taskHead = String.format("\t%80s %18s %-15s\n", "Task ID", " ", "State");
         String sep = String.format("%66s %s\n", " ", "--------------------------------------------------");

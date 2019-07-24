@@ -175,7 +175,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     {
       int min = imgCfg.getMinReq();
       int max = imgCfg.getMaxReq();
-      int numLaunched = 0;
+      //int numLaunched = 0;
       if( min == 0 )
         min = 1;
      
@@ -258,7 +258,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         
         logger.info("May want to add tags as well???");
         //Map<String, String> tags = imgCfg.getTags();
-        numLaunched += 1;
+        //numLaunched += 1;
       //}
     }
     catch( Exception e )

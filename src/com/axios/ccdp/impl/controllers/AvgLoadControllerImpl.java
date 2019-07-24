@@ -324,7 +324,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     // Now let's check averages...
     double avgCpu = this.getAverageCPU(assignedCPU);
     double avgMem = this.getAverageMem(assignedMEM, availableMEM);
-    this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
+    //this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
     
     this.logger.debug("Dealloc: Avg CPU Utilization: " + avgCpu);
     this.logger.debug("Dealloc: Avg MEM Utilization: " + avgMem);
@@ -375,7 +375,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
      customTaskAssignment(CcdpTaskRequest task, List<CcdpVMResource> resources)
    { 
      CcdpVMResource leastUsed = CcdpVMResource.leastUsed(resources);
-     int cpu_load = this.config.get("allocate").get("avg-cpu-load").asInt();
+     logger.debug("Least Used: " + leastUsed.toString());
+     int cpu_load = this.config.get("allocate").get("cpu").asInt();
      if(leastUsed ==null || ((leastUsed.getCPULoad()*100) >= cpu_load) ) {
        boolean first = true;
        

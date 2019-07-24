@@ -197,7 +197,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
 
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
-    this.tasker.configure(task_ctr_node);
 
     this.controller = factory.getCcdpResourceController(res_ctr_node);
 //    this.storage = factory.getCcdpStorageControllerIntf(storage_node);

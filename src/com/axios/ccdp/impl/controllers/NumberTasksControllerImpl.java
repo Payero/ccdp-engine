@@ -71,6 +71,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
   {
     if( config == null )
       throw new RuntimeException("The configuration cannot be null");
+    
     JsonNode alloc = config.get("allocate");
     int tmp = this.getParam(alloc, "no-more-than");
     if( tmp > 0 )
@@ -159,8 +160,8 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       this.logger.warn("Has more than one type of node, returning first one");
     
     int sz = avail.size();
-    this.logger.trace("Resources size " + resources.size() + " available " + sz);
-    this.logger.trace("Using Max number of Tasks "+ this.max_tasks);
+    this.logger.trace("Resources size: " + resources.size() + ", Available: " + sz);
+    this.logger.trace("Using Max number of Tasks = "+ this.max_tasks);
     
     int total_tasks = 0;
     for( CcdpVMResource res : avail )

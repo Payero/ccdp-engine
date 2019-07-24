@@ -1082,8 +1082,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             continue;
 
           String tid = task.getTaskId();
+          // Allowing for tasks with no node type
           String type = task.getNodeType();
-
+          if (type == null)
+          {
+            type = "DEFAULT";
+            task.setNodeType("DEFAULT");
+          }
           double cpu = task.getCPU();
           this.logger.info("Checking Task " + tid + " CPU " + cpu );
           boolean fail = true;

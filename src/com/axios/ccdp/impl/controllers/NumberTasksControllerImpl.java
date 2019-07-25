@@ -76,11 +76,15 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     int tmp = this.getParam(alloc, "no-more-than");
     if( tmp > 0 )
       this.max_tasks = tmp;
+    else
+      this.max_tasks = DEF_MAX_NUMBER_TASKS;
     
     JsonNode dealloc = config.get("deallocate");
     tmp = this.getParam(dealloc, "avg-time-load");
     if( tmp > 0 )
       this.max_time = tmp;
+    else
+      this.max_time = DEF_MAX_IDLE_TIME;
   }
 
   /**

@@ -330,7 +330,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Check with Mongo to verify
     String vmId = vm.getInstanceId();
     long initialTime = dbClient.getVMInformation(vmId).getLastUpdatedTime();
-    CcdpUtils.pause(7);
+    CcdpUtils.pause(20);
     assertFalse("There was no Mongo heartbeat", initialTime == dbClient.getVMInformation(vmId).getLastUpdatedTime());
   }
   
@@ -435,7 +435,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
     engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json");
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(25);
    
     logger.debug("Checking for 1 VM w/ Task");
     running_vms = engine.getAllCcdpVMResources();
@@ -445,7 +445,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     
     // Let task complete, should despawn VM 
-    CcdpUtils.pause(60);
+    CcdpUtils.pause(75);
     logger.debug("Checking for despawn");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
@@ -457,7 +457,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void EC2StartupTask() 
   {
-    logger.info("Starting DefaultStartupTask Test!");
+    logger.info("Starting EC2StartupTask Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);
@@ -482,7 +482,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     
     // Let task complete, should despawn VM 
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(65);
     logger.debug("Checking Despawn");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
@@ -511,6 +511,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json");
     CcdpUtils.pause(50);
    
+    logger.debug("Checking node count and type");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should only be 1 VM running.", running_vms.size() == 1);
     CcdpVMResource vm = running_vms.get(0);
@@ -520,7 +521,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     
     // Let task complete, should despawn VM 
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(65);
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
   }
@@ -570,7 +571,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(25);
     
     // Test proper execution
     logger.debug("Checking to see if there is 2 VMs");
@@ -583,7 +584,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for task to complete
-    CcdpUtils.pause(40);
+    CcdpUtils.pause(55);
     logger.debug("Task should be done now, check there is only 1 VM and it isn't the original");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
@@ -635,7 +636,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(20);
+    CcdpUtils.pause(35);
     
     // Test proper execution
     logger.debug("Checking to see if there is 2 VMs");
@@ -705,7 +706,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(20);
+    CcdpUtils.pause(30);
     
     // Test proper execution
     logger.debug("Checking to see if there is 3 VMs");
@@ -756,7 +757,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Start engine and give free agent time to spawn
     logger.debug("Starting engine and spawning FA");
     engine = new CcdpMainApplication(null);
-    CcdpUtils.pause(35);
+    CcdpUtils.pause(45);
     
     logger.debug("Check that there are still only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
@@ -784,7 +785,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(60);
     
     // Test proper execution
     logger.debug("Checking to see if there is 3 VMs");
@@ -835,7 +836,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Start engine and give free agent time to spawn
     logger.debug("Starting engine and spawning FA");
     engine = new CcdpMainApplication(null);
-    CcdpUtils.pause(35);
+    CcdpUtils.pause(45);
     
     logger.debug("Check that there are still only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
@@ -863,7 +864,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Wait for new VM to spawn up
-    CcdpUtils.pause(50);
+    CcdpUtils.pause(60);
     
     // Test proper execution
     logger.debug("Checking to see if there is 3 VMs");
@@ -878,7 +879,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for task to complete
-    CcdpUtils.pause(60);
+    CcdpUtils.pause(65);
     logger.debug("Task should be done now, check there is only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 2);
@@ -921,7 +922,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
     int sentTasks = 0;
     
     while (sentTasks < NumTasksToLaunch)
@@ -941,7 +942,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         fail("Sending task failed");
       }
     }
-    CcdpUtils.pause(35);
+    CcdpUtils.pause(25);
     // Check there is one VM with three tasks
     logger.debug("Checking for 1 VM with 5 Tasks");
     running_vms = engine.getAllCcdpVMResources();
@@ -952,7 +953,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String originalID = vm.getInstanceId();
     
     // Send one more task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    //task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
 
     try
     {
@@ -967,7 +968,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
       e.printStackTrace();
       fail("Sending task failed");
     }
-    CcdpUtils.pause(10);
+    CcdpUtils.pause(20);
     
     //Check VMs state
     logger.debug("Check if there are 2 VMs");
@@ -982,13 +983,13 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for everything to complete
-    CcdpUtils.pause(30);
+    CcdpUtils.pause(45);
     logger.debug("Checking original VM termianted");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should only be 1 VM running", running_vms.size() == 1);
     assertTrue("The 5 tasked VM should have despawned", running_vms.get(0).getInstanceId() != originalID);
     
-    CcdpUtils.pause(30);
+    CcdpUtils.pause(50);
     logger.debug("Checking all VMs were removed");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("All VMs should have despawned", running_vms.size() == 0);
@@ -1059,7 +1060,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         fail("Sending task failed");
       }
     }
-    CcdpUtils.pause(20);
+    CcdpUtils.pause(25);
     
     // Check for 2 VMs
     running_vms = engine.getAllCcdpVMResources();
@@ -1072,7 +1073,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         assertTrue("A single-tasked VM should only have 1 task, duh", res.getNumberTasks() == 1);
     }
     
-    CcdpUtils.pause(45);
+    CcdpUtils.pause(75);
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should be no VMs", running_vms.size() == 0);
   } 

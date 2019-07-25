@@ -7,6 +7,6 @@
       "command": 
 		[
 		"/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
-      "-a", "testCpuUsage" , "-p", "60"]}
+      "-a", "testMemUsage" , "-p", "megabytes=4096,secs=20"]}
     ]
 }

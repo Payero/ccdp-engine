@@ -51,5 +51,5 @@ of agents is not limited.
 - Add launching jar files using lambda
 - <s>Integrate NiFi into it</s>
 - If a task fails, it retries properly and eventually fails, but it never gets removed
-- Develop Hybrid support, allowing both Docker and AWS instances to be run at the same time using CCDP
+- <s>Develop Hybrid support, allowing both Docker and AWS instances to be run at the same time using CCDP</s>
 

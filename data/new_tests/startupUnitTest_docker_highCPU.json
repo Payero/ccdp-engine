@@ -3,7 +3,8 @@
     [
       {
         "session-id":"test-1", 
-        "node-type": "EC2", 
+        "node-type": "DOCKER",
+        "cpu": 85,
         "command":
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 

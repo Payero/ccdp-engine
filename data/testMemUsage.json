@@ -6,7 +6,9 @@
       "node-type": "DOCKER",
       "command": 
 		[
-		"/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
-      "-a", "testMemUsage" , "-p", "megabytes=4096,secs=20"]}
+			"/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+      		"-a", "testMemUsage" , "-p", "megabytes=1024,secs=20"
+      	]
+      }
     ]
 }

@@ -75,6 +75,7 @@ public class CcdpUtils
   
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
+ 
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
 //  /**  The key name of the property the root path of the system  */

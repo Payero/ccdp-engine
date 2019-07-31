@@ -33,9 +33,6 @@
         "avg-time-load": 2
       }
     },
-    "storage": {
-      "classname": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl"
-    },
     "database": {
       "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
       "db-host": "ax-ccdp.com",
@@ -52,6 +49,7 @@
         "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
         "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
         "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
@@ -85,6 +83,7 @@
         "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
         "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
         "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
@@ -120,6 +119,7 @@
         "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
         "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
         "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
@@ -154,6 +154,7 @@
         "resource-monitor":"com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
         "docker-url": "http://172.17.0.1:2375",
         "resource-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl",
         "min-number-free-agents": 1,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",

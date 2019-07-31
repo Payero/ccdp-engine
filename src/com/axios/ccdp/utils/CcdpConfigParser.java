@@ -40,6 +40,7 @@ public class CcdpConfigParser
   public static final String KEY_VM_RESOURCE_MONITOR = "resource-monitor";
   public static final String KEY_VM_RESOURCE_UNITS = "resource-units";
   public static final String KEY_DOCKER_URL = "docker-url";
+  public static final String KEY_VM_STROAGE = "resource-storage";
   
   /** The JSON key used to store the user's session id **/
   public static final String KEY_SESSION_ID = "session-id";

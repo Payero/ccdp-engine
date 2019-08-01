@@ -98,7 +98,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public void configure( JsonNode config )
   {
-    logger.debug("Configuring ResourceController using: " + config);
+    //logger.debug("Configuring ResourceController using: " + config);
     
     // the configuration is required
     if( config == null )
@@ -195,7 +195,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         // Setting all the environment variables
         List<String> envs = new ArrayList<>();
         
-        JsonNode res_mon = CcdpUtils.getResourceMonitorIntfCfg();
+        JsonNode res_mon = CcdpUtils.getResourceCfg(type);
         String url = "http://172.17.0.1:2375";
         if( res_mon.has("docker-url") )
           url = res_mon.get("docker-url").asText();

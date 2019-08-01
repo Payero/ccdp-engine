@@ -19,6 +19,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.impl.monitors.CcdpMasterResourceMonitor;
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
@@ -112,10 +113,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
     JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();    
-    JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
+    //JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
-    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
+    this.monitor = CcdpMasterResourceMonitor.getCcdpResourceMonitor(type);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);

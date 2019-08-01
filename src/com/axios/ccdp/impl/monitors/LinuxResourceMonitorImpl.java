@@ -5,6 +5,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -67,7 +68,8 @@ public class LinuxResourceMonitorImpl extends SystemResourceMonitorAbs
   public void configure( JsonNode config )
   {
     String units = SystemResourceMonitorAbs.UNITS.KB.toString();
-    JsonNode node = config.get("units");
+    //JsonNode node = config.get("units");
+    JsonNode node = config.get(CcdpConfigParser.KEY_VM_RESOURCE_UNITS);
     
     if( node != null )
       units = node.asText();

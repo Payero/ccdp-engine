@@ -595,6 +595,12 @@ public class CcdpUtils
         {
           String type = job.get("node-type").asText();
           task.setNodeType( type.toUpperCase() );
+          request.setNodeType(type);
+        }
+        else
+        {
+          task.setNodeType("DEFAULT");
+          request.setNodeType("DEFAULT");
         }
         
         if( job.has("mem") )
@@ -631,7 +637,6 @@ public class CcdpUtils
           + " make sure the tasking configuration is properly set";
       throw new IllegalArgumentException(txt);
     }
-    
     return requests;
   }
   

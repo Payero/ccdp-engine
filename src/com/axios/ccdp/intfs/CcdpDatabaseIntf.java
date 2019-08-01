@@ -68,6 +68,17 @@ public interface CcdpDatabaseIntf
    */
   public List<CcdpVMResource> getAllVMInformationBySessionId( String sid );
   
+  /*
+   * Get a list of resources that match node type and session id
+   * 
+   * @param SID the session search parameter
+   * @param  node_type the node type search paramter
+   * 
+   * @return a list of resource that match both the node type and the session id
+   */
+  public List<CcdpVMResource> getAllVMInformationBySessionIdAndNodeType(
+      String SID, String node_type);
+  
   /**
    * Gets the total number of VMs stored in the database
    * 
@@ -99,4 +110,5 @@ public interface CcdpDatabaseIntf
    * Disconnects the client from the database
    */
   public void disconnect();
+
 }

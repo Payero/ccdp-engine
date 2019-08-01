@@ -257,7 +257,7 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
        // does the offer has more resources than needed?
        if( jobCpus <= offerCpus && jobMem <= offerMem )
        {
-         this.logger.info("Enough resources for a new Job");
+         this.logger.debug("Enough resources for a new Job");
          offerCpus -= jobCpus;
          offerMem -= jobMem;
          foundRunningVm = true;

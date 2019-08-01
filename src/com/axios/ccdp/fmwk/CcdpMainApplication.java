@@ -1085,8 +1085,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           String tid = task.getTaskId();
           // Allowing for tasks with no node type
           String type = task.getNodeType();
+          this.logger.debug("Task:\n" + task);
           if (type == null)
           {
+            this.logger.debug("No node type sent, setting to Default");
             type = "DEFAULT";
             task.setNodeType("DEFAULT");
           }
@@ -1360,13 +1362,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
         String sid = req.getSessionId();
         this.logger.debug("Allocating resources to " + sid);
-        List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+        //List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+        this.logger.debug("sid: " + sid + " and node-type: " + req.getNodeType());
+        List<CcdpVMResource> resources = this.getCcdpVMResourcesBySIDAndNode(sid, req.getNodeType());
         
+       
         // could not find any available resource
         if ( resources.isEmpty() )
         {
           this.logger.info("No resources available for Session:: " + sid +
-              ". Assigning one from available resources.");
+              " of node type " + req.getNodeType() + ". Assigning one from available resources.");
 
           // Need to assign VMs based on the node type
           List<String> types = new ArrayList<>();
@@ -1383,9 +1388,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               this.logger.debug("Checking for free node of type " + type);
               types.add(type);
               //Check if there are any available resources in free pool
-              List<CcdpVMResource> free =
-                  this.getResourcesBySessionId(type.toString());
+              //List<CcdpVMResource> free =
+                  //this.getResourcesBySessionId(type.toString());
 
+              List<CcdpVMResource> free = this.getAllCcdpVMResourcesOfType(type);
               // only launch one if there are none available
               if( free.isEmpty() )
               {
@@ -2071,7 +2077,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     return this.dbClient.getAllVMInformationBySessionId(SID);
   }
   
-  
+  /**
+   * Gets all the resources assigned to a specific session
+   * 
+   * @param SID the session ID to search for the resources
+   * @param node_type the type of node to search for the resources
+   * @return all the resources being used by the engine
+   */
+  public List<CcdpVMResource> getCcdpVMResourcesBySIDAndNode( String SID, String node_type )
+  {
+    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(SID,node_type);
+  }
   
   /**
    * Prints a message indicating how to use this framework and then quits

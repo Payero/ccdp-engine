@@ -264,7 +264,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       }
       
       int tasks = vm.getNumberTasks();
-      if( tasks < this.max_tasks )
+      if( tasks < this.max_tasks && vm.getNodeType().equals(task.getNodeType()))
         return vm;
     }
     

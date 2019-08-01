@@ -1181,6 +1181,321 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     //assertTrue("All VMs should have despawned", running_vms.size() == 0);
   }
   
+  /*
+   * This test spawns assigns a task to both Docker and EC2 agents to be sure that the proper
+   * VMs are given the tasks
+   */
+  
+  @Test
+  public void DockerAndEC2Task()
+  {
+    logger.info("Starting DockerAndEC2Task Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    try
+    {
+      logger.debug("Sending EC2 task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    CcdpUtils.pause(35);
+    try
+    {
+      logger.debug("Sending Docker task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    CcdpUtils.pause(35);
+    
+    logger.debug("Checking for two VMs with tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 2 VMs running", running_vms.size() == 2);
+    
+    for (CcdpVMResource res : running_vms)
+    {
+      if ( res.getNodeType().equals("DOCKER") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else if ( res.getNodeType().equals("EC2") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else
+        fail("There should only be Docker and Ec2 instances.");
+    }
+    
+    CcdpUtils.pause(75);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("Both VMs should have despawned by now", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test spawns assigns a task to both Docker and EC2 agents to be sure that the proper
+   * VMs are given the tasks
+   */
+  
+  @Test
+  public void DockerAndDefaultTask()
+  {
+    logger.info("Starting DockerAndDefaultTask Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    try
+    {
+      logger.debug("Sending Default task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    CcdpUtils.pause(35);
+    try
+    {
+      logger.debug("Sending Docker task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    CcdpUtils.pause(35);
+    
+    logger.debug("Checking for two VMs with tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 2 VMs running", running_vms.size() == 2);
+    
+    for (CcdpVMResource res : running_vms)
+    {
+      if ( res.getNodeType().equals("DOCKER") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else if ( res.getNodeType().equals("EC2") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else
+        fail("There should only be Docker and Ec2 instances.");
+    }
+    
+    CcdpUtils.pause(75);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("Both VMs should have despawned by now", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test spawns assigns a task to both Default and EC2 agents to be sure that the proper
+   * VMs are given the tasks
+   */
+  
+  @Test
+  public void EC2AndDefaultTask()
+  {
+    logger.info("Starting DockerAndDefaultTask Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(10);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
+    
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    try
+    {
+      logger.debug("Sending Default task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    //CcdpUtils.pause(35);
+    try
+    {
+      logger.debug("Sending Default task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("Sending task failed");
+    }
+    CcdpUtils.pause(50);
+    
+    logger.debug("Checking for two VMs with tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 2 VMs running", running_vms.size() == 2);
+    
+    for (CcdpVMResource res : running_vms)
+    {
+      if ( res.getNodeType().equals("DEFAULT") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else if ( res.getNodeType().equals("EC2") )
+      {
+        assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else
+        fail("There should only be DEFAULT and Ec2 instances.");
+    }
+    
+    CcdpUtils.pause(75);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("Both VMs should have despawned by now", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test spawns a docker and an ec2 instance for jobs contained in a single file
+   */
+  @Test
+  public void combinedJobFileTest()
+  {
+    logger.info("Starting DefaultSpawnAndDespawn Test!");
+    
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine and spawning FA");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    // Send task, it should spawn a new vm and give the task to the old vm
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/docker_and_ec2_jobs.json";
+    try
+    {
+      logger.debug("Sending task");
+      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+    }
+    
+    // Wait for new VM to spawn up
+    CcdpUtils.pause(35);
+    logger.debug("Checking node types and tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 2 VMs running", running_vms.size() == 2);
+    for (CcdpVMResource res : running_vms)
+    {
+      assertTrue("The node should be of type Docker or EC2", 
+          res.getNodeType().equals("DOCKER") || res.getNodeType().equals("EC2"));
+      
+      if ( res.getNodeType().equals("DOCKER"))
+      {
+        assertTrue("The VM should have 1 task", res.getNumberTasks() == 1);
+      }
+      else if ( res.getNodeType().equals("EC2") )
+      {
+        assertTrue("The VM should have 1 task", res.getNumberTasks() == 1);
+      }
+    }
+    
+    //Wait for task to complete
+    CcdpUtils.pause(80);
+    logger.debug("Tasks should be done now");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("The VMs shoud've been stopped", running_vms.size() == 0);
+  }
+  
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/
   
   /**

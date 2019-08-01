@@ -17,6 +17,7 @@ import tarfile
 from subprocess import call
 import shutil, ast, urllib
 
+
 def handler(event, context):
     '''
     Allows to run a task from a module on a S3 Bucket.  The arguments passed 
@@ -124,7 +125,8 @@ class ModuleRunner:
   
   __CCDP_BKT = 'ccdp-tasks'
   __CCDP_FMWK = 'ccdp-mod-fmwk.zip'
-  
+  __S3_TAG = "s3://"
+
   def __init__(self, cli_args):
     self.__logger = logging.getLogger('ModuleRunner')
     handler = logging.StreamHandler()
@@ -170,9 +172,9 @@ class ModuleRunner:
       self.__logger.error("Neither a file name nor S3 info (bucket, module, and zip file name) were provided")
       sys.exit(-3)
     if os.path.isfile(cli_args['file_name']):
-      self.__logger.debug('Using a file rather than an S3 bucket')
+      self.__logger.debug('Using a file')
       self.__runFileTask(cli_args)
-    else:
+    elif cli_args['file_name'].startswith(self.__S3_TAG):
       self.__logger.debug('The file does not exist locally, so it will be downloaded from an S3 bucket')
       self.__runS3Task(cli_args)
 
@@ -275,29 +277,31 @@ class ModuleRunner:
     if params.has_key('arguments') and params['arguments'] is not None:
       self.__logger.debug("The args type: %s" % type(params['arguments']))
     
-    name = params['file_name'].split(":")
-    if len(name) == 2:
-      bkt_name = name[0]
-      file_name = name[1]
-    else:
-      self.__logger.error("The file name is not in the form <bucket_name>:<file_name>, so it cannot be found.")
-      sys.exit(-3)
-
-    bkt = self.__s3.Bucket(bkt_name)
+    file_name = params['file_name'][len(self.__S3_TAG):]
+    
+    bkt_path, fname = os.path.split(file_name)
+    bkt = self.__s3.Bucket(bkt_path)
     
     _root = "/tmp"
     
-    self.__logger.debug("Downloading file %s from bucket %s" % (file_name, bkt_name))
-    fpath = os.path.join(_root, file_name)
-    self.__logger.debug("Saving file in %s" % fpath)
-    bkt.download_file(file_name, fpath)
+    self.__logger.debug("Downloading file %s from bucket %s" % (fname, bkt_path))
+    tgt_dir = os.path.join(_root, bkt_path)
+    if not os.path.isdir(tgt_dir):
+      os.makedirs(tgt_dir)
+      os.chmod(tgt_dir, 0750)
 
+    fpath = os.path.join(tgt_dir, fname)
+    params['local-path'] = fpath
+
+    self.__logger.debug("Saving file %s as %s" % (fname, fpath))
+    bkt.download_file(fname, fpath)
 
     if not os.path.isfile(fpath):
       self.__logger.error("The file download failed")
       sys.exit(-3)
-    
+        
     self.__logger.error("File download completed")
+    os.chmod(fpath, 0777)
     self.__files.append(fpath)
     
     mod_name = None
@@ -312,8 +316,8 @@ class ModuleRunner:
       sys.path.append(_root)
     sys.path.append(fpath)
     if mod_name is None:
-      self.__logger.info("Running the Task from file %s" % file_name)
-      exec("import %s" % file_name.replace('.py', ''))
+      self.__logger.info("Running the Task from file %s" % fpath)
+      exec("import %s" % fname.replace('.py', ''))
     else:
       self.__logger.info("Running the Task from module %s" % mod_name)
       exec("import %s" % mod_name)
@@ -354,6 +358,10 @@ class ModuleRunner:
   #copied
   
   def invoke_module(self, mod_name, params, args):
+    
+    self.__logger.debug("The mod_name: %s params: %s args: %s" % 
+      (mod_name, pformat(params), pformat(args) ) )
+
     if not params.has_key('class_name') or params['class_name'] is None:
       try:
         exec("from %s import runTask" % mod_name.replace('.py', ''))
@@ -365,9 +373,12 @@ class ModuleRunner:
       except Exception as e:
         self.__logger.debug('The module is not a lambda, and no class was specified. It will be invoked as a script.')
         if args != None:
-          sp_args = [mod_name];
-          sp_args.extend(args)
-          p = subprocess.Popen(args=sp_args, executable="python")
+          if isinstance(args, str):
+            args = args.split()
+          script_name = params['local-path']
+          sp_args = [script_name] + args
+          self.__logger.debug("Running %s using args %s" % ( script_name, pformat(args) ) )
+          p = subprocess.Popen(args=sp_args)
           p.wait()
         else:
           sp_args = [mod_name];
@@ -438,7 +449,7 @@ class RedirectStdStreams(object):
 if __name__ == '__main__':
     
   desc = "Runs a task from a python file. The file may exist on the file\n"
-  desc += " system or in an S3 bucket. The file may be a python file or a zip\n"
+  desc += " system or in an S3 bucket (s3://). The file may be a python file or a zip\n"
   desc += " archive containing a python file. The module may be invoked as a lambda\n"
   desc += " function with a runTask method, a python script, or a specified clas"
   parser = OptionParser(usage="usage: %prog [options] args",
@@ -451,7 +462,7 @@ if __name__ == '__main__':
     default=None,
     help= "The name of the file containing the module. If the file is not found on\n"
         + " the file system, it will be interpreted as an AWS S3 file in the form\n"
-        + " <bucket_name>:<file_name>. The file must be a python file or a zip archive\n"
+        + " s3://<bucket_name>/<file_name>. The file must be a python file or a zip archive\n"
         + " of python files. If a zip archive, use -m to identify the python module file.")
    
   parser.add_option("-m", "--module",

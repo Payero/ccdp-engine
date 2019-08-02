@@ -405,6 +405,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public void onEvent()
   {
     this.logger.debug("Checking Resources");
+    //Set called twice per node here in here
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
     {

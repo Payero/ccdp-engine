@@ -581,6 +581,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     {
       if ( vm.getInstanceId().equals(original))
         assertTrue("The original VM should have the assigned task", vm.getNumberTasks() > 0);
+      assertTrue("The nodes should be of type Docker", vm.getNodeType().equals("DOCKER"));
     }
     
     //Wait for task to complete
@@ -646,6 +647,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     {
       if ( vm.getInstanceId().equals(original))
         assertTrue("The original VM should have the assigned task", vm.getNumberTasks() > 0);
+      assertTrue("The nodes should be of type EC2", vm.getNodeType().equals("EC2"));
     }
     
     //Wait for task to complete
@@ -800,7 +802,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for task to complete
-    CcdpUtils.pause(60);
+    CcdpUtils.pause(70);
     logger.debug("Task should be done now, check there is only 2 VMs");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 2);
@@ -1137,7 +1139,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     CcdpVMResource vm = running_vms.get(0);
     //assertTrue("The VM should have 5 tasks", vm.getNumberTasks() == 5);
     
-    String originalID = vm.getInstanceId();
+    //String originalID = vm.getInstanceId();
     
     // Send one more task
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
@@ -1433,7 +1435,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   @Test
   public void combinedJobFileTest()
   {
-    logger.info("Starting DefaultSpawnAndDespawn Test!");
+    logger.info("Starting combinedJobFile Test!");
     
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
     res_cfg.put("min-number-free-agents", 0);

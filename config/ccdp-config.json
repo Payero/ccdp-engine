@@ -155,7 +155,7 @@
         "docker-url": "http://172.17.0.1:2375",
         "resource-units": "MB",
         "resource-storage": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl",
-        "min-number-free-agents": 1,
+        "min-number-free-agents": 0,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
           	"-a",

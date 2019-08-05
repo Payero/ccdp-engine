@@ -418,6 +418,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //      if ( this.dbClient.getVMInformationCount(sid) == 0 )
 //        toRemove.add(sid);
       
+      // I think things need changed in here....
       if( !this.nodeTypes.contains(sid) )
       {
         if ( this.dbClient.getVMInformationCount(sid) == 0 )

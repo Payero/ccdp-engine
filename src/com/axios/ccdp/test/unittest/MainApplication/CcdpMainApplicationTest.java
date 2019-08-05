@@ -330,7 +330,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Check with Mongo to verify
     String vmId = vm.getInstanceId();
     long initialTime = dbClient.getVMInformation(vmId).getLastUpdatedTime();
-    CcdpUtils.pause(20);
+    CcdpUtils.pause(30);
     assertFalse("There was no Mongo heartbeat", initialTime == dbClient.getVMInformation(vmId).getLastUpdatedTime());
   }
   

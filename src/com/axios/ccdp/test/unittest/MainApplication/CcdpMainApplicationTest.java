@@ -551,18 +551,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(25);
@@ -617,18 +606,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(35);
@@ -645,7 +623,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     //Wait for task to complete
-    CcdpUtils.pause(60);
+    CcdpUtils.pause(70);
     logger.debug("Task should be done now, check there is only 1 VM and it isn't the original");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("One of the VMs shoud've been stopped", running_vms.size() == 1);
@@ -688,18 +666,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(30);
@@ -767,18 +734,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(60);
@@ -846,18 +802,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(60);
@@ -923,20 +868,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     while (sentTasks < NumTasksToLaunch)
     {
-      try
-      {
-        logger.debug("Sending task " + (sentTasks + 1));
-        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-        String job = new String(data, "utf-8");
-        new CcdpMsgSender(null, job, null, null);
-        sentTasks++;
-      }
-      catch ( Exception e )
-      {
-        logger.error("Error loading file, exception thrown");
-        e.printStackTrace();
-        fail("Sending task failed");
-      }
+      this.sendJob(task_filename);
+      sentTasks++;
     }
     CcdpUtils.pause(25);
     // Check there is one VM with five tasks
@@ -951,19 +884,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     // Send one more task
     //task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
 
-    try
-    {
-      logger.debug("Sending task " + (sentTasks + 1));
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     CcdpUtils.pause(20);
     
     //Check VMs state
@@ -1021,19 +942,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Assign 110 CPU task
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/singleTasked_docker.json";
-    try
-    {
-      logger.debug("Sending CPU-heavy task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     
     // Assign 2 regular CPU task
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
@@ -1041,20 +950,8 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     final int maxNumTasks = 2;
     while (sentTasks < maxNumTasks)
     {
-      try
-      {
-        logger.debug("Sending CPU-heavy task");
-        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-        String job = new String(data, "utf-8");
-        new CcdpMsgSender(null, job, null, null);
-        sentTasks ++;
-      }
-      catch ( Exception e )
-      {
-        logger.error("Error loading file, exception thrown");
-        e.printStackTrace();
-        fail("Sending task failed");
-      }
+      this.sendJob(task_filename);
+      sentTasks++;
     }
     CcdpUtils.pause(25);
     
@@ -1110,47 +1007,22 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     while (sentTasks < NumTasksToLaunch)
     {
-      try
-      {
-        logger.debug("Sending task " + (sentTasks + 1));
-        byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-        String job = new String(data, "utf-8");
-        new CcdpMsgSender(null, job, null, null);
-        sentTasks++;
-      }
-      catch ( Exception e )
-      {
-        logger.error("Error loading file, exception thrown");
-        e.printStackTrace();
-        fail("Sending task failed");
-      }
+      this.sendJob(task_filename);
+      sentTasks++;
     }
     CcdpUtils.pause(35);
     // Check there is one VM with three tasks
     logger.debug("Checking for 1 VM with 5 Tasks");
     running_vms = engine.getAllCcdpVMResources();
     //assertTrue("There should be 1 VM", running_vms.size() == 1);
-    CcdpVMResource vm = running_vms.get(0);
+    //CcdpVMResource vm = running_vms.get(0);
     //assertTrue("The VM should have 5 tasks", vm.getNumberTasks() == 5);
     
     //String originalID = vm.getInstanceId();
     
     // Send one more task
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-
-    try
-    {
-      logger.debug("Sending task " + (sentTasks + 1));
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     CcdpUtils.pause(10);
     
     //Check VMs state
@@ -1206,34 +1078,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
-    try
-    {
-      logger.debug("Sending EC2 task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
-    try
-    {
-      logger.debug("Sending Docker task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     CcdpUtils.pause(35);
     
     logger.debug("Checking for two VMs with tasks");
@@ -1288,34 +1136,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
-    try
-    {
-      logger.debug("Sending Default task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
-    try
-    {
-      logger.debug("Sending Docker task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     CcdpUtils.pause(35);
     
     logger.debug("Checking for two VMs with tasks");
@@ -1333,7 +1157,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
       }
       else
-        fail("There should only be Docker and Ec2 instances.");
+        fail("There should only be Docker and EC2 instances.");
     }
     
     CcdpUtils.pause(75);
@@ -1370,34 +1194,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
-    try
-    {
-      logger.debug("Sending Default task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
-    //CcdpUtils.pause(35);
-    try
-    {
-      logger.debug("Sending Default task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-      fail("Sending task failed");
-    }
+    this.sendJob(task_filename);
     CcdpUtils.pause(50);
     
     logger.debug("Checking for two VMs with tasks");
@@ -1415,7 +1214,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         assertTrue("The docker VM should have 1 task", res.getNumberTasks() == 1);
       }
       else
-        fail("There should only be DEFAULT and Ec2 instances.");
+        fail("There should only be DEFAULT and EC2 instances.");
     }
     
     CcdpUtils.pause(75);
@@ -1452,18 +1251,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/docker_and_ec2_jobs.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(35);
@@ -1521,18 +1309,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(35);
@@ -1588,18 +1365,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // Send task, it should spawn a new vm and give the task to the old vm
     String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
     CcdpUtils.pause(35);
@@ -1618,18 +1384,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
       }   
     }
     task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-    try
-    {
-      logger.debug("Sending task");
-      byte[] data = Files.readAllBytes( Paths.get( task_filename ) );
-      String job = new String(data, "utf-8");
-      new CcdpMsgSender(null, job, null, null);
-    }
-    catch ( Exception e )
-    {
-      logger.error("Error loading file, exception thrown");
-      e.printStackTrace();
-    }
+    this.sendJob(task_filename);
     
     CcdpUtils.pause(10);
     logger.debug("Checking node types and tasks, round 2");
@@ -1688,6 +1443,23 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         logger.debug(err.getErrorMessage());
       default:
         this.messages.add(message);
+    }
+  }
+  
+  private void sendJob ( String Filename )
+  {
+    try
+    {
+      logger.debug("Sending task");
+      byte[] data = Files.readAllBytes( Paths.get( Filename ) );
+      String job = new String(data, "utf-8");
+      new CcdpMsgSender(null, job, null, null);
+    }
+    catch ( Exception e )
+    {
+      logger.error("Error loading file, exception thrown");
+      e.printStackTrace();
+      fail("The task was not able to be sent");
     }
   }
 }

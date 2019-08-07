@@ -105,8 +105,18 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   {
     // Terminate any VMs that were started during the test
     if ( engine != null )
-      engine.stopCCDPApplication(true);
+    {
+      try
+      {
+        engine.stopCCDPApplication(true);
     
+      }
+      catch ( Exception e )
+      {
+        logger.warn("Exception caught in teardown (stop app):\n");
+        e.printStackTrace();
+      }
+    }
     this.messages = null;
     this.running_vms = null;
     
@@ -126,7 +136,16 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
       {
         String vmID = vm.getInstanceId();
         logger.debug("Deleting VM " + vmID);
-        dbClient.deleteVMInformation(vmID);
+        try
+        {
+          dbClient.deleteVMInformation(vmID);
+      
+        }
+        catch ( Exception e )
+        {
+          logger.warn("Exception caught in teardown:\n");
+          e.printStackTrace();
+        }
       }
     }
     dbClient.disconnect();
@@ -200,7 +219,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     res_cfg.put("min-number-free-agents", 1);
     CcdpUtils.setResourceCfg("EC2", res_cfg);
     res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
-    res_cfg.put("min-number-free-agents", 1);
+    res_cfg.put("min-number-free-agents", 0);
     CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
     
     // Start the engine and wait for it to get started

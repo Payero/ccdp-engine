@@ -174,8 +174,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       this.nodeTypes.add(name);
       this.sessions.add(name);
-      this.sessions.add(CcdpUtils.FREE_AGENT_SID);
     }
+    this.sessions.add(CcdpUtils.FREE_AGENT_SID);
+
     
     // creating a list for each of the node types
 //    synchronized( this.resources )

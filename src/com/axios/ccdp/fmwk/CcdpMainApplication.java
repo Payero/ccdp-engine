@@ -171,10 +171,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     
     for( String name : CcdpUtils.getNodeTypes() )
-    {
       this.nodeTypes.add(name);
-      this.sessions.add(name);
-    }
+    
     this.sessions.add(CcdpUtils.FREE_AGENT_SID);
 
     
@@ -407,6 +405,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public void onEvent()
   {
     this.logger.debug("Checking Resources");
+    this.logger.debug("Sessions Before: " + this.sessions.toString());
     //Set called twice per node here in here
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
@@ -421,7 +420,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //      if ( this.dbClient.getVMInformationCount(sid) == 0 )
 //        toRemove.add(sid);
       
-      if( !this.nodeTypes.contains(sid) )
+      if( !(this.nodeTypes.contains(sid) || sid.equals(CcdpUtils.FREE_AGENT_SID)) )
       {
         if ( this.dbClient.getVMInformationCount(sid) == 0 )
           toRemove.add(sid);
@@ -457,6 +456,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //    }
 
     this.allocateTasks();
+    this.logger.debug("Sessions After: " + this.sessions.toString());
+
+    //this.showSystemChange();
   }
 
   /**
@@ -703,7 +705,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
     String sid = start.getSessionId();
     String node = start.getNodeType();
-    
+    logger.debug("START SESSION CALLED");
     if( !this.sessions.contains(sid) )
     {
       this.sessions.add(sid);
@@ -1391,6 +1393,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         {
           this.logger.debug("List contains nodes of correct node type and either correct session or free agent");
           this.logger.info("Reassigning VM to " + sid);
+          if ( !this.sessions.contains(sid) )
+            this.sessions.add(sid);
+          
           // Get the first available FREE resource and give it to the sid
           for (CcdpVMResource res : resources)
           {

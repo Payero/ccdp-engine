@@ -61,7 +61,7 @@ public class CcdpUtils
   public static final String LOG4J_CFG_FILENAME = "log4j.properties";
   
   /** The string for CCDP free agents' session id */
-  public static final String FREE_AGENT_SID = "Free Agent";
+  public static final String FREE_AGENT_SID = "FREE_AGENT";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-heartbeats";  

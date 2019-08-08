@@ -405,7 +405,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public void onEvent()
   {
     this.logger.debug("Checking Resources");
-    this.logger.debug("Sessions Before: " + this.sessions.toString());
     //Set called twice per node here in here
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
@@ -456,8 +455,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //    }
 
     this.allocateTasks();
-    this.logger.debug("Sessions After: " + this.sessions.toString());
-
     //this.showSystemChange();
   }
 
@@ -1716,12 +1713,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void checkAllocation( String sid )
   {
     this.logger.trace("Checking resource allocation");
-    List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
-    CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
-    if( imgCfg != null )
+    // Attempt to fix multiple nodes of same session, different type
+    for (String type : this.nodeTypes)
     {
-      imgCfg.setSessionId(sid);
-      this.allocateResource(imgCfg);
+      //List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
+      List<CcdpVMResource> sid_vms = this.getCcdpVMResourcesBySIDAndNode(sid, type);
+      CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
+      if( imgCfg != null )
+      {
+        imgCfg.setSessionId(sid);
+        this.allocateResource(imgCfg);
+      }
     }
   }
 

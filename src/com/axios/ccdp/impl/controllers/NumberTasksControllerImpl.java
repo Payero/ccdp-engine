@@ -148,11 +148,6 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     if( avail.size() == 0 )
       return imgCfg;
     
-    /* Here, now that multi-nodetype support is a thing, we need to
-     * check each node types allocation. My plan is to return a list of images.
-     * Then write a new function to start instances taking a list of nodes
-     */
-    
     String type = avail.get(0).getNodeType();
     boolean are_diff = false;
     for( CcdpVMResource vm : avail )

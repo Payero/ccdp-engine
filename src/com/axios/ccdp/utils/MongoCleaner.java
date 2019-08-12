@@ -39,7 +39,8 @@ public class MongoCleaner
   
   /**
    * Removes all MongoDB entries
-   * @throws InterruptedException throws exception if wait for heartbeat is interrupted
+   * @throws InterruptedException throws exception if wait for heartbeat is 
+   *         interrupted
    */
   
   public MongoCleaner() throws InterruptedException
@@ -63,7 +64,8 @@ public class MongoCleaner
       System.exit(1);
     }
     
-    // Now that we are connected, get all VM entries, iterate through, and delete
+    // Now that we are connected, get all VM entries, iterate through, and 
+    // delete
     List<CcdpVMResource> vms = dbConnection.getAllVMInformation();
     if (vms.size() == 0)
     {

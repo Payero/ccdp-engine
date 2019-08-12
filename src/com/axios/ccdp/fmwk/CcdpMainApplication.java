@@ -1581,7 +1581,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                       continue;
                     }
                     
-                    // If there isn't another VM in "RUNNING" state (i.e. it just launched and isn't running yet), skip termination
+                    // If there isn't another VM in "RUNNING" state (i.e. it 
+                    // just launched and isn't running yet), skip termination
                     // Only do this if num free agents > 0
                     if ( free_vms > 0 )
                     {
@@ -1717,7 +1718,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     for (String type : this.nodeTypes)
     {
       //List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
-      List<CcdpVMResource> sid_vms = this.getCcdpVMResourcesBySIDAndNode(sid, type);
+      List<CcdpVMResource> sid_vms = 
+          this.getCcdpVMResourcesBySIDAndNode(sid, type);
       CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
       if( imgCfg != null )
       {
@@ -1913,8 +1915,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           if( !iid.startsWith( CcdpMainApplication.VM_TEST_PREFIX ) ) 
           {
             ResourceStatus vm_state = this.controller.getInstanceState( iid );
-            //Only set the state if the instance is shutting down otherwise let the state
-            //to be update when heartbeats arrive  
+            //Only set the state if the instance is shutting down otherwise 
+            //let the state to be update when heartbeats arrive  
             if(ResourceStatus.SHUTTING_DOWN.equals(vm_state))
             {
               res.setStatus( vm_state );
@@ -1953,7 +1955,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }// found a list of sessions
       else
       {
-        this.logger.info("Can't find session-id " + sid +" in resources, adding it");
+        this.logger.info("Can't find SID " + sid + " in resources, adding it");
         this.sessions.add(sid);
       }
     }// end of synch list
@@ -2085,7 +2087,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   public List<CcdpVMResource> getFreeCcdpResourcesOfType( String node_type )
   {
-    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(CcdpUtils.FREE_AGENT_SID, node_type);
+    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(
+                                        CcdpUtils.FREE_AGENT_SID, node_type);
   }
   
   /**
@@ -2095,9 +2098,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * @param node_type the type of node to search for the resources
    * @return all the resources being used by the engine
    */
-  public List<CcdpVMResource> getCcdpVMResourcesBySIDAndNode( String SID, String node_type )
+  public List<CcdpVMResource> getCcdpVMResourcesBySIDAndNode( String SID, 
+                                                              String node_type )
   {
-    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(SID,node_type);
+    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(
+                                                              SID,node_type);
   }
   
   /**

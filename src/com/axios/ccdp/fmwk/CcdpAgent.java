@@ -116,7 +116,9 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     //JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
-    this.monitor = CcdpMasterResourceMonitor.getCcdpResourceMonitor(type);
+    //this.monitor = CcdpMasterResourceMonitor.getCcdpResourceMonitor(type);
+    JsonNode res_cfg = CcdpUtils.getResourceCfg(type);
+    this.monitor = factory.getResourceMonitorInterface(res_cfg);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -241,8 +243,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         AssignSessionMessage sessionMsg = (AssignSessionMessage)message;
         this.setSessionId(sessionMsg.getSessionId());
         this.runAssignmentTask(sessionMsg.getAssignCommand());
-        break;
-      case RESOURCE_UPDATE:
         break;
       case RUN_TASK:
         RunTaskMessage taskMsg = (RunTaskMessage)message;

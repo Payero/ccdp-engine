@@ -64,13 +64,16 @@ public class CcdpMasterVMController
     Multimap<String,String> controllerTypes = ArrayListMultimap.create();
     for ( String nodeType : CcdpUtils.getNodeTypes())
     {
-      // For some reason, the quotes are preserved, so get rid of them with replace
-      controllerTypes.put(ctl_config.get(nodeType).get(CcdpConfigParser.KEY_VM_CONTROLLER).toString().replace("\"", ""), nodeType);
+      // For some reason, the quotes are preserved, so get rid of them with 
+      // replace
+      controllerTypes.put(ctl_config.get(nodeType).
+          get(CcdpConfigParser.KEY_VM_CONTROLLER).
+              toString().replace("\"", ""), nodeType);
     }
     
     /* 
-     * For each key, make a new controller, then for each value of each key, add the
-     * reverse to a map 
+     * For each key, make a new controller, then for each value of each key, 
+     * add the reverse to a map 
      */
     for (String key : controllerTypes.keySet())
     {

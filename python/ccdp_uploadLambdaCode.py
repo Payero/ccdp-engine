@@ -100,7 +100,7 @@ class UploadLambdaCode:
             sys.exit(-1)
         
         # Check that the file is a zip file
-        if not source_loc.endswith('.zip'):
+        if not (source_loc.endswith('.zip') or source_loc.endswith('.py')):
             self.__logger.error("The source file %s is not a zip" % source_loc)
             sys.exit(-1)
 

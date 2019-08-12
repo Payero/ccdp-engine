@@ -213,9 +213,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     logger.debug("Before startInstances()");
     
     this.running_vms = this.docker.startInstances(image);
@@ -233,11 +231,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(3);
+    image.setMinReq(3);
     image.setSessionId("docker-session");
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
+    assertTrue("The minimum should be ", image.getMinReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
     System.out.println("NUM VMS " + this.running_vms.size());
@@ -257,11 +253,9 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     String sessionIdToSet = "docker-session";
     image.setSessionId(sessionIdToSet);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertNotNull("Could not instantiate VMs", this.running_vms);
@@ -349,9 +343,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -430,9 +422,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -466,9 +456,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
@@ -514,9 +502,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -584,9 +570,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -616,9 +600,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags);
     
@@ -634,9 +616,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags2);
     
@@ -652,9 +632,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags3);
     
@@ -708,10 +686,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(5);
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 5);
+    image.setMinReq(5);
+    assertTrue("The minimum should be ", image.getMinReq() == 5);
 
     List<String> iids = this.docker.startInstances(image);
     assertEquals("Shoud have five instances", iids.size(), 5);

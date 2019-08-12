@@ -209,13 +209,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
-    int max = imgCfg.getMaxReq();
     if( min == 0 )
       min = 1;
-   
-    if( max == 0 )
-      max = 1;
-
+    
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )
@@ -228,7 +224,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     Map<String, String> tags = imgCfg.getTags();
     
     //RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
-    RunInstancesRequest request = new RunInstancesRequest(imgId, 1, 1);
+    RunInstancesRequest request = new RunInstancesRequest(imgId, min, min);
     String instType = imgCfg.getInstanceType();
     
     // Do we need to add session id?

@@ -1158,7 +1158,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                     CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
                 imgInfo.setSessionId(task.getSessionId());
                 imgInfo.setMinReq(1);
-                imgInfo.setMaxReq(1);
                 List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
                 for( CcdpVMResource vm : secondlist )
                 {
@@ -1382,6 +1381,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           CcdpImageInfo imgCfg = 
               CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(nodeType));
           imgCfg.setSessionId(sid);
+          imgCfg.setMinReq(1);
           resources = this.startInstances(imgCfg);
         }
         // Cases 2, 3, and 4 here
@@ -1441,7 +1441,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             this.logger.info("Did not find an available resource, creating one");
             imgInfo.setSessionId(sid);
             imgInfo.setMinReq(1);
-            imgInfo.setMaxReq(1);
             this.startInstances(imgInfo);
           }
           // Once some new VMs are started we need to start all over again
@@ -1543,6 +1542,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.logger.debug("The node type is " + type + 
                          " and the image session is " + imgCfg.getSessionId());
                 imgCfg.setSessionId(CcdpUtils.FREE_AGENT_SID);
+                imgCfg.setMinReq(1);
                 this.startInstances(imgCfg);
               }
             }// need to deploy agents
@@ -1774,7 +1774,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.logger.info("Did not find an available resource, creating one");
       imgInfo.setSessionId(sid);
       imgInfo.setMinReq(1);
-      imgInfo.setMaxReq(1);
       this.startInstances(imgInfo);
     }
 

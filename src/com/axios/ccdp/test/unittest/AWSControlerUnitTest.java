@@ -137,7 +137,6 @@ public class AWSControlerUnitTest
     CcdpImageInfo 
     imgCfg = CcdpUtils.getImageInfo("EC2");
     imgCfg.setMinReq(1);
-    imgCfg.setMaxReq(1);
 
     List<String> launched = new ArrayList<>();
     if( inclusive )
@@ -222,7 +221,6 @@ public class AWSControlerUnitTest
     CcdpImageInfo 
     imgCfg = CcdpUtils.getImageInfo("EC2");
     imgCfg.setMinReq(1);
-    imgCfg.setMaxReq(1);
     
     // Start a new instances
     try 

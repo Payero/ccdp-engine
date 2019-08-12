@@ -1,3 +1,5 @@
+#! /usr/bin/python3.6
+
 # Scott Bennett, scott.bennett@caci.com
 # This script allows users to upload their Lambda code to S3 to a location designated
 # in the ccdp-config.json file
@@ -24,12 +26,12 @@ s3 = boto3.client('s3')
 
 class UploadLambdaCode:
 
-    __LEVELS = {"debug":    logging.DEBUG, 
+    __LEVELS = {"debug":  logging.DEBUG, 
               "info":     logging.INFO, 
               "warning":  logging.WARN,
               "error":    logging.ERROR}
 
-    __S3_PROT = 's3://'
+    __S3_PROT = "s3://"
 
     def __init__(self, cli_args):
         """
@@ -112,11 +114,13 @@ class UploadLambdaCode:
 
         # Check if file already exists if force is False
         if not force:
-            file_list = [file['Key'] for file in s3.list_objects(Bucket=bucket_name)['Contents']]
-            self.__logger.debug("Files in bucket %s: %s", bucket_name, file_list)
-            if target_loc in file_list:
-                self.__logger.error("The file location already exists in S3; use force flag to overwrite it")
-                sys.exit(-1)
+            # check if the bucket is empty first
+            if 'Contents' in s3.list_objects(Bucket=bucket_name):
+                file_list = [file['Key'] for file in s3.list_objects(Bucket=bucket_name)['Contents']]
+                self.__logger.debug("Files in bucket %s: %s", bucket_name, file_list)
+                if target_loc in file_list:
+                    self.__logger.error("The file location already exists in S3; use force flag to overwrite it")
+                    sys.exit(-1)
 
 
 
@@ -131,7 +135,7 @@ class UploadLambdaCode:
         """
 
         try:
-            response = s3.upload_file(source, bucket_name, target)
+            s3.upload_file(source, bucket_name, target)
         except botocore.exceptions.ClientError as e:
             self.__logger.error("Error Uploading File")
             self.__logger.error(e)

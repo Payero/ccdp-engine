@@ -1,4 +1,4 @@
-#! /usr/bin/python3.6
+#! /usr/bin/python3
 
 # Scott Bennett, scott.bennett@caci.com
 # This script allows users to upload their Lambda code to S3 to a location designated

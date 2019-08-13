@@ -1,5 +1,4 @@
 {
-  "ApiGateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",
   "logging": {
     "config-file": "${CCDP_HOME}/config/log4j.properties", 
     "logs-dir": "${CCDP_HOME}/logs"

@@ -14,7 +14,21 @@
             [{"port-id": "from-exterior", 
               "from-port": ["source-1", "source-2"],
               "to-port": ["dest-1", "dest-2"]}
-            ]
+            ],
+       "serverless-config":{
+       	  "URL-Gateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",
+  
+		  "serverless": true,
+		  
+		  "bucket-name": "ccdp-tasks",
+		  "zip-name": "simple_pi.zip",
+		  "module-name": "simple_pi",
+		  
+		  "arguements":
+		  [
+		  	"1000000"
+		  ]
+       }
      }        
    ]  
 }

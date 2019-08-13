@@ -1,0 +1,24 @@
+{
+ "tasks": 
+   [
+      {"task-id": "simple_pi",
+       "name": "simple_pi_estimator",
+       "serverless": true,
+       "serverless-config":
+       {
+       
+       	  "provider": "Lambda",
+       	  "URL-Gateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",		  
+		  
+		  "bucket-name": "ccdp-tasks",
+		  "zip-name": "simple_pi.zip",
+		  "module-name": "simple_pi",
+		  
+		  "arguements":
+		  [
+		  	"1000000"
+		  ]
+       }
+      }        
+   ]  
+}

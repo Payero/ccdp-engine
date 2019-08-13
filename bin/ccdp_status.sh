@@ -56,7 +56,7 @@ usage()
 {
   echo ''
   echo 'Runs the class used for sending update messages to the engine.  It'
-  echo 'uses the ${CCDP_HOME}/config/ccdp-config.properties unless another '
+  echo 'uses the ${CCDP_HOME}/config/ccdp-config.json unless another '
   echo 'one is provided using the -c argument'
   echo ''
   echo 'usage: $0'
@@ -68,7 +68,7 @@ usage()
 }
 
 
-CFG_FILE=${CCDP_HOME}/config/ccdp-config.properties
+CFG_FILE=${CCDP_HOME}/config/ccdp-config.json
 APP_ARGS=""
 JAVA_OPTS=""
 JAVA_APP="com.axios.ccdp.test.CcdpStatusSender"

@@ -7,13 +7,13 @@
   <property name="client.name" value="ccdp-client" />
   <property name="connection.name" value="ccdp-client-connection" />
 
-  <property name="bucket-name" value="ccdp-settings" />
+  <property name="bucket-name" value="ccdp-dist" />
 
-  <!-- Determines whether to compile as 1.7, 1.8, or 10
+  <!-- Determines whether to compile as 1.7, 1.8, 10, or 12
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
   -->
-  <property name="tgt.jdk" value="10" />
+  <property name="tgt.jdk" value="12" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -39,6 +39,9 @@
  	<!--Scripts used to run -->
  	<property name="install.dir" location="bin" />
 
+  <!-- All the configuration files -->
+ <property name="config.dir" location="config" />
+
  	<!--The location of the javadoc directory -->
  	<property name="doc.dir" location="docs" />
 	
@@ -50,7 +53,7 @@
 	<property name="test.bld.dir" location="${build.dir}/test" />
 	
 	<property name="ccdp.config.file" 
-		value="${basedir}/config/ccdp-config.properties" />
+		value="${basedir}/config/ccdp-config.json" />
 	
 	<path id="classpath">
 	  <fileset dir="${lib.dir}" includes="**/*.jar"/>
@@ -103,17 +106,24 @@
 		</antcall>
 	</target>
 	
-	<!-- Runs all the unit tests to the the AWS tasking controller interface -->
+	<!-- Runs all the unit tests to the AWS tasking controller interface -->
 	<target name="AWSController" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AWSControllerUnitTest" />
 	  </antcall>
 	</target>
 
-  <!-- Runs all the unit tests to the the AWS tasking controller interface -->
+  <!-- Runs all the unit tests to the AWS tasking controller interface -->
   <target name="AmqConnections" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AmqConnectionsUnitTest" />
+	  </antcall>
+	 </target>
+	
+  <!-- Runs all the unit tests to manipulate MongoDB -->
+  <target name="MongoDb" depends="test-compile">
+	  <antcall target="junit.testing">
+	    <param name="test.pattern" value="MongoDbUnitTest" />
 	  </antcall>
 	 </target>
 
@@ -131,13 +141,6 @@
     </antcall>
    </target>
 	
-  <!-- Runs all the unit tests to test Engine with AWS-->
-  <target name="TestEngineWithAWS" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
-    </antcall>
-  </target>
-	
   <!-- Runs all the unit tests to test Engine with Sim-->
   <target name="TestEngineWithSim" depends="test-compile">
     <antcall target="junit.testing">
@@ -151,7 +154,15 @@
 	    <param name="test.pattern" value="TestEngineWithDockerUnitTest" />
 	  </antcall>
     </target>
-	
+
+  <!-- Runs all the unit tests to test Engine with AWS-->
+  <target name="TestEngineWithAWS" depends="test-compile">
+    <antcall target="junit.testing">
+      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
+    </antcall>
+  </target>
+
+  	
 	<!-- Runs all the unit tests based on the file name pattern to include -->
   <target name="junit.testing" depends="test-compile">
     <junit printsummary="yes" haltonfailure="no" fork="true">
@@ -215,6 +226,7 @@
                  value="com.axios.ccdp.newgen.CcdpAgent"/>
     </manifest>
     <fileset dir="${main.dir}" includes="*.properties" />
+		<fileset dir="${config.dir}" includes="*.json" />
   	<fileset dir="${main.dir}"/>
 
     <zipgroupfileset dir="${lib.dir}" includes="*.jar"/>
@@ -297,7 +309,7 @@
   <!-- Generates the JavaDoc for the whole project -->
   <target name="javadoc" depends="compile" description="Generates JavaDoc">
     <mkdir dir="${doc.dir}"/>
-    <javadoc sourcepath="${src.dir}" destdir="${doc.dir}" additionalparam="-html4">
+    <javadoc sourcepath="${src.dir}" destdir="${doc.dir}" additionalparam="">
       <classpath>
         <fileset dir="${lib.dir}" includes="*.jar" />
       </classpath>

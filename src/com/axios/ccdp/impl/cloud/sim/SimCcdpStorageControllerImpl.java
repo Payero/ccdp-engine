@@ -5,8 +5,8 @@ import java.io.InputStream;
 
 
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class SimCcdpStorageControllerImpl implements CcdpStorageControllerIntf
 {
@@ -23,7 +23,7 @@ public class SimCcdpStorageControllerImpl implements CcdpStorageControllerIntf
   }
 
   @Override
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     // TODO Auto-generated method stub
 

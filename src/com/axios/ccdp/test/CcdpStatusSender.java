@@ -4,7 +4,6 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 import java.util.UUID;
@@ -85,11 +84,10 @@ public class CcdpStatusSender implements TaskEventIntf
   {
     this.sender = new AmqSender();
     
-    Map<String, String> map = 
-        CcdpUtils.getKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
+    String broker = conn_cfg.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();    
+    String channel = conn_cfg.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     
-    String broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
     
     this.logger.info("Sending Tasking to " + broker + ":" + channel);
     this.sender.connect(broker, channel);

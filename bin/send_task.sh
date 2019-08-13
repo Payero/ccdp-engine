@@ -58,7 +58,7 @@ usage()
 {
   echo ''
   echo 'Sends a taks to the framework.  If the configuration file is not'
-  echo 'it uses the ${CCDP_HOME}/config/ccdp-config.properties'
+  echo 'it uses the ${CCDP_HOME}/config/ccdp-config.json'
   echo ''
   echo 'usage: class com.axios.ccdp.mesos.test.CcdpTaskSender'
   echo '   -c, --config-file <arg>   Path to the configuration file.'
@@ -74,7 +74,7 @@ usage()
 }
 
 
-CFG_FILE=${CCDP_HOME}/config/ccdp-config.properties
+CFG_FILE=${CCDP_HOME}/config/ccdp-config.json
 TASK=""
 APP_ARGS=""
 JSON=""
@@ -170,4 +170,6 @@ fi
 CMD="${JAVA_CMD} -cp ${_CLASSPATH} ${JAVA_APP} $APP_ARGS"
 
 echo "Running: ${CMD} "
+echo ""
+echo ""
 exec $CMD 

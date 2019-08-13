@@ -4,11 +4,11 @@
       {
         "session-id":"test-1", 
         "node-type": "DEFAULT", 
-        "command": 
+        "command":
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
               "-a", "testRandomTime", 
-              "-p", "min=10,max=20"
+              "-p", "min=5,max=30"
             ]
        }
     ]

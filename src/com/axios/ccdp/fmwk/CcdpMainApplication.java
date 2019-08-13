@@ -23,12 +23,12 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.impl.controllers.CcdpMasterVMController;
 import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.EndSessionMessage;
@@ -51,10 +51,9 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.NumberTasksComparator;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIntf
 {
@@ -105,13 +104,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    */
   //private AvgLoadControllerImpl tasker = null;
   private CcdpVMControllerAbs tasker = null;
+  
   /**
    * Controls all the VMs
    */
-  private CcdpVMControllerIntf controller =null;
-//  /**
-//   * Object responsible for creating/deleting files
-//   */
+  private CcdpMasterVMController controller = null;
+  //private CcdpVMControllerIntf controller =null;
+  
+  /**
+   * Object responsible for creating/deleting files
+   */
 //  private CcdpStorageControllerIntf storage = null;
   /**
    *  Stores the object responsible for storing data in the database
@@ -167,13 +169,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
     this.mapper.
     configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    for( CcdpNodeType type : CcdpNodeType.values() )
-    {
-      String name = type.toString();
+    
+    for( String name : CcdpUtils.getNodeTypes() )
       this.nodeTypes.add(name);
-      this.sessions.add(name);
-    }
+    
+    this.sessions.add(CcdpUtils.FREE_AGENT_SID);
+
     
     // creating a list for each of the node types
 //    synchronized( this.resources )
@@ -188,23 +189,20 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
     // creating the factory that generates the objects used by the scheduler
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node =
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
-    ObjectNode task_ctr_node =
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_TASK_CTR);
-    ObjectNode res_ctr_node =
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
+    JsonNode task_ctr_node = CcdpUtils.getTaskAllocatorIntfCfg();
+    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
+    JsonNode imgCfgs = CcdpUtils.getResourcesCfg();
 //    ObjectNode storage_node =
 //        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
-    ObjectNode db_node =
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_DB_INTF);
-    this.connection = factory.getCcdpConnectionInterface(task_msg_node);
 
+    this.controller = new CcdpMasterVMController(imgCfgs, db_node);
+    this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
 
-    this.controller = factory.getCcdpResourceController(res_ctr_node);
 //    this.storage = factory.getCcdpStorageControllerIntf(storage_node);
     this.dbClient = factory.getCcdpDatabaseIntf(db_node);
+    this.dbClient.configure(db_node);
     this.dbClient.connect();
 
     this.connection.configure(task_msg_node);
@@ -222,32 +220,30 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.hostId =
           CcdpMainApplication.VM_TEST_PREFIX + "-" + items[items.length - 1];
     }
-
-    String toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    JsonNode eng_cfg = CcdpUtils.getEngineCfg();
+    String toMain = task_msg_node.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     this.logger.info("Registering as " + this.hostId);
     this.connection.registerConsumer(this.hostId, toMain);
 
     // Skipping some nodes from termination
-    String ids = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_SKIP_TERMINATION);
-
-    if( ids != null )
+    JsonNode ids = eng_cfg.get(CcdpUtils.CFG_KEY_SKIP_TERMINATION);
+    if( ids.isArray() )
     {
-      for( String id : ids.split(",") )
+      for( JsonNode id : ids )
       {
-        id = id.trim();
-        this.logger.info("Skipping " + id + " from termination");
-        this.skipTermination.add(id);
+        String name = id.asText().trim();
+        this.logger.info("Skipping " + name + " from termination");
+        this.skipTermination.add(name);
       }
-    }// end of the do not terminate section
-
-    this.skip_hb =
-        CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+    }
+    
+    this.skip_hb = eng_cfg.get(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
 
     // Let's check what is out there....
     int cycle = 5;;
     try
     {
-      cycle = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_CHECK_CYCLE);
+      cycle = eng_cfg.get(CcdpUtils.CFG_KEY_CHECK_CYCLE).asInt();
     }
     catch( Exception e )
     {
@@ -409,6 +405,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public void onEvent()
   {
     this.logger.debug("Checking Resources");
+    //Set called twice per node here in here
     this.checkFreeVMRequirements();
     if( !this.skip_hb )
     {
@@ -416,12 +413,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.removeUnresponsiveResources();
     }
     List<String> toRemove = new ArrayList<>();
-    for( String sid : this.sessions )
+    List<String> listCpy = new ArrayList<>(this.sessions);
+    for( String sid : listCpy)
     {
 //      if ( this.dbClient.getVMInformationCount(sid) == 0 )
 //        toRemove.add(sid);
       
-      if( !this.nodeTypes.contains(sid) )
+      if( !(this.nodeTypes.contains(sid) || sid.equals(CcdpUtils.FREE_AGENT_SID)) )
       {
         if ( this.dbClient.getVMInformationCount(sid) == 0 )
           toRemove.add(sid);
@@ -457,6 +455,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //    }
 
     this.allocateTasks();
+    //this.showSystemChange();
   }
 
   /**
@@ -485,6 +484,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         long now = System.currentTimeMillis();
         long resTime = vm.getLastUpdatedTime();
         long diff = now - resTime;
+        //this.logger.debug("Diff Time for " + id + ": " + diff);
         if( diff >= this.agent_time_limit )
         {
           String txt = "The Agent " + id + " Status " + vm.getStatus() +
@@ -701,8 +701,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void startSession( StartSessionMessage start )
   {
     String sid = start.getSessionId();
-    CcdpNodeType node = start.getNodeType();
-    
+    String node = start.getNodeType();
+    logger.debug("START SESSION CALLED");
     if( !this.sessions.contains(sid) )
     {
       this.sessions.add(sid);
@@ -757,7 +757,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * @param type the node type to allocate
    * @param sid the session we're giving a resource to
    */
-  private CcdpVMResource giveAvailableResource(CcdpNodeType type, String sid)
+  private CcdpVMResource giveAvailableResource(String type, String sid)
   {
     this.logger.debug("Given away available resource for " + sid);
 
@@ -824,7 +824,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
     if( sid == null )
     {
-      String type = vm.getNodeTypeAsString();
+      String type = vm.getNodeType();
       String iid = vm.getInstanceId();
       String txt = iid + " -> Session ID is null, assign VM to available as " + 
                    type;
@@ -987,14 +987,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         // Mark any resources with 0 tasks left as available
         for (CcdpVMResource res : update)
         {
-          this.logger.debug("Marking vm " + res.getInstanceId() + " available as: " + res.getNodeTypeAsString());
+          this.logger.debug("Marking vm " + res.getInstanceId() + " available as: " + CcdpUtils.FREE_AGENT_SID);
           // saw a case when a VM was started for a specific SID and reassigned
           // to default before the first HB was sent which made the status be
           // LAUNCHED
           res.setStatus(ResourceStatus.RUNNING);
           
-          if(!res.getAssignedSession().equals(res.getNodeTypeAsString()))
-            this.changeSession(res, res.getNodeTypeAsString());
+          if(!res.getAssignedSession().equals(CcdpUtils.FREE_AGENT_SID))
+            this.changeSession(res, CcdpUtils.FREE_AGENT_SID);
         }
 
       }// for request loop
@@ -1086,8 +1086,15 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             continue;
 
           String tid = task.getTaskId();
-          CcdpNodeType type = task.getNodeType();
-
+          // Allowing for tasks with no node type
+          String type = task.getNodeType();
+          //this.logger.debug("Task:\n" + task);
+          if (type == null)
+          {
+            this.logger.debug("No node type sent, setting to Default");
+            type = "DEFAULT";
+            task.setNodeType("DEFAULT");
+          }
           double cpu = task.getCPU();
           this.logger.info("Checking Task " + tid + " CPU " + cpu );
           boolean fail = true;
@@ -1143,7 +1150,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             // Check available resources or create a new one.
             if (fail)
             {
-              if(task.getSessionId().equals(task.getNodeTypeAsString())) {
+              if(task.getSessionId().equals(task.getNodeType())) {
                 this.logger.debug("Could not find a free vm. Need to Launch a new one");
                 // Getting a copy rather than the actual configured object so I can
                 // modify it without affecting the initial configuration
@@ -1151,7 +1158,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                     CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
                 imgInfo.setSessionId(task.getSessionId());
                 imgInfo.setMinReq(1);
-                imgInfo.setMaxReq(1);
                 List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
                 for( CcdpVMResource vm : secondlist )
                 {
@@ -1357,67 +1363,54 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         }
 
         String sid = req.getSessionId();
-        this.logger.debug("Allocating resources to " + sid);
-        List<CcdpVMResource> resources = this.getResourcesBySessionId(sid);
+        String nodeType = req.getNodeType();
+        this.logger.debug("Allocating resources to sid: " + sid +", and node-type: " + req.getNodeType());
+        List<CcdpVMResource> resources = this.getCcdpVMResourcesBySIDAndNode(sid, nodeType);
+        resources.addAll(this.getFreeCcdpResourcesOfType(nodeType));
         
-        // could not find any available resource
+        /* There are 3 possibilities
+         * 1. There are no nodes of correct type
+         * 2. There are nodes of correct type and correct session
+         * 3. There are nodes of correct type that are free agents
+         * I think they should be handled appropriately in that order
+         */
+        // Case 1: There are no nodes of the correct type
         if ( resources.isEmpty() )
         {
-          this.logger.info("No resources available for Session:: " + sid +
-              ". Assigning one from available resources.");
-
-          // Need to assign VMs based on the node type
-          List<CcdpNodeType> types = new ArrayList<>();
-          for(CcdpTaskRequest task: req.getTasks() )
+          this.logger.info("There are no nodes of correct type.\nLaunching one new VM of type: " + nodeType);
+          CcdpImageInfo imgCfg = 
+              CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(nodeType));
+          imgCfg.setSessionId(sid);
+          imgCfg.setMinReq(1);
+          resources = this.startInstances(imgCfg);
+        }
+        // Cases 2, 3, and 4 here
+        else
+        // Cases 3 and 4
+        {
+          this.logger.debug("List contains nodes of correct node type and either correct session or free agent");
+          this.logger.info("Reassigning VM to " + sid);
+          if ( !this.sessions.contains(sid) )
+            this.sessions.add(sid);
+          
+          // Get the first available FREE resource and give it to the sid
+          for (CcdpVMResource res : resources)
           {
-            CcdpNodeType type = task.getNodeType();
-            //Don't want to find resources for a task that already has one
-            if (task.getHostId() != null && !task.getHostId().equals("")) {
-              continue;
-            }
-            // if we have not done it before, let's check/create one
-            if( !types.contains(type) )
+            if (res.isFree())
             {
-              this.logger.debug("Checking for free node of type " + type);
-              types.add(type);
-              //Check if there are any available resources in free pool
-              List<CcdpVMResource> free =
-                  this.getResourcesBySessionId(type.toString());
-
-              // only launch one if there are none available
-              if( free.isEmpty() )
-              {
-                this.logger.info("No VMs Available, launching one " + type);
-                CcdpImageInfo imgCfg = 
-                    CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
-                imgCfg.setSessionId(sid);
-                resources = this.startInstances(imgCfg);
-
-              }// end of no free resource
-              else
-              {
-                this.logger.info("Reassigning VM to " + sid);
-                // Get the first available FREE resource and give it to the sid
-                for (CcdpVMResource res : free)
-                {
-                  if (res.isFree())
-                  {
-                    //Found a free resource
-                    this.logger.debug("Reassigning " + res.getInstanceId() +
-                        " " + res.getAssignedSession() + " to " + sid);
-                    this.changeSession(res, sid);
-                    // resource is added in the changeSession method, so need
-                    // to update list
-                    resources = 
-                        this.dbClient.getAllVMInformationBySessionId(sid);
-                    break;
-                  }
-                }//end of for loop
-              }// have some free resources
-            }// end of the node type check
-          }// end of the task checking
-        }//end reassigning resources
-
+              //Found a free resource
+              this.logger.debug("Reassigning " + res.getInstanceId() +
+                  " " + res.getAssignedSession() + " to " + sid);
+              this.changeSession(res, sid);
+              // resource is added in the changeSession method, so need
+              // to update list
+              resources = 
+                  this.dbClient.getAllVMInformationBySessionIdAndNodeType(sid, nodeType);
+              break;
+            }
+          }
+        }
+                
         this.logger.debug("Found " + resources.size() + " assigned VMs");
         for( CcdpVMResource v : resources )
           this.logger.info("Resource ID " + v.getInstanceId());
@@ -1429,11 +1422,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         int num_map = map.size();
         if( num_tasks > 0 && num_map == 0 )
         {
-          List<CcdpNodeType> typesLaunched = new ArrayList<>();
+          List<String> typesLaunched = new ArrayList<>();
           this.logger.info("Need to run " + num_tasks + " but no VM available");
           for( CcdpTaskRequest task : req.getTasks() )
           {
-            CcdpNodeType type = task.getNodeType();
+            String type = task.getNodeType();
             if( typesLaunched.contains(type) )
             {
               this.logger.info("Already launched one of same type, skipping it");
@@ -1448,7 +1441,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             this.logger.info("Did not find an available resource, creating one");
             imgInfo.setSessionId(sid);
             imgInfo.setMinReq(1);
-            imgInfo.setMaxReq(1);
             this.startInstances(imgInfo);
           }
           // Once some new VMs are started we need to start all over again
@@ -1529,15 +1521,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       synchronized(this.sessions)
       {
-        for( CcdpNodeType type : CcdpNodeType.values() )
+        for( String type : CcdpUtils.getNodeTypes() )
         {
-          String typeStr = type.toString();
-          
           CcdpImageInfo imgCfg = 
               CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
           int free_vms = imgCfg.getMinReq();
 
-          List<CcdpVMResource> avails = this.getResourcesBySessionId( typeStr );
+          List<CcdpVMResource> avails = this.getFreeCcdpResourcesOfType( type );
 
           int available = avails.size();
           if( free_vms > 0 )
@@ -1549,8 +1539,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               {
                 this.logger.info("Starting vm number: " + i  + 
                     " free agents to meet the minreq of " + free_vms);
-                this.logger.debug("The node type is " + typeStr + 
+                this.logger.debug("The node type is " + type + 
                          " and the image session is " + imgCfg.getSessionId());
+                imgCfg.setSessionId(CcdpUtils.FREE_AGENT_SID);
+                imgCfg.setMinReq(1);
                 this.startInstances(imgCfg);
               }
             }// need to deploy agents
@@ -1588,6 +1580,47 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                           " tasks, skipping termination");
                       continue;
                     }
+                    
+                    // If there isn't another VM in "RUNNING" state (i.e. it 
+                    // just launched and isn't running yet), skip termination
+                    // Only do this if num free agents > 0
+                    if ( free_vms > 0 )
+                    {
+                      boolean freeResource = false;
+                      for ( CcdpVMResource vm : avails )
+                      {
+                        String vmId = vm.getInstanceId();
+                        if ( vmId == id )
+                          continue;
+                        
+                        if (ResourceStatus.RUNNING.equals( vm.getStatus() ))
+                        {
+                          if( !this.skipTermination.contains(vmId) )
+                          {
+                            if( !vmId.startsWith(CcdpMainApplication.VM_TEST_PREFIX) )
+                            {
+                              if ( vm.getNumberTasks() == 0 ) 
+                              {
+                                // This VM is free, mark and break
+                                freeResource = true;
+                                break;
+                              }
+                               else
+                              {
+                                this.logger.debug("VM " + vmId + "cannot be the free VM, trying another");
+                              }
+                             }
+                            }
+                          }
+                        }
+                      if ( freeResource == true )
+                      {
+                        this.logger.debug("There is a free VM to be the new free resource, terminating " + id);
+                      }
+                      else
+                        continue;
+                    }
+                    
                     res.setStatus(ResourceStatus.SHUTTING_DOWN);
                     terminate.add(id);
                     this.dbClient.storeVMInformation(res);
@@ -1629,7 +1662,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           // remove old pending 'SHUTTING_DOWN' nodes from map
           for( CcdpVMResource res : remove )
           {
-            this.logger.debug("Removing " + typeStr + " from resources map");
+            this.logger.debug("Removing " + type + " from resources map");
             this.dbClient.deleteVMInformation(res.getInstanceId());
 
             this.showSystemChange();
@@ -1654,7 +1687,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * 
    * @param terminate a list of resources to terminate
    */
-  private void terminateInstances( List<String> terminate) 
+  private void terminateInstances( List<String> terminate ) 
   {
     this.logger.info("Terminating " + terminate.toString() );
     List<String> filtered = new ArrayList<>();
@@ -1662,10 +1695,13 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     {
       if( !iid.startsWith("i-test") )
         filtered.add(iid);
-      this.dbClient.deleteVMInformation(iid);
+      //this.dbClient.deleteVMInformation(iid);
     }
     this.controller.terminateInstances(filtered);
-        
+    for ( String iid : terminate )
+    {
+      this.dbClient.deleteVMInformation(iid);
+    }
     this.showSystemChange();
   }
   /**
@@ -1678,12 +1714,18 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void checkAllocation( String sid )
   {
     this.logger.trace("Checking resource allocation");
-    List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
-    CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
-    if( imgCfg != null )
+    // Attempt to fix multiple nodes of same session, different type
+    for (String type : this.nodeTypes)
     {
-      imgCfg.setSessionId(sid);
-      this.allocateResource(imgCfg);
+      //List<CcdpVMResource> sid_vms = this.getResourcesBySessionId(sid);
+      List<CcdpVMResource> sid_vms = 
+          this.getCcdpVMResourcesBySIDAndNode(sid, type);
+      CcdpImageInfo imgCfg = this.tasker.allocateResources(sid_vms);
+      if( imgCfg != null )
+      {
+        imgCfg.setSessionId(sid);
+        this.allocateResource(imgCfg);
+      }
     }
   }
 
@@ -1697,7 +1739,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg )
   {
     String sid = imgCfg.getSessionId();
-    String typeStr = imgCfg.getNodeTypeAsString();
+    String typeStr = imgCfg.getNodeType();
     this.logger.debug("the node type is " + typeStr );
     //Changing sid null to DEFAULT type
     if (sid == null)
@@ -1724,7 +1766,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     }
     else  // there are no free vm available
     {
-      CcdpNodeType type = imgCfg.getNodeType();
+      String type = imgCfg.getNodeType();
       // Getting a copy rather than the actual configured object so I can
       // modify it without affecting the initial configuration
       CcdpImageInfo imgInfo =
@@ -1732,7 +1774,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.logger.info("Did not find an available resource, creating one");
       imgInfo.setSessionId(sid);
       imgInfo.setMinReq(1);
-      imgInfo.setMaxReq(1);
       this.startInstances(imgInfo);
     }
 
@@ -1749,12 +1790,14 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
 
     String sid = imgInfo.getSessionId();
-    String typeStr = imgInfo.getNodeTypeAsString();
+    String typeStr = imgInfo.getNodeType();
     if( sid == null )
       sid = typeStr;
 
     this.logger.info("Starting New Resources of type " + typeStr + 
                      " For Session " + sid);
+    
+    this.logger.info("imgInfo: " + imgInfo.toPrettyPrint());
 
     if( !this.sessions.contains(sid) )
       this.sessions.add(sid);
@@ -1829,8 +1872,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     for( CcdpVMResource vm : vms )
     {
       vm.setSingleTask(null);
-      String sessId = vm.getNodeTypeAsString();
-      this.changeSession(vm, sessId);
+      this.changeSession(vm, CcdpUtils.FREE_AGENT_SID);
 
       this.showSystemChange();
     }
@@ -1872,8 +1914,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           if( !iid.startsWith( CcdpMainApplication.VM_TEST_PREFIX ) ) 
           {
             ResourceStatus vm_state = this.controller.getInstanceState( iid );
-            //Only set the state if the instance is shutting down otherwise let the state
-            //to be update when heartbeats arrive  
+            //Only set the state if the instance is shutting down otherwise 
+            //let the state to be update when heartbeats arrive  
             if(ResourceStatus.SHUTTING_DOWN.equals(vm_state))
             {
               res.setStatus( vm_state );
@@ -1912,7 +1954,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       }// found a list of sessions
       else
       {
-        this.logger.info("Can't find session-id " + sid +" in resources, adding it");
+        this.logger.info("Can't find SID " + sid + " in resources, adding it");
         this.sessions.add(sid);
       }
     }// end of synch list
@@ -1922,14 +1964,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
   /**
    * Sends a summary of the system to the logger handlers
+   * 7/23, This actually prints the session-id as the node type which is wrong
    */
   private void showSystemChange()
   {
     StringBuffer buf = new StringBuffer();
-    buf.append("\nNodeType:\n");
-
+    //buf.append("\nNodeType:\n");
+    buf.append("\nSession ID:\n");
+    
     String header = String.format("\n\t%-20s %-15s %-10s %-13s\n",
-        "Instance ID", "Session ID", "State", "Single Tasked");
+    //    "Instance ID", "Session ID", "State", "Single Tasked");
+          "Instance ID", "Node Type", "State", "Single Tasked");
     Iterator<String> ids = this.sessions.iterator();
     while( ids.hasNext() )
     {
@@ -1950,7 +1995,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       for( CcdpVMResource info : list )
       {
         String id = info.getInstanceId();
-        String sid = info.getAssignedSession();
+        //String sid = info.getAssignedSession();
+        String nodeType = info.getNodeType();
         ResourceStatus stat = info.getStatus();
         if( stat == null )
           stat = ResourceStatus.FAILED;
@@ -1958,7 +2004,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
         boolean single = info.isSingleTasked();
         String line = String.format("\t%-20s %-15s %-10s %3s %-5b %35s\n",
-            id, sid, status, "   ", single, "Tasks");
+        //    id, sid, status, "   ", single, "Tasks");
+              id, nodeType, status, "   ", single, "Tasks");
         buf.append(line);
         String taskHead = String.format("\t%80s %18s %-15s\n", "Task ID", " ", "State");
         String sep = String.format("%66s %s\n", " ", "--------------------------------------------------");
@@ -2000,6 +2047,17 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   }
   
   /**
+   * Gets all the resources being used by the engine of specified type
+   * 
+   * @param node_type the type of nodes to be returned
+   * @return all the resources being used by the engine of specified type
+   */
+  public List<CcdpVMResource> getAllCcdpVMResourcesOfType( String node_type )
+  {
+    return this.dbClient.getAllVMInformationOfType( node_type );
+  }
+  
+  /**
    * Gets all the resources assigned to a specific session
    * 
    * @param SID the session ID to search for the resources
@@ -2010,7 +2068,41 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     return this.dbClient.getAllVMInformationBySessionId(SID);
   }
   
+  /**
+   * Gets all the free resources in the system
+   * 
+   * @return all the free resources
+   */
+  public List<CcdpVMResource> getAllFreeCcdpResources()
+  {
+    return this.dbClient.getAllVMInformationBySessionId(CcdpUtils.FREE_AGENT_SID);
+  }
   
+  /**
+   * Gets all the free CCDP resources
+   * 
+   * @param node_type the node type to search for the resources
+   * @return all the free agent resources
+   */
+  public List<CcdpVMResource> getFreeCcdpResourcesOfType( String node_type )
+  {
+    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(
+                                        CcdpUtils.FREE_AGENT_SID, node_type);
+  }
+  
+  /**
+   * Gets all the resources assigned to a specific session
+   * 
+   * @param SID the session ID to search for the resources
+   * @param node_type the type of node to search for the resources
+   * @return all the resources being used by the engine
+   */
+  public List<CcdpVMResource> getCcdpVMResourcesBySIDAndNode( String SID, 
+                                                              String node_type )
+  {
+    return this.dbClient.getAllVMInformationBySessionIdAndNodeType(
+                                                              SID,node_type);
+  }
   
   /**
    * Prints a message indicating how to use this framework and then quits

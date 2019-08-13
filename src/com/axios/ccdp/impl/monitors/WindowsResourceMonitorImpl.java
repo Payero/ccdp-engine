@@ -5,7 +5,6 @@ import java.util.List;
 
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 
 /**
  * Simple utility class used to obtain some of the resource utilization 
@@ -63,7 +62,7 @@ public class WindowsResourceMonitorImpl extends SystemResourceMonitorAbs
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     String units = SystemResourceMonitorAbs.UNITS.KB.toString();
     JsonNode node = config.get("units");

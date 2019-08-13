@@ -3,7 +3,7 @@ package com.axios.ccdp.resources;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -24,7 +24,7 @@ public class CcdpImageInfo
   /**
    * The type of Node the instances of this class will be used for
    */
-  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
+  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   
   /**
    * Performs all the nodes operations from and to JSON to/from objects
@@ -39,10 +39,6 @@ public class CcdpImageInfo
    * The minimum number of running instances at any given time
    */
   private int minReq = 0;
-  /**
-   * The maximum number of running instances at any given time
-   */
-  private int maxReq = 1;
   /**
    * The session id that will use an instance of this type of node
    */
@@ -154,48 +150,7 @@ public class CcdpImageInfo
   {
     this.minReq = minReq;
   }
-
-  /**
-   * Gets the maximum number of running instances at any given time 
-   * @return the maximum number of running instances at any given time
-   */
-  @JsonGetter("max-req")
-  public int getMaxReq()
-  {
-    return maxReq;
-  }
-
-  /**
-   * Sets the maximum number of running instances at any given time 
-   * 
-   * @param maxReq the maximum number of running instances at any given time
-   */
-  @JsonSetter("max-req")
-  public void setMaxReq(int maxReq)
-  {
-    this.maxReq = maxReq;
-  }
   
-  /**
-   * Gets the type of Node the instances of this class will be used for
-   * 
-   * @return the type of Node the instances of this class will be used for
-   */
-  public CcdpNodeType getNodeType()
-  {
-    return nodeType;
-  }
-
-  /**
-   * Sets the type of Node the instances of this class will be used for
-   * 
-   * @param nodeType the type of Node the instances of this class will be used for
-   */
-  public void setNodeType(CcdpNodeType nodeType)
-  {
-    this.nodeType = nodeType;
-  }
-
   /**
    * Gets a string representation of the type of Node the instances of this 
    * class will be used for
@@ -204,9 +159,9 @@ public class CcdpImageInfo
    *         a string
    */
   @JsonGetter("node-type")
-  public String getNodeTypeAsString()
+  public String getNodeType()
   {
-    return nodeType.toString();
+    return nodeType;
   }
 
   /**
@@ -219,7 +174,7 @@ public class CcdpImageInfo
   @JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
-    this.nodeType = CcdpNodeType.valueOf(nodeType);
+    this.nodeType = nodeType;
   }
   
   /**
@@ -498,6 +453,7 @@ public class CcdpImageInfo
   @JsonGetter("credentials-file")
   public String getCredentialsFile()
   {
+    //System.out.println("Getting credFile with value: " + credentialsFile);
     return credentialsFile;
   }
 
@@ -509,6 +465,7 @@ public class CcdpImageInfo
   @JsonSetter("credentials-file")
   public void setCredentialsFile(String credentialsFile)
   {
+    //System.out.println("Setting credFile to: " + credentialsFile);
     this.credentialsFile = credentialsFile;
   }
 

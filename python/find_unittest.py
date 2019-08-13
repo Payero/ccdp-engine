@@ -2,7 +2,6 @@
 import os, sys, glob
 
 
-
 def find_unittest():
   if os.environ.has_key('CCDP_HOME'):
     path = os.environ['CCDP_HOME']
@@ -36,10 +35,10 @@ def find_unittest():
   print "Invoking 'ant <test name>'' runs only that test"
   print "Invoking 'ant test' runs them all"
   print ""
-  print "The configuration file can be set by setting the ccdp.cfg.file system" 
+  print "The configuration file can be set by setting the ccdp.config.file system" 
   print "property for example:" 
   print ""
-  print "    'ant -Dccdp.cfg.file=<new file> test' "
+  print "    'ant -Dccdp.config.file=<new file> test' "
   print ""
   print "will run all the tests using the given configuration file"
   print ""

@@ -16,7 +16,7 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -55,7 +55,7 @@ public class CcdpVMResource implements Serializable
   /**
    * Stores what type of resource is running in this VM
    */
-  private CcdpNodeType nodeType = CcdpNodeType.DEFAULT;
+  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   /**
    * A unique identifier to distinguish the agent executing the tasks
    */
@@ -505,36 +505,19 @@ public class CcdpVMResource implements Serializable
    * @return the nodeType
    */
   @JsonGetter("node-type")
-  public String getNodeTypeAsString()
-  {
-    return this.nodeType.name();
-  }
-
-  /**
-   * @return the nodeType
-   */
-  public CcdpNodeType getNodeType()
+  public String getNodeType()
   {
     return this.nodeType;
   }
-  
+
   /**
    * @param nodeType the nodeType to set
    */
   @JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
-    this.nodeType = CcdpNodeType.valueOf(nodeType);
-  }
-  
-  /**
-   * @param nodeType the nodeType to set
-   */
-  public void setNodeType(CcdpNodeType nodeType)
-  {
     this.nodeType = nodeType;
   }
-  
   
   /**
    * Gets the resource's hostname
@@ -967,9 +950,11 @@ public class CcdpVMResource implements Serializable
     for( CcdpVMResource res : resources )
     {
       // consider only launched and running VMs
-      if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()))
-        continue;
-    
+      //if( onlyRunning && !ResourceStatus.RUNNING.equals(res.getStatus()))
+      //  continue;
+      if ( onlyRunning )
+        return res;
+      
       // if is just the first one, then just set it as the least one
       if( first )
       {

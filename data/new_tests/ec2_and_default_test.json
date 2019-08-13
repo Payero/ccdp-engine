@@ -1,0 +1,25 @@
+{
+  "jobs": 
+    [
+      {
+        "session-id":"test-1", 
+        "node-type": "EC2", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=15,max=30"
+            ]
+       },
+       {
+       	"session-id":"test-2",
+       	"node-type": "DEFAULT",
+       	"command":
+       		[
+       		  "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py",
+       		  "-a", "testRandomTime",
+       		  "-p", "min=5,max=10"
+       		]
+       }
+    ]
+}

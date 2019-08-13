@@ -20,6 +20,7 @@ import com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl;
 import com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl;
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.AssignSessionMessage;
 import com.axios.ccdp.messages.CcdpMessage;
@@ -27,13 +28,14 @@ import com.axios.ccdp.messages.ResourceUpdateMessage;
 import com.axios.ccdp.messages.RunTaskMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
+import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
@@ -54,6 +56,10 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    */
   private CcdpConnectionIntf connection;
   /**
+   * Object used to interact with the database
+   */
+  private CcdpDatabaseIntf dbClient = null;
+  /**
    * Stores all incoming messages other than heartbeats
    */
   private List<CcdpMessage> messages = null;
@@ -68,7 +74,11 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Stores the configuration for the tests
    */
-  private ObjectNode jsonCfg;
+  private JsonNode jsonCfg;
+  /**
+   * Stores engine config for the tests
+   */
+  private JsonNode engCfg;
   /**
    * Generates all the JSON objects used during the tests
    */
@@ -107,12 +117,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     if( url == null )
     {
-      logger.warn("Docker URL was not defined using default");
+      logger.warn("Docker URL was not defined, using default");
       url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
     }
     assertNotNull(url);
     dockerClient = new DefaultDockerClient(url);
-    
+    logger.debug("Done initialize()");
   }
   
   /**
@@ -126,17 +136,24 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
     logger.debug("Done with the connections: " + task_msg_node.toString());
     
+    this.dbClient = factory.getCcdpDatabaseIntf(db_node);
+    this.dbClient.connect();
+    logger.debug("Done with DB connection: " + db_node.toString());
+    
+    
     assertNotNull("Could not setup a connection with broker", this.connection);
+    assertNotNull("Could not setup a database connection", this.dbClient);
     String uuid = UUID.randomUUID().toString();
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    String channel = 
+        task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
@@ -150,7 +167,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       if( path == null )
         path = System.getProperty("CCDP_HOME");
       
-      cfg_file =  path + "/config/ccdp-config.properties";
+      cfg_file =  path + "/config/ccdp-config.json";
     }
     logger.debug("The config file " + cfg_file);
     
@@ -159,8 +176,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       try
       {
         CcdpUtils.loadProperties(cfg_file);
-        this.jsonCfg = 
-            CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RESOURCE);
+        this.jsonCfg = CcdpUtils.getResourceCfg("DOCKER");
+        this.engCfg = CcdpUtils.getEngineCfg();
         this.docker.configure(this.jsonCfg);
       }
       catch( Exception e )
@@ -174,7 +191,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Simple test to make sure the startup and tear down works properly
    */
-  @Test
+  //@Test
   public void testSetupRoutine()
   {
     logger.debug("Testing Setup Routine");
@@ -191,14 +208,13 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     Logger.getRootLogger().setLevel(Level.WARN);
     Logger.getRootLogger().setAdditivity(false);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
+    logger.debug("Before startInstances()");
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -211,35 +227,35 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startMultipleInstancesTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(3);
+    image.setMinReq(3);
     image.setSessionId("docker-session");
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
+    assertTrue("The minimum should be ", image.getMinReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
+    System.out.println("NUM VMS " + this.running_vms.size());
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
   }
   
   /**
    * Tests the ability to start an instance with a specific Session ID
+   * This test failed when ran with all other tests, possible lack of PC power
+   * To fix this, probably just increase initial wait, or run by itself
    */
   @Test
   public void startInstanceWithSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
-    image.setSessionId("docker-session");
+    String sessionIdToSet = "docker-session";
+    image.setSessionId(sessionIdToSet);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertNotNull("Could not instantiate VMs", this.running_vms);
@@ -247,14 +263,53 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     String channel = this.running_vms.get(0);
     
     AssignSessionMessage asgn_msg = new AssignSessionMessage();
-    asgn_msg.setSessionId("docker-session");
+    asgn_msg.setSessionId(sessionIdToSet);
     this.connection.sendCcdpMessage(channel, asgn_msg);
     
-    logger.debug("Pausing a little");
+    logger.debug("Waiting 45 seconds for " + channel);    
     // let's wait a couple of seconds to give the agent time to set the session
     // id and send an updated heartbeat message
-    CcdpUtils.pause(15);
+    boolean lazyCheck = false;
+    // Lazy check for sent heartbeats to Mongo
+    if ( lazyCheck )
+    {
+      logger.debug("Doing lazy check for heartbeats");
+      CcdpUtils.pause(45);
+      
+      // Lazy compare for if a heartbeat was sent
+      assertTrue( "Last Updated is equal to last assignment, so no heartbeat!",
+         this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime() );
+    }
+    // Less lazy check for heartbeats
+    else 
+    {
+      logger.debug("Doing less lazy check for heartbeats");
+      CcdpUtils.pause(25);
+      
+      // Config stuff, set last baseline;
+      int numHeartbeats = 0;
+      long HBfreq = engCfg.get(CcdpUtils.CFG_KEY_HB_FREQ).asLong();
+      long lastUpdate = this.dbClient.getVMInformation(channel).getLastAssignmentTime();
+      long current;
+      // Check for a change in last updated, signaling a HB, using HB frequency
+      for (int i = 0; i < 4; i++)
+      {
+        current = this.dbClient.getVMInformation(channel).getLastUpdatedTime();
+        if ( current != lastUpdate)
+          numHeartbeats ++;
+        lastUpdate = current;
+        CcdpUtils.pause(HBfreq);
+      }
+      logger.debug("There were " + numHeartbeats + " heartbeats registered");
+      assertTrue("There were no heartbeats", numHeartbeats > 0);
+    }
+    // Also do SID test
+    assertEquals( sessionIdToSet, this.dbClient.getVMInformation(channel).getAssignedSession() );
+
+    //THIS DOESN'T WORK NOW THAT MONGO IS USED FOR HEARTBEATS!
+    /*
     boolean found_it = false;
+    logger.debug("Num Heartbeats: " + this.heartbeats.size());
     
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
@@ -274,7 +329,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
       }        
     }
     assertTrue("Could not find a matching Session ID", found_it);
-
+    */
   }
 
   /**
@@ -283,24 +338,56 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithoutSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     String channel = this.running_vms.get(0);
-    logger.debug("Waiting 15 seconds for " + channel);
+    logger.debug("Waiting 45 seconds for " + channel);
+    //boolean found_it = false;
+    boolean lazyCheck = false;
     
-    CcdpUtils.pause(15);
-    boolean found_it = false;
+    // Lazy compare for if a heartbeat was sent
+    if ( lazyCheck )
+    {
+      logger.debug("Doing lazy heartbeat check");
+      CcdpUtils.pause(45);
+       
+      assertTrue("Last Updated is equal to last assignment, so no heartbeat!",
+         this.dbClient.getVMInformation(channel).getLastAssignmentTime() != this.dbClient.getVMInformation(channel).getLastUpdatedTime());
+    }
+    // Less lazy compare for if a heartbeat was sent
+    else
+    {
+      logger.debug("Doing less lazy heartbeat check");
+      CcdpUtils.pause(25);
+
+      // Config stuff, set time baseline for last
+      long HBfreq = engCfg.get(CcdpUtils.CFG_KEY_HB_FREQ).asLong();      
+      int numHeartbeats = 0;
+      long lastUpdate = this.dbClient.getVMInformation(channel).getLastAssignmentTime();
+      long current;
+      // Check for a change in last updated, singaling a HB, using HB frequency.
+      for (int i = 0; i < 4; i++)
+      {
+        current = this.dbClient.getVMInformation(channel).getLastUpdatedTime();
+        if ( current != lastUpdate)
+          numHeartbeats ++;
+        lastUpdate = current;
+        CcdpUtils.pause(HBfreq);
+      }
+      logger.debug("There were " + numHeartbeats + " heartbeats registered");
+      assertTrue("There were no heartbeats", numHeartbeats > 0);
+    }
     
-    logger.debug("There " + this.heartbeats.size() + " heartbeats in the list");
+    // THIS METHOD DOESN'T WORK NOW THAT HEARTBEATS ARE MANAGED BY MONGO!
+    /*
+    logger.debug("There are " + this.heartbeats.size() + " heartbeats in the list");
     // iterating through all the messages
     for( CcdpMessage msg : this.heartbeats )
     {
@@ -319,23 +406,23 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         }
       }        
     }
+    assertTrue("There are no heartbeats in the list", this.heartbeats.size() > 0);
     assertTrue("The Session ID is different", found_it);
+  */
   }
-  
+    
   /**
    * Tests the ability to start and stop an instance
    */
   @Test
   public void startAndStopInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
@@ -364,14 +451,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startManyAndStopSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     this.running_vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", this.running_vms.size() == 3);
@@ -379,7 +464,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     logger.debug("the size of the list is " + vms.size());
     CcdpVMResource vm = vms.get(1);
     String testId = vm.getInstanceId();
-    logger.debug("Stopping VM " + testId);
+    logger.debug("Going to stop VM " + testId);
     List<String> stopIds = new ArrayList<>();
     stopIds.add(vm.getInstanceId());
     logger.debug("Waiting to get updated heartbeats");
@@ -403,49 +488,63 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   
   /**
-   * Tests the ability to start multiple instances and stopping just one
+   * Tests the ability to check tasks assigned to VM using MainApp tasking.
+   * Make sure no other docker containers are running when this test is run.
+   * Changed "MOCK PAUSE" job to cmd in {HOME}/data/rand_time_docker.json.
+   * Originally, this test failed because it got VM info from dockerClient instead
+   * of just using Mongo...................why?
    */
-  //@Test
+  @Test
   public void checksTasksRunningOnVMTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.DOCKER);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(3);
-    image.setMaxReq(3);
-    assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
+    image.setMinReq(1);
+    assertTrue("The minimum should be ", image.getMinReq() == 1);
     
-    List<String> ids = this.docker.startInstances(image);
-    assertTrue("Wrong number of instances", ids.size() == 3);
+    this.running_vms = this.docker.startInstances(image);
+    assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     
-    CcdpVMResource vm = vms.get(1);
-    String testId = vm.getInstanceId();
-    assertTrue("The Session ID is different", "NIFI".equals(vm.getAssignedSession()));
+    logger.debug("Waiting 45 seconds for VMs to spool up");  
+    CcdpUtils.pause(45);
     
-    CcdpTaskRequest task1 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
-    CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
-    CcdpUtils.pause(0.2);
-    vms = this.docker.getAllInstanceStatus();
+    CcdpVMResource vm = vms.get(0);
+    String testId = vm.getInstanceId();
+    logger.debug("VM 0 has Assigned Session: " + vm.getAssignedSession());
+    
+    //assertTrue("The Session ID is different", "DOCKER".equals(vm.getAssignedSession()));
+    
+    // I don't think any of this works, changing it -SRB
+    CcdpTaskRequest task1 = this.sendTaskRequest(testId);
+    //CcdpTaskRequest task2 = this.sendTaskRequest(testId, "MOCK_PAUSE", 5);
+    
+    
+    CcdpUtils.pause(15);
+    //vms = this.docker.getAllInstanceStatus();
+    vms = this.dbClient.getAllVMInformation();
+    logger.debug(vms.toString());
     
     for( CcdpVMResource res : vms )
     {
       String iid = res.getInstanceId();
       ResourceStatus status = this.docker.getInstanceState(iid);
       assertNotNull("Could not find Resource " + iid, status);
-      logger.debug("VM Status " + status);
-      assertTrue("The VM is not stopped", status.equals(ResourceStatus.RUNNING));
+      logger.debug("VM Status " + status + " with IID " + iid);
+      assertTrue("The VM is not running", status.equals(ResourceStatus.RUNNING));
       if( testId.equals(iid) )
       {
         List<CcdpTaskRequest> tasks = res.getTasks();
-        assertTrue("Did not find task", tasks.size() == 2);
+        logger.debug(tasks.toString());
+        assertTrue("Did not find task", tasks.size() == 1);
         for( CcdpTaskRequest task : tasks )
         {
           
           String tid = task.getTaskId();
-          if( !tid.equals(task1.getTaskId() ) && !tid.equals(task2.getTaskId()) )
+          //if( !tid.equals(task1.getTaskId() ) && !tid.equals(task2.getTaskId()) )
+          if( !tid.equals(task1.getTaskId() ))
             fail("The running Task does not match");
         }
       }
@@ -457,7 +556,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
    * Tests the ability of getting the instance id of a non-existing instance, 
    * a request with null, and a valid instance id
    */
-  //@Test
+  @Test
   public void getInstanceStateTest()
   {
     ResourceStatus state = this.docker.getInstanceState(null);
@@ -466,14 +565,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.docker.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.docker.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -487,6 +584,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Tests the ability to retrieve Status of the Remote resources based on the
    * tags associated with that server
+   * Method not implemented, see DockerVMContollerImpl
    */
   //@Test
   public void getStatusFilteredByTagsTest()
@@ -497,14 +595,12 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags);
     
@@ -520,9 +616,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags2);
     
@@ -538,9 +632,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags3);
     
@@ -585,18 +677,17 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   
   /**
    * Tests the ability to get a single instance based on the id.
+   * Method not implemented, see DockerVMControllerImpl
    */
   //@Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("DOCKER");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(5);
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 5);
+    image.setMinReq(5);
+    assertTrue("The minimum should be ", image.getMinReq() == 5);
 
     List<String> iids = this.docker.startInstances(image);
     assertEquals("Shoud have five instances", iids.size(), 5);
@@ -621,23 +712,29 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   /**
    * Sends a task message to the intended VM.  
    * 
+   * @param iid the instance id for the VM
    * @param action what to do either paused, cpu, or
    * @param time for how long
    * 
    * @return the task that was sent
    */
-  private CcdpTaskRequest sendTaskRequest(String iid, String action, long time)
+  private CcdpTaskRequest sendTaskRequest(String iid)
   {
     assertNotNull("The Instance ID cannot be null", iid);
     
     CcdpTaskRequest task = new CcdpTaskRequest();
     
     task.setSessionId("test-session");
+    task.setNodeType("DOCKER");
     List<String> cmd = new ArrayList<>();
-    cmd.add(action);
-    cmd.add(Long.toString(time));
+    cmd.add("/data/ccdp/ccdp-engine/python/ccdp_mod_test.py");
+    cmd.add("-a");
+    cmd.add("testRandomTime");
+    cmd.add("-p");
+    cmd.add("min=10,max=15");
     task.setCommand(cmd);
     RunTaskMessage msg = new RunTaskMessage();
+    logger.debug("Task: " + task.toString());
     msg.setTask(task);
     
     this.connection.sendCcdpMessage(iid, msg);
@@ -658,6 +755,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     switch( msgType )
     {
       case RESOURCE_UPDATE:
+        // This shouldn't ever happen, using Mongo for Resource updates
         ResourceUpdateMessage msg = (ResourceUpdateMessage)message;
         this.heartbeats.add(msg);
         break;
@@ -666,6 +764,11 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         String tid = task.getTaskId();
         CcdpTaskRequest.CcdpTaskState state = task.getState();
         logger.debug(tid + " Updated task to " + state.toString());
+        this.messages.add(message);
+        break;
+      case ERROR_MSG:
+        ErrorMessage err = (ErrorMessage)message;
+        logger.debug(err.getErrorMessage());
       default:
         this.messages.add(message);
     }
@@ -699,7 +802,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
         String id = c.id();
         try
         {
-          logger.debug("Removing Container" + id);
+          logger.debug("Removing Container " + id);
           dockerClient.removeContainer(id);          
         }
         catch (Exception e)

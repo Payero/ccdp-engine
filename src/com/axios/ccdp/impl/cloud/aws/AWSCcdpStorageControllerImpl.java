@@ -21,6 +21,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -70,7 +71,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     if( config == null )
       throw new IllegalArgumentException("The configuration cannot be null");

@@ -8,12 +8,12 @@ import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
+import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
 import com.axios.ccdp.intfs.CcdpTaskingControllerIntf;
 import com.axios.ccdp.intfs.CcdpVMControllerIntf;
-
-import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.axios.ccdp.utils.CcdpConfigParser;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 /**
@@ -69,13 +69,12 @@ public class CcdpObjectFactory
    * @throws RuntimeException a RuntimeException is thrown if the property is
    *         not found or if there is a problem instantiating the object
    */
-  private Object getNewInstance( String key, Class<?> clazz )
+  private Object getNewInstance( String classname, Class<?> clazz )
   {
-    String classname = CcdpUtils.getProperty(key );
     if( classname == null )
     {
       String msg = "The name of the interface is required.  Please " +
-                   "make sure the configuration " + key + " is set properly";
+               "make sure the configuration " + classname + " is set properly";
       throw new RuntimeException( msg );
     }
     
@@ -142,10 +141,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the main 
    *         application to send and receive tasking events
    */
-  public CcdpConnectionIntf getCcdpConnectionInterface(ObjectNode config)
+  public CcdpConnectionIntf getCcdpConnectionInterface(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_CONNECTION_CLASSNAME;
-    Object obj = this.getNewInstance(key, CcdpConnectionIntf.class);
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, CcdpConnectionIntf.class);
     CcdpConnectionIntf impl = (CcdpConnectionIntf)obj;
     impl.configure(config);
     return impl;
@@ -159,10 +159,12 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the agent 
    *         get the resources
    */
-  public SystemResourceMonitorAbs getResourceMonitorInterface(ObjectNode config)
+  public SystemResourceMonitorAbs getResourceMonitorInterface(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_RES_MON_CLASSNAME;
-    Object obj = this.getNewInstance(key, SystemResourceMonitorAbs.class);
+    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String key = CcdpConfigParser.KEY_VM_RESOURCE_MONITOR;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, SystemResourceMonitorAbs.class);
     SystemResourceMonitorAbs impl = (SystemResourceMonitorAbs)obj;
     impl.configure(config);
     return impl;
@@ -177,10 +179,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the resources
    */
-  public CcdpVMControllerIntf getCcdpResourceController(ObjectNode config)
+  public CcdpVMControllerIntf getCcdpResourceController(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_RESOURCE_CLASSNAME;
-    Object obj = this.getNewInstance(key,CcdpVMControllerIntf.class);
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname,CcdpVMControllerIntf.class);
     CcdpVMControllerIntf impl = (CcdpVMControllerIntf)obj;
     impl.configure(config);
     return impl;
@@ -196,10 +199,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the storage resources
    */
-  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(ObjectNode config)
+  public CcdpStorageControllerIntf getCcdpStorageControllerIntf(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_STORAGE_CLASSNAME;
-    Object obj = this.getNewInstance(key, CcdpStorageControllerIntf.class);
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, CcdpStorageControllerIntf.class);
     CcdpStorageControllerIntf impl = (CcdpStorageControllerIntf)obj;
     impl.configure(config);
     return impl;
@@ -214,10 +218,11 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the scheduler
    *         to manipulate the tasking
    */
-  public CcdpVMControllerAbs getCcdpTaskingController(ObjectNode config)
+  public CcdpVMControllerAbs getCcdpTaskingController(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_TASKER_CLASSNAME;
-    Object obj = this.getNewInstance(key, CcdpTaskingControllerIntf.class);
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, CcdpTaskingControllerIntf.class);
     CcdpVMControllerAbs impl = (CcdpVMControllerAbs)obj;
     impl.configure(config);
     return impl; 
@@ -231,14 +236,53 @@ public class CcdpObjectFactory
    * @return an actual implementation of the object that allows the framework 
    *         to access the database
    */
-  public CcdpDatabaseIntf getCcdpDatabaseIntf(ObjectNode config)
+  public CcdpDatabaseIntf getCcdpDatabaseIntf(JsonNode config)
   {
-    String key = CcdpUtils.CFG_KEY_DATABASE_CLASSNAME;
-    Object obj = this.getNewInstance(key, CcdpDatabaseIntf.class);
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, CcdpDatabaseIntf.class);
     CcdpDatabaseIntf impl = (CcdpDatabaseIntf)obj;
     impl.configure(config);
     return impl;
   }
   
+  /**
+   * Gets the object responsible for accessing the database.  It stores, update,
+   * and delete entries from the database
+   * 
+   * @param nodeType the type of node to create
+   * @param config a JSON Object containing required configuration parameters
+   * @return an actual implementation of the object that allows the framework 
+   *         to access the database
+   */
+  public CcdpImgLoaderIntf getCcdpImgLoaderIntf(String nodeType, 
+                                                JsonNode config)
+  {
+    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname, CcdpImgLoaderIntf.class);
+    CcdpImgLoaderIntf impl = (CcdpImgLoaderIntf)obj;
+    impl.configure(nodeType, config);
+    return impl;
+  }
   
+  /**
+   * Gets the object responsible for controlling the resources.  For instance, 
+   * it starts and stops VMs, ask for status, etc.
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @param classname the name of the resource controller class
+   * 
+   * @return an actual implementation of the object that allows the scheduler
+   *         to manipulate the resources
+   */
+  public CcdpVMControllerIntf getCcdpVMResourceController(JsonNode config, String classname)
+  {
+    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    //String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname,CcdpVMControllerIntf.class);
+    CcdpVMControllerIntf impl = (CcdpVMControllerIntf)obj;
+    impl.configure(config);
+    return impl;
+  }
 }

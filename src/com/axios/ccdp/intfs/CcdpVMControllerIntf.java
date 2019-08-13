@@ -5,7 +5,7 @@ import java.util.List;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 public interface CcdpVMControllerIntf
@@ -19,7 +19,7 @@ public interface CcdpVMControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config );
+  public void configure( JsonNode config );
   
   /**
    * Starts one or more VM instances using the defined Image ID as given by the
@@ -86,7 +86,7 @@ public interface CcdpVMControllerIntf
    *        
    * @return a List containing all the Virtual Machines matching the criteria
    */
-  public List<CcdpVMResource>  getStatusFilteredByTags( ObjectNode filter );
+  public List<CcdpVMResource>  getStatusFilteredByTags( JsonNode filter );
   
   /**
    * Returns information about the instance matching the unique id given as 

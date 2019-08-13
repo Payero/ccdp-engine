@@ -3,7 +3,7 @@ package com.axios.ccdp.intfs;
 import java.util.List;
 
 import com.axios.ccdp.resources.CcdpVMResource;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public interface CcdpDatabaseIntf
 {
@@ -12,7 +12,7 @@ public interface CcdpDatabaseIntf
    * 
    * @param config the JSON representation of the DB connection arguments
    */
-  public void configure( ObjectNode config );
+  public void configure( JsonNode config );
   
   /**
    * Connects to the database using the settings passed to the configure() 
@@ -50,6 +50,14 @@ public interface CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformation();
   
   /**
+   * Gets a list of all the resources stored in the database of the specified type.
+   * 
+   * @param node_type the type of node to filter the return list for
+   * @return a list of the resources stored in the database of the specified type
+   */
+  public List<CcdpVMResource> getAllVMInformationOfType( String node_type );
+  
+  /**
    * Gets a list of all the resources stored in the database whose session id
    * matches the given one 'sid'
    * 
@@ -59,6 +67,17 @@ public interface CcdpDatabaseIntf
    *         matches the given one 'sid'
    */
   public List<CcdpVMResource> getAllVMInformationBySessionId( String sid );
+  
+  /*
+   * Get a list of resources that match node type and session id
+   * 
+   * @param SID the session search parameter
+   * @param  node_type the node type search paramter
+   * 
+   * @return a list of resource that match both the node type and the session id
+   */
+  public List<CcdpVMResource> getAllVMInformationBySessionIdAndNodeType(
+      String SID, String node_type);
   
   /**
    * Gets the total number of VMs stored in the database
@@ -91,4 +110,5 @@ public interface CcdpDatabaseIntf
    * Disconnects the client from the database
    */
   public void disconnect();
+
 }

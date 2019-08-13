@@ -33,11 +33,10 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpThreadRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * Class used to simulate a Virtual Machine to simplify development and testing
@@ -115,15 +114,14 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
    * 
    * @param type the type of node to create
    */
-  public SimVirtualMachine(CcdpNodeType type)
+  public SimVirtualMachine(String type)
   {
     this.logger.info("Running the Agent");
     this.controller = new ThreadController();
     
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -156,7 +154,7 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
         this.logger.warn("Could not get the IP address");
       }
     }
-    this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
+    this.logger.info("Using Host Id: " + hostId + " and type " + type);
     Properties props = System.getProperties();
     
     try
@@ -191,24 +189,23 @@ public class SimVirtualMachine implements Runnable, CcdpMessageConsumerIntf,
     this.vmInfo.setTotalMemory(this.monitor.getTotalPhysicalMemorySize());
     this.vmInfo.setDisk(this.monitor.getTotalDiskSpace());
 
-    
+    JsonNode eng_cfg = CcdpUtils.getEngineCfg();
     long hb = 3000;
     try
     {
-      hb = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_HB_FREQ) * 1000;
+      hb = eng_cfg.get(CcdpUtils.CFG_KEY_HB_FREQ).asInt() * 1000;
     }
     catch( Exception e )
     {
       this.logger.warn("The heartbeat frequency was not set using 3 seconds");
     }
     
-    this.toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    this.toMain = task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText();
     this.logger.info("Registering as " + hostId);
     this.connection.registerConsumer(hostId, hostId);
     this.connection.registerProducer(this.toMain);
-    
     boolean skip_hb = 
-        CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+        eng_cfg.get( CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
     if( !skip_hb )
     {
       // sends the heartbeat 

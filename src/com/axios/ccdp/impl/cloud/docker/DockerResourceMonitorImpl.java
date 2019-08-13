@@ -8,9 +8,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.spotify.docker.client.DefaultDockerClient;
 import com.spotify.docker.client.DockerClient;
 import com.spotify.docker.client.exceptions.DockerException;
@@ -100,12 +100,13 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     String units = UNITS.KB.toString();
     String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
     String fname = DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE;
-    JsonNode node = config.get("units");
+    //JsonNode node = config.get("units");
+    JsonNode node = config.get(CcdpConfigParser.KEY_VM_RESOURCE_UNITS);
     
     if( node != null )
       units = node.asText();
@@ -114,9 +115,14 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     
     this.setUnits( units );
     
-    if( config.has("docker.url") && config.get("docker.url") != null )
+    /*if( config.has("docker-url") && config.get("docker-url") != null )
     {
-      JsonNode obj = config.get("docker.url");
+      JsonNode obj = config.get("docker-url");
+      url = obj.asText();
+    }*/
+    if( config.has(CcdpConfigParser.KEY_DOCKER_URL) && config.get(CcdpConfigParser.KEY_DOCKER_URL) != null )
+    {
+      JsonNode obj = config.get(CcdpConfigParser.KEY_DOCKER_URL);
       url = obj.asText();
     }
     else
@@ -138,7 +144,9 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     try
     {
       this.longCid = DockerResourceMonitorImpl.getContainerID(fname);
+      //this.logger.debug("long cid: " + this.longCid); -- This is null, results in a NullPointerException
       this.shortCid = this.longCid.substring(0, 12);
+      //this.logger.debug("short cid: " + this.shortCid);
 
       this.docker = new DefaultDockerClient(url);
       this.prevStats = this.docker.stats(this.longCid);

@@ -158,10 +158,10 @@ public class CcdpTaskRunner extends Thread
     pb.redirectOutput(ProcessBuilder.Redirect.INHERIT);
     pb.redirectErrorStream(true);
     
-    if( this.task.getConfiguration().containsKey(CcdpUtils.CFG_KEY_LOG_DIR) )
+    if( this.task.getConfiguration().containsKey(CcdpUtils.JSON_KEY_LOGS_DIR) )
     {
       String log_dir = 
-          this.task.getConfiguration().get(CcdpUtils.CFG_KEY_LOG_DIR);
+          this.task.getConfiguration().get(CcdpUtils.JSON_KEY_LOGS_DIR);
       
       this.logger.info("The Mesos Directory is set at: " + log_dir);
       String err = this.task.getTaskId() + "-stderr";

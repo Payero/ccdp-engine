@@ -93,7 +93,7 @@ Creates a new container from the image and runs bash.  No CCDP is involved here.
 ##### Run a simple docker container and runs the stress test 
 Creates a new container from the image and runs CCDP CUP stress test.  
 
-`docker run -it --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp /data/ccdp/python/ccdp_mod_test.py -a testCpuUsage -p 10`
+`docker run -it --rm -v /data/ccdp:/data/ccdp payero/centos-7:ccdp /data/ccdp/ccdp-engine/python/ccdp_mod_test.py -a testCpuUsage -p 10`
 
 
 ##### Run CCDP getting the installation package from S3

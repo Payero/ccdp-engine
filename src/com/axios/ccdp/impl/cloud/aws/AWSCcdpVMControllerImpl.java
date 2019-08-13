@@ -45,9 +45,9 @@ import com.axios.ccdp.intfs.CcdpVMControllerIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
 {
@@ -63,7 +63,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Stores the command to execute at startup
    */
-  public static final String USER_DATA =  "#!/bin/bash\n\n ";
+  public static final String USER_DATA =  "#!/bin/bash\n";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -123,7 +123,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    *         authenticate the user
    */
   @Override
-  public void configure( ObjectNode config )
+  public void configure( JsonNode config )
   {
     logger.debug("Configuring ResourceController using: " + config);
     // the configuration is required
@@ -133,7 +133,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     // need to make sure the default configuration is set properly
     CcdpImageInfo def = 
-        CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+        CcdpUtils.getImageInfo( CcdpConfigParser.DEFAULT_IMG_NAME );
     if( def.getImageId() == null || 
         def.getSecGrp() == null || 
         def.getSubnet() == null )
@@ -209,26 +209,22 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
-    int max = imgCfg.getMaxReq();
     if( min == 0 )
       min = 1;
-   
-    if( max == 0 )
-      max = 1;
-
+    
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )
-      imgCfg.setSessionId(imgCfg.getNodeTypeAsString());
+      imgCfg.setSessionId(imgCfg.getNodeType());
     
-    String type = imgCfg.getNodeTypeAsString();
+    String type = imgCfg.getNodeType();
     
     logger.info("Starting VM of type " + type + " for session " + session_id ) ;
     
     Map<String, String> tags = imgCfg.getTags();
     
     //RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
-    RunInstancesRequest request = new RunInstancesRequest(imgId, 1, 1);
+    RunInstancesRequest request = new RunInstancesRequest(imgId, min, min);
     String instType = imgCfg.getInstanceType();
     
     // Do we need to add session id?
@@ -240,7 +236,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       //Not need to send -s session id anymore because the nodeType is passed instead
       //if ( session_id != null )
         //user_data += " -s " + session_id;
-      logger.info("Using User Data: " + user_data);
+      logger.info("Using User Data: \n" + user_data);
     }
     else
     {
@@ -250,13 +246,13 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     // encode data on your side using BASE64
     byte[]   bytesEncoded = Base64.encode(user_data.getBytes());
     logger.trace("encoded value is " + new String(bytesEncoded));
-    
+        
     request.withInstanceType(instType)
          .withUserData(new String(bytesEncoded ))
          .withSecurityGroupIds(imgCfg.getSecGrp())
          .withSubnetId(imgCfg.getSubnet())
          .withKeyName(imgCfg.getKeyFile());
-    
+
     String role = imgCfg.getRoleName(); 
     if( role != null )
     {
@@ -265,6 +261,42 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
                   new IamInstanceProfileSpecification();
       iam.setName(role);
       request.setIamInstanceProfile(iam);
+    }
+    
+    // Stuff I added
+    AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+    ClientConfiguration cc = new ClientConfiguration();
+    
+    /*String url = imgCfg.getProxyUrl();
+    if( url != null )
+    {
+      logger.debug("Adding a Proxy " + url);
+      cc.setProxyHost(url);
+    }
+    
+    int port = imgCfg.getProxyPort();
+    if( port > 0 )
+    {
+      logger.debug("Adding a Proxy Port " + port);
+      cc.setProxyPort(port);
+    }*/
+    
+    if( credentials != null )
+    {
+      this.ec2 = new AmazonEC2Client(credentials, cc);
+    }
+    else
+    {
+      this.ec2 = new AmazonEC2Client(cc);
+    }
+    
+    // Add region
+    String region = imgCfg.getRegion();
+    if( region != null )
+    {
+      logger.debug("Setting Region " + region);
+      Region reg = RegionUtils.getRegion(region);
+      this.ec2.setRegion(reg);
     }
     
     RunInstancesResult result = this.ec2.runInstances(request);
@@ -288,7 +320,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
         CreateTagsRequest tagsReq = new CreateTagsRequest();
         
         List<Tag> new_tags = new ArrayList<Tag>();
-        new_tags.add(new Tag(CcdpUtils.KEY_INSTANCE_ID, instId));
+        new_tags.add(new Tag(CcdpConfigParser.KEY_INSTANCE_ID, instId));
         
         if( tags != null )
         {
@@ -431,7 +463,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     logger.debug("Getting all the Instances Status");
     Map<String, CcdpVMResource> resources = new HashMap<>();
-    
+
     DescribeInstanceStatusRequest descInstReq = 
         new DescribeInstanceStatusRequest()
             .withIncludeAllInstances(true);
@@ -455,7 +487,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       {
       case "pending":
         res.setStatus(ResourceStatus.INITIALIZING);
-        System.out.println("STATUS SET TO NITIALIZING");
+        //System.out.println("STATUS SET TO NITIALIZING");
         break;
       case "running":
         res.setStatus(ResourceStatus.RUNNING);
@@ -598,7 +630,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    * @return A JSON Object containing all the Virtual Machines matching the 
    *         criteria
    */
-  public List<CcdpVMResource> getStatusFilteredByTags( ObjectNode filter )
+  public List<CcdpVMResource> getStatusFilteredByTags( JsonNode filter )
   {
     logger.debug("Getting Filtered Status using: " + filter);
     List<CcdpVMResource> all = this.getAllInstanceStatus();
@@ -703,10 +735,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
    */
   public static AWSCredentials getAWSCredentials()
   {
-    CcdpImageInfo img = CcdpUtils.getImageInfo(CcdpNodeType.DEFAULT);
+    CcdpImageInfo img = 
+        CcdpUtils.getImageInfo(CcdpConfigParser.EC2_IMG_NAME);
     String fname = img.getCredentialsFile();
     String profile = img.getProfileName();
-    
+    //System.out.println("fname, profile: " + fname +", " + profile);
     return AWSCcdpVMControllerImpl.getAWSCredentials(fname, profile);
   }
 
@@ -741,6 +774,8 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   {
     if( profile == null )
       profile = "default";
+    
+    //System.out.println("credsFile, profile: " + credsFile + ", " + profile);
     
     AWSCredentials credentials = null;
     
@@ -823,8 +858,10 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( file.isFile() )
     {
       ProfilesConfigFile cfgFile = new ProfilesConfigFile(file);
+      logger.debug(cfgFile.toString() + ", " + profile);
       creds = 
           new ProfileCredentialsProvider( cfgFile, profile ).getCredentials();
+      logger.debug(creds.toString());
     }
     else
     {

@@ -7,7 +7,7 @@
     [
       {"session-id":"mtest", 
        "command": [
-            "/data/ccdp/ccdp-engine/python/CcdpModuleLauncher.py", 
+            "/projects/users/srbenne/workspace/engine/python/CcdpModuleLauncher.py", 
             "-f", "/data/ccdp/webapp/frontend/server/src/modules/csv_reader.py" , 
             "-c", "CsvReader",
             "-a", "eydicm9rZXJfaG9zdCc6ICdheC1jY2RwLmNvbScsICdicm9rZXJfcG9ydCc6IDYxNjE2LCAndGFza19pZCc6ICdjc3YtcmVhZGVyJ30="]}

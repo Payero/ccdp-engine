@@ -30,6 +30,8 @@ import com.amazonaws.util.Base64;
 import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl;
+import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
@@ -41,11 +43,52 @@ public class VmLauncher
    */
   private ObjectMapper mapper = new ObjectMapper();
   
+  /*
+   * Using a LoaderImpl to launch VM
+   */
+  private CcdpImgLoaderIntf loader = null;
+  private JsonNode jsonCfg = null;
+  
   /**
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(VmLauncher.class.getName());
   
+  // Using the EC2 Loader instead of vm_config.json, scott.bennett@caci.com
+  public VmLauncher()
+  {
+    
+    loader = new EC2ImageLoaderImpl();
+    String cfgFile = System.getProperty("ccdp.config.file");
+    if ( cfgFile != null )
+    {
+      try
+      {
+        CcdpUtils.loadProperties(cfgFile);
+        this.jsonCfg = CcdpUtils.getResourceCfg("EC2");
+      }
+      catch ( Exception e ) 
+      {
+        e.printStackTrace();
+      }
+  
+      loader.configure("EC2", this.jsonCfg);
+      
+      try
+      {
+        CcdpImageInfo image2 = loader.getImageInfo();
+        this.launchVM(image2);
+      }
+      catch( Exception e ) 
+      {
+        e.printStackTrace();
+      }
+    }
+    else
+     logger.error("Could not find ccdp-config.json");
+  }
+  
+  // Oscar's original VmLauncher
   public VmLauncher(String filename)
   {
     this.logger.debug("Using File " + filename);
@@ -147,13 +190,12 @@ public class VmLauncher
       }
       
       this.launchVM(image);
-      
     }
     catch( Exception e )
     {
       this.logger.error("Message: " + e.getMessage(), e);
     }
-    
+    //}
   }
   
   
@@ -203,6 +245,7 @@ public class VmLauncher
       request.setIamInstanceProfile(iips);
     }
     AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+    //System.out.println(credentials.toString());
     
     ClientConfiguration cc = new ClientConfiguration();
     
@@ -212,7 +255,7 @@ public class VmLauncher
       this.logger.debug("Adding a Proxy " + url);
       cc.setProxyHost(url);
     }
-    
+
     int port = imgCfg.getProxyPort();
     if( port > 0 )
     {
@@ -286,7 +329,11 @@ public class VmLauncher
   
   public static void main( String[] args ) throws Exception
   {
-    String cfg_file = System.getProperty("ccdp.config.file");
+    // All of this is unneeded, uses EC2ImgLoaderImpl now
+    /*String cfg_file = System.getProperty("ccdp.config.file");
+    
+    //System.out.println(cfg_file);     -- Gets right path
+    
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     String fname = null;
@@ -298,7 +345,12 @@ public class VmLauncher
     else
       System.err.println("Just provide the filename if wanted");
     
-    new VmLauncher(fname);
+    //Oscar's call
+    //new VmLauncher(fname);
+    */
+    
+    // Scott's call
+    new VmLauncher();
   }
 
 }

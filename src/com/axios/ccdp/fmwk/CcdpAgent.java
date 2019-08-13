@@ -41,8 +41,7 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadController;
 import com.axios.ccdp.utils.ThreadedTimerTask;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf, 
@@ -103,30 +102,32 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    * 
    * @param type the type of node this agent is running
    */
-  public CcdpAgent(CcdpNodeType type)
+  public CcdpAgent(String type)
   {
     this.logger.info("Running the Agent");
+
     this.controller = new ThreadController();
     
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
     
-    ObjectNode res_mon_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_RES_MON);
-    ObjectNode db_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_DB_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();    
+    //JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
+    JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
-    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
+    //this.monitor = CcdpMasterResourceMonitor.getCcdpResourceMonitor(type);
+    JsonNode res_cfg = CcdpUtils.getResourceCfg(type);
+    this.monitor = factory.getResourceMonitorInterface(res_cfg);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
+    
     this.dbClient = factory.getCcdpDatabaseIntf( db_node );
+    this.dbClient.configure(db_node);
     this.dbClient.connect();
     
-    this.logger.debug("Done with the connections: " + task_msg_node.toString());
+    this.logger.info("Done with the connections: " + task_msg_node.toString());
     
     String hostId = this.monitor.getUniqueHostId();
     String hostname = null;
@@ -148,7 +149,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.logger.warn("Could not get the IP address");
       }
     }
-    this.logger.info("Using Host Id: " + hostId + " and type " + type.name());
+    this.logger.info("Using Host Id: " + hostId + " and type " + type );
     this.vmInfo = new CcdpVMResource(hostId);
     this.vmInfo.setHostname(hostname);
     this.vmInfo.setNodeType(type);
@@ -162,24 +163,23 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     // The default session id should it be the Node type?
     this.vmInfo.setAssignedSession(type.toString());
 
-    
+    JsonNode eng = CcdpUtils.getEngineCfg();
     long hb = 3000;
     try
     {
-      hb = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_HB_FREQ) * 1000;
+      hb = eng.get(CcdpUtils.CFG_KEY_HB_FREQ).asInt() * 1000;
     }
     catch( Exception e )
     {
       this.logger.warn("The heartbeat frequency was not set using 3 seconds");
     }
     
-    this.toMain = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    this.toMain = task_msg_node.get(CcdpUtils.CFG_KEY_MAIN_CHANNEL).asText(); 
     this.logger.info("Registering as " + hostId);
     this.connection.registerConsumer(hostId, hostId);
     this.connection.registerProducer(this.toMain);
     
-    boolean skip_hb = 
-        CcdpUtils.getBooleanProperty(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS);
+    boolean skip_hb = eng.get(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
     if( !skip_hb )
     {
       // sends the heartbeat 
@@ -243,7 +243,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.setSessionId(sessionMsg.getSessionId());
         this.runAssignmentTask(sessionMsg.getAssignCommand());
         break;
-      case RESOURCE_UPDATE:
       case RUN_TASK:
         RunTaskMessage taskMsg = (RunTaskMessage)message;
         this.launchTask(taskMsg.getTask());
@@ -311,7 +310,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.trace("Storing hearbeat");
+    this.logger.debug("Storing heartbeat");
     this.updateResourceInfo();
     //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
     this.dbClient.storeVMInformation(this.vmInfo);
@@ -562,7 +561,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       String fname = CcdpUtils.expandVars(System.getProperty(key));
       File file = new File( fname );
       if( file.isFile() )
+      {
         cfg_file = fname;
+        CcdpUtils.loadProperties(file);
+        loaded = true;
+      }
       else
         usage("The config file (" + fname + ") is invalid");
     }
@@ -588,14 +591,14 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       }
     }
     
-    CcdpNodeType type = CcdpNodeType.DEFAULT;
+    String type = CcdpUtils.DEFAULT_RES_NAME;
     if( cmd.hasOption('n') )
     {
       String val = cmd.getOptionValue('n');
       try
       {
-        CcdpNodeType temp = CcdpNodeType.valueOf( val );
-        type = temp;
+        if( CcdpUtils.getNodeTypes().indexOf(val) >= 0 )
+          type = val;
       }
       catch( Exception e )
       {
@@ -609,8 +612,8 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       {
         try
         {
-          CcdpNodeType temp = CcdpNodeType.valueOf( env );
-          type = temp;
+          if( CcdpUtils.getNodeTypes().indexOf(env) >= 0 )
+            type = env;
         }
         catch( Exception e )
         {

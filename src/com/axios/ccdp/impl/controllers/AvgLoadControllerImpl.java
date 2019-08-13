@@ -15,7 +15,6 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -34,6 +33,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
   public AvgLoadControllerImpl()
   {
     super();
+    this.logger.debug("New AvgLoadControllerImpl called");
+
   }
 
   /**
@@ -59,13 +60,16 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    * @param config the configuration used to set the allocation/deallocation
    *        parameters
    */
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
+    if (config == null)
+      throw new RuntimeException("The configuration cannot be null");
+    
     // set all the defaults first
     ObjectNode allocate = this.mapper.createObjectNode();
     allocate.put("cpu", 70);
     allocate.put("mem", 70);
-    allocate.put("time", 2);
+    allocate.put("time", 3);
     allocate.put("max-tasks", -1);
     
     ObjectNode deallocate = this.mapper.createObjectNode();
@@ -77,22 +81,31 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     if( config != null )
     {
       // Setting all the allocation parameters
-      if( config.has("allocate.avg.load.cpu") )
-        allocate.put("cpu", config.get("allocate.avg.load.cpu").asDouble());
-      if( config.has("allocate.avg.load.mem") )
-        allocate.put("mem", config.get("allocate.avg.load.mem").asDouble());
-      if( config.has("allocate.avg.load.time") )
-        allocate.put("time", config.get("allocate.avg.load.time").asInt());
-      if( config.has("allocate.no.more.than") )
-        allocate.put("max-tasks", config.get("allocate.no.more.than").asInt());
+      if( config.has("allocate") )
+      {
+        JsonNode alloc = config.get("allocate");
+        if( alloc.has("avg-cpu-load") )
+          allocate.put("cpu", alloc.get("avg-cpu-load").asDouble());
+        if( alloc.has("avg-mem-load") )
+          allocate.put("mem", alloc.get("avg-mem-load").asDouble());
+        if( alloc.has("avg-time-load") )
+          allocate.put("time", alloc.get("avg-time-load").asInt());
+        if( alloc.has("no-more-than") )
+          allocate.put("max-tasks", alloc.get("no-more-than").asInt());
+      }
       
       // Setting all the de-allocation parameters
-      if( config.has("deallocate.avg.load.cpu") )
-        deallocate.put("cpu", config.get("deallocate.avg.load.cpu").asDouble());
-      if( config.has("deallocate.avg.load.mem") )
-        deallocate.put("mem", config.get("deallocate.avg.load.mem").asDouble());
-      if( config.has("deallocate.avg.load.time") )
-        deallocate.put("time", config.get("deallocate.avg.load.time").asInt());
+      if( config.has("deallocate") )
+      {
+        JsonNode dealloc = config.get("deallocate");
+        if( dealloc.has("avg-cpu-load") )
+          deallocate.put("cpu", dealloc.get("avg-cpu-load").asDouble());
+        if( dealloc.has("avg-mem-load") )
+          deallocate.put("mem", dealloc.get("avg-mem-load").asDouble());
+        if( dealloc.has("avg-time-load") )
+          deallocate.put("time", dealloc.get("avg-time-load").asInt());
+      }
+
     }
     
     this.config.set("allocate", allocate);
@@ -131,6 +144,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
 //    if( avail.size() == 0 )
 //      return imgCfg;
     
+    // Get the allocation parameters from config and prepare for checking
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
@@ -144,14 +158,17 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     int load = 0;
     
     // let's try to guess the node type
-    Map<CcdpNodeType, CcdpImageInfo> types = new HashMap<>();
+    Map<String, CcdpImageInfo> types = new HashMap<>();
     
+    // For all resources, get the CPU and Mem statistics, add to array
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
-      CcdpNodeType type = vm.getNodeType();
+      // Add node type to hashmap
+      String type = vm.getNodeType();
       types.put(type, CcdpUtils.getImageInfo(type));
       
+      // Get statistics
       double vm_cpu = vm.getCPULoad() * 100;
       double vm_mem = vm.getMemLoad();
       double vm_tc = vm.getCPU();
@@ -167,11 +184,14 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
       load += vm.getNumberTasks();
     }
     
-    for( CcdpNodeType type : types.keySet() )
+    // What is the purpose of this??
+    // Possibly unneeded because of hybrid controllers
+    for( String type : types.keySet() )
       imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
     
+    // This DOES NOT work well for hybrid node support
     if( types.size() == 1 )
-      this.logger.info("Need more " + imgCfg.getNodeTypeAsString() + " nodes");
+      this.logger.info("Need more " + imgCfg.getNodeType() + " nodes");
     else
       this.logger.warn("Has more than one type of node, returning first one");
     
@@ -311,7 +331,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     // Now let's check averages...
     double avgCpu = this.getAverageCPU(assignedCPU);
     double avgMem = this.getAverageMem(assignedMEM, availableMEM);
-    this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
+    //this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
     
     this.logger.debug("Dealloc: Avg CPU Utilization: " + avgCpu);
     this.logger.debug("Dealloc: Avg MEM Utilization: " + avgMem);
@@ -362,8 +382,9 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
      customTaskAssignment(CcdpTaskRequest task, List<CcdpVMResource> resources)
    { 
      CcdpVMResource leastUsed = CcdpVMResource.leastUsed(resources);
-     
-     if(leastUsed ==null || ((leastUsed.getCPULoad()*100) >= CcdpUtils.getIntegerProperty("taskContrIntf.allocate.avg.load.cpu"))) {
+     logger.debug("Least Used: " + leastUsed.toString());
+     int cpu_load = this.config.get("allocate").get("cpu").asInt();
+     if(leastUsed ==null || ((leastUsed.getCPULoad()*100) >= cpu_load) ) {
        boolean first = true;
        
        //this is because sometime when the vm just stater running there is a 

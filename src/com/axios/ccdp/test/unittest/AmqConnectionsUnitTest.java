@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.axios.ccdp.impl.connections.amq.AmqReceiver;
@@ -42,7 +44,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
   {
 
   }
-
+  @Before
   public void setUp()
   {
     String cfg_file = System.getProperty(CcdpUtils.CFG_KEY_CFG_FILE);
@@ -54,10 +56,11 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     catch( Exception e )
     {
       System.err.println("Could not setup environment");
+      e.printStackTrace();
     }
     
-    Map<String, String> map = CcdpUtils.getKeysByFilter("connectionIntf");
-    this.broker = map.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION);
+    JsonNode conn_cfg = CcdpUtils.getConnnectionIntfCfg();
+    this.broker = conn_cfg.get(CcdpUtils.CFG_KEY_BROKER_CONNECTION).asText();    
     this.logger.debug("Connection to " + broker);
     
     this.receiver = new AmqReceiver(this);
@@ -66,7 +69,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
 //    this.receiver.connect(broker,  this.channel);
 //    this.sender.connect(broker,  this.channel);
   }
-  
+  @After
   public void tearDown()
   {
     if( this.sender != null )
@@ -117,7 +120,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     }
   }
   
-  //@Test
+  @Test
   public void testMessageWithOptions()
   {
     this.logger.debug("Testing Message with Options");
@@ -135,6 +138,10 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
     props.put("key-1", "value-1");
     props.put("key-2", "value-2");
     props.put("key-3", "value-3");
+    // Need to add the msg-type as it is done automatically by the CcdpMessage
+    int msgType = CcdpMessage.CcdpMessageType.UNDEFINED.msgType;
+    props.put("msg-type", String.valueOf(msgType)  );
+    
     JsonNode cfg = this.mapper.convertValue(props,  JsonNode.class);
     node.set("config", cfg);
     UndefinedMessage tstMsg = new UndefinedMessage();
@@ -156,6 +163,8 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
       Map<String, String> map = undMsg.getConfiguration();
       
       this.logger.debug("Got a latest " + load );
+      this.logger.debug("The Map " + map);
+      this.logger.debug("The Props " + props);
       assertEquals(props, map);
       assertEquals(msg, load);
     }

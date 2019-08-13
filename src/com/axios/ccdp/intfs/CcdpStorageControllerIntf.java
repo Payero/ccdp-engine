@@ -4,7 +4,7 @@ import java.io.File;
 import java.io.InputStream;
 
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 /**
@@ -28,7 +28,7 @@ public interface CcdpStorageControllerIntf
    * @param config a JSON Object containing all the necessary fields required 
    *        to operate
    */
-  public void configure( ObjectNode config );
+  public void configure( JsonNode config );
   
   /**
    * Creates a new storage location using the given argument.  If the storage 

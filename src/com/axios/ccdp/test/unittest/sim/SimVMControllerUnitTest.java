@@ -30,7 +30,7 @@ import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -82,14 +82,14 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Before
   public void setUpTest()
   {
+    System.out.println("****************************************************************************** \n");
     this.controller = new SimCcdpVMControllerImpl();
     this.messages = new ArrayList<>();
     this.heartbeats = new ArrayList<>();
     
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -98,7 +98,8 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     
     assertNotNull("Could not setup a connection with broker", this.connection);
     String uuid = UUID.randomUUID().toString();
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    String channel = 
+        task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL ).asText();
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
@@ -110,14 +111,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -131,15 +130,13 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startMultipleInstancesTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(3);
+    image.setMinReq(3);
     image.setSessionId("test-session");
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
+    assertTrue("The minimum should be ", image.getMinReq() == 3);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 3);
@@ -152,15 +149,13 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     image.setSessionId("test-session");
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -176,14 +171,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startInstanceWithoutSessionIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -199,14 +192,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startAndStopInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -233,14 +224,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void startManyAndStopSingleInstanceTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.NIFI);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("NIFI");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 3);
@@ -276,14 +265,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void checksTasksRunningOnVMTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.NIFI);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("NIFI");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 3);
@@ -335,14 +322,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     state = this.controller.getInstanceState("my-bogus-id");
     assertNull(state);
     
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -366,14 +351,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     tags.put("Group", "Test");
     
     this.logger.debug("Creating the first instance");
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags);
     
@@ -389,9 +372,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags2);
     
@@ -407,9 +388,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags3);
     
@@ -458,14 +437,12 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @Test
   public void getStatusByIdTest()
   {
-    CcdpImageInfo imgInf = CcdpUtils.getImageInfo(CcdpNodeType.EC2);
+    CcdpImageInfo imgInf = CcdpUtils.getImageInfo("EC2");
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(5);
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 5);
+    image.setMinReq(5);
+    assertTrue("The minimum should be ", image.getMinReq() == 5);
 
     List<String> iids = this.controller.startInstances(image);
     assertEquals("Shoud have five instances", iids.size(), 5);

@@ -56,7 +56,7 @@ usage()
 {
   echo ''
   echo 'Runs the class used for quick testing (CCDPTest).  It uses the '
-  echo '${CCDP_HOME}/config/ccdp-config.properties unless another one is '
+  echo '${CCDP_HOME}/config/ccdp-config.json unless another one is '
   echo 'provided using the -c argument'
   echo ''
   echo 'usage: $0'
@@ -69,7 +69,7 @@ usage()
 }
 
 
-CFG_FILE=${CCDP_HOME}/config/ccdp-config.properties
+CFG_FILE=${CCDP_HOME}/config/ccdp-config.json
 APP_ARGS=""
 JAVA_OPTS=""
 JAVA_APP="com.axios.ccdp.test.CCDPTest"

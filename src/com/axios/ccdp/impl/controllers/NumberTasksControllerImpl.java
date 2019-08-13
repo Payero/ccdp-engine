@@ -14,8 +14,7 @@ import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 /**
  * @author Oscar E. Ganteaume
@@ -49,6 +48,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
   public NumberTasksControllerImpl()
   {
     super();
+    this.logger.debug("New NumberTasksControllerImpl called");
   }
 
   /**
@@ -67,18 +67,24 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
    * @param config the configuration used to set the allocation/deallocation
    *        parameters
    */
-  public void configure(ObjectNode config)
+  public void configure(JsonNode config)
   {
     if( config == null )
       throw new RuntimeException("The configuration cannot be null");
     
-    int tmp = this.getParam(config, "allocate.no.more.than");
+    JsonNode alloc = config.get("allocate");
+    int tmp = this.getParam(alloc, "no-more-than");
     if( tmp > 0 )
       this.max_tasks = tmp;
+    else
+      this.max_tasks = DEF_MAX_NUMBER_TASKS;
     
-    tmp = this.getParam(config, "deallocate.avg.load.time");
+    JsonNode dealloc = config.get("deallocate");
+    tmp = this.getParam(dealloc, "avg-time-load");
     if( tmp > 0 )
       this.max_time = tmp;
+    else
+      this.max_time = DEF_MAX_IDLE_TIME;
   }
 
   /**
@@ -89,7 +95,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
    * @param field the name of the field to extract
    * @param param the parameter to set
    */
-  private int getParam(ObjectNode config, String field)
+  private int getParam(JsonNode config, String field)
   {
     this.logger.trace("Looking for " + field);
     if( config.has(field) )
@@ -142,11 +148,11 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     if( avail.size() == 0 )
       return imgCfg;
     
-    CcdpNodeType type = avail.get(0).getNodeType();
+    String type = avail.get(0).getNodeType();
     boolean are_diff = false;
     for( CcdpVMResource vm : avail )
     {
-      CcdpNodeType t = vm.getNodeType();
+      String t = vm.getNodeType();
       if( !t.equals(type) )
       {
         are_diff = true;
@@ -158,8 +164,8 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       this.logger.warn("Has more than one type of node, returning first one");
     
     int sz = avail.size();
-    this.logger.trace("Resources size " + resources.size() + " available " + sz);
-    this.logger.trace("Using Max number of Tasks "+ this.max_tasks);
+    this.logger.trace("Resources size: " + resources.size() + ", Available: " + sz);
+    this.logger.trace("Using Max number of Tasks = "+ this.max_tasks);
     
     int total_tasks = 0;
     for( CcdpVMResource res : avail )
@@ -167,7 +173,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
     
     int avgLoad = (int)( total_tasks / sz);
     
-    if( avgLoad >= this.max_tasks )
+    if( avgLoad > this.max_tasks )
     {
       String txt = "Need Resources: the Average Load " + avgLoad + 
           " is greater than allowed " + this.max_tasks;
@@ -258,7 +264,7 @@ public class NumberTasksControllerImpl extends CcdpVMControllerAbs
       }
       
       int tasks = vm.getNumberTasks();
-      if( tasks < this.max_tasks )
+      if( tasks < this.max_tasks && vm.getNodeType().equals(task.getNodeType()))
         return vm;
     }
     

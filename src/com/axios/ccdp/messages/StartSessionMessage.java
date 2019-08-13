@@ -1,6 +1,6 @@
 package com.axios.ccdp.messages;
 
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonSetter;
 
@@ -10,7 +10,7 @@ public class StartSessionMessage extends CcdpMessage
   private CcdpMessageType msgType = CcdpMessageType.START_SESSION;
   
   private String sessionId = null;
-  private CcdpNodeType nodeType = CcdpNodeType.EC2;
+  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   
   public StartSessionMessage()
   {
@@ -47,23 +47,13 @@ public class StartSessionMessage extends CcdpMessage
   }
   
   @JsonGetter("node-type")
-  public String getNodeTypeAsString()
-  {
-    return this.nodeType.toString();
-  }
-  
-  @JsonSetter("node-type")
-  public void setNodeType( String node)
-  {
-    this.nodeType = CcdpNodeType.valueOf(node);
-  }
-  
-  public CcdpNodeType getNodeType()
+  public String getNodeType()
   {
     return this.nodeType;
   }
   
-  public void setNodeType( CcdpNodeType node )
+  @JsonSetter("node-type")
+  public void setNodeType( String node)
   {
     this.nodeType = node;
   }

@@ -23,8 +23,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.axios.ccdp.utils.CcdpUtils.CcdpNodeType;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
 
 import static org.junit.Assert.*;
 
@@ -87,8 +86,7 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
     
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
-    ObjectNode task_msg_node = 
-        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_CONN_INTF);
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
@@ -97,11 +95,12 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
     
     assertNotNull("Could not setup a connection with broker", this.connection);
     String uuid = UUID.randomUUID().toString();
-    String channel = CcdpUtils.getProperty(CcdpUtils.CFG_KEY_MAIN_CHANNEL);
+    String channel = 
+        task_msg_node.get( CcdpUtils.CFG_KEY_MAIN_CHANNEL ).asText();
     assertNotNull("The Main Channel cannot be null", channel);
     this.connection.registerConsumer(uuid, channel);
     
-    this.node = new SimVirtualMachine(CcdpNodeType.EC2);
+    this.node = new SimVirtualMachine("EC2");
     this.node.setRemoveTask(false);
     
     assertNotNull("Could not instantiate a new MockVirtualMachine", this.node);
@@ -122,10 +121,11 @@ public class SimVirtualMachineUnitTest implements CcdpMessageConsumerIntf
     this.logger.debug("Checking to see if is sending Heartbeats");
     new Thread(this.node).start();
     
+    JsonNode eng_cfg = CcdpUtils.getEngineCfg();
     long hb = 3;
     try
     {
-      hb = CcdpUtils.getIntegerProperty(CcdpUtils.CFG_KEY_HB_FREQ);
+      hb = eng_cfg.get( CcdpUtils.CFG_KEY_HB_FREQ ).asInt();
     }
     catch( Exception e )
     {

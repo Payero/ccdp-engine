@@ -7,7 +7,7 @@
 # Backup invocation parameters
 COMMANDLINE_ARGS="$@"
 
-## START: Default Configuration
+# START: Default Configuration
 #--------------------------------------------------------------------
 #
 
@@ -82,7 +82,7 @@ ARGS=""
 SRCH_APP_NAME="${JAVA_APP}"
 APP_NAME=`echo ${JAVA_APP} | sed 's/.*\.//'`
 JAVA_OPTS="-Dccdp.logs.dir=${CCDP_LOG_DIR} \
-					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.properties \
+					 -Dccdp.config.file=${CCDP_CFG_DIR}/ccdp-config.json \
 		       -Xmx1500m"
 
 export JAVA_OPTS
@@ -96,7 +96,7 @@ case $1 in
   # If the node type is set, then use it  
   NODE_TYPE="DEFAULT"
   if [ ! -z $CCDP_NODE_TYPE ] ; then
-    echo "Setting Node type"
+    echo "Setting Node type to: $CCDP_NODE_TYPE"
     NODE_TYPE=`echo $CCDP_NODE_TYPE | awk '{print toupper($0)}'`
     ARGS="${ARGS} --node-type ${NODE_TYPE} "
   fi
@@ -155,6 +155,9 @@ case $1 in
     nohup ${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS > ${CCDP_LOG_FILE} &
   else
     CMD="${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS"
+    echo "Cmd run: $CMD"
+    echo ""
+    echo ""
     exec $CMD
   fi
 
@@ -189,9 +192,10 @@ case $1 in
 	;;
 
 	restart)
+        # was stop and start bin/run_app.sh, changed to service
 	echo "    Restarting ${APP_NAME}"
-	/bin/bash ${CCDP_HOME}/bin/run_app.sh stop
-	/bin/bash ${CCDP_HOME}/bin/run_app.sh start
+	/bin/bash ${CCDP_HOME}/bin/run_service.sh stop
+	/bin/bash ${CCDP_HOME}/bin/run_service.sh start
 
 	echo "."
 

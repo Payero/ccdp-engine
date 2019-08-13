@@ -1,0 +1,14 @@
+{
+  "jobs": 
+    [
+      {
+        "session-id":"test-1", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=25,max=30"
+            ]
+       }
+    ]
+}

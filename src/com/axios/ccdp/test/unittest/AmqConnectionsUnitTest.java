@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import com.axios.ccdp.impl.connections.amq.AmqReceiver;
@@ -42,7 +44,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
   {
 
   }
-
+  @Before
   public void setUp()
   {
     String cfg_file = System.getProperty(CcdpUtils.CFG_KEY_CFG_FILE);
@@ -67,7 +69,7 @@ public class AmqConnectionsUnitTest extends TestCase implements CcdpMessageConsu
 //    this.receiver.connect(broker,  this.channel);
 //    this.sender.connect(broker,  this.channel);
   }
-  
+  @After
   public void tearDown()
   {
     if( this.sender != null )

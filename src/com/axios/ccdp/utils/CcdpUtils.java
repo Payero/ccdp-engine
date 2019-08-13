@@ -60,6 +60,9 @@ public class CcdpUtils
   /**  The default name of the log4j configuration file  */
   public static final String LOG4J_CFG_FILENAME = "log4j.properties";
   
+  /** The string for CCDP free agents' session id */
+  public static final String FREE_AGENT_SID = "FREE_AGENT";
+  
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-heartbeats";  
   /** Stores the number of seconds to send/receive heartbeats **/
@@ -75,6 +78,7 @@ public class CcdpUtils
   
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
+ 
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
 //  /**  The key name of the property the root path of the system  */
@@ -594,6 +598,12 @@ public class CcdpUtils
         {
           String type = job.get("node-type").asText();
           task.setNodeType( type.toUpperCase() );
+          request.setNodeType(type);
+        }
+        else
+        {
+          task.setNodeType("DEFAULT");
+          request.setNodeType("DEFAULT");
         }
         
         if( job.has("mem") )
@@ -630,7 +640,6 @@ public class CcdpUtils
           + " make sure the tasking configuration is properly set";
       throw new IllegalArgumentException(txt);
     }
-    
     return requests;
   }
   

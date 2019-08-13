@@ -66,8 +66,7 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public List<String> startInstances(CcdpImageInfo imgCfg)
   {
-    
-    int max = imgCfg.getMaxReq();
+    int min = imgCfg.getMinReq();
     
     String type = imgCfg.getNodeType();
     String typeStr = type.toString();
@@ -76,9 +75,9 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
     if( session_id == null )
       imgCfg.setSessionId( imgCfg.getNodeType() );
     
-    this.logger.info("Launching " + max + " Nodes of type " + typeStr );
+    this.logger.info("Launching " + min + " Nodes of type " + typeStr );
     List<String> launched = new ArrayList<>();
-    for(int i = 0; i < max; i++ )
+    for(int i = 0; i < min; i++ )
     {
       SimVirtualMachine node = new SimVirtualMachine( type );
       node.setTags(imgCfg.getTags());

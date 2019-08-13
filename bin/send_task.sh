@@ -170,4 +170,6 @@ fi
 CMD="${JAVA_CMD} -cp ${_CLASSPATH} ${JAVA_APP} $APP_ARGS"
 
 echo "Running: ${CMD} "
+echo ""
+echo ""
 exec $CMD 

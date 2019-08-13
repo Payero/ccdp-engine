@@ -220,6 +220,32 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   }
 
   /**
+   * Gets a list of all the resources stored in the database of specified type.
+   * 
+   * @param type the type of node to filter the return list for
+   * @return a list of the resources stored in the database of the specified type
+   */
+  public List<CcdpVMResource> getAllVMInformationOfType( String type )
+  {
+    List<CcdpVMResource> result = new ArrayList<>();
+    FindIterable<Document> docs = this.statusColl.find(Filters.eq("node-type", type));
+    for( Document doc : docs )
+    {
+      try
+      {
+        result.add( this.getCcdpVMResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM " + jpe.getMessage() );
+        continue;
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
    * Gets a list of all the resources stored in the database whose session id
    * matches the given one 'sid'
    * 
@@ -308,5 +334,39 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     JsonNode node = this.mapper.valueToTree(map);
     return this.mapper.treeToValue(node, CcdpVMResource.class);
     
+  }
+
+  /**
+   * Gets the total number of VMs stored in the database assigned to a specific
+   * session with a specific node type
+   * 
+   * @param SID the session id to query
+   * @param node_type the node_type to query
+   * 
+   * @return the total number of VMs stored in the database assigned to a
+   *         specific session
+   */
+  @Override
+  public List<CcdpVMResource> getAllVMInformationBySessionIdAndNodeType(
+      String SID, String node_type)
+  {
+    this.logger.debug("Finding all VMs for " + SID + " and " + node_type);
+    List<CcdpVMResource> result = new ArrayList<>();
+    FindIterable<Document> docs = 
+        this.statusColl.find( Filters.and(Filters.eq("session-id", SID), Filters.eq("node-type", node_type)) );
+    
+    for( Document doc : docs )
+    {
+      try
+      {
+        result.add( this.getCcdpVMResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM");
+        continue;
+      }
+    }
+    return result;
   }
 }

@@ -7,13 +7,13 @@
   <property name="client.name" value="ccdp-client" />
   <property name="connection.name" value="ccdp-client-connection" />
 
-  <property name="bucket-name" value="ccdp-dist" />
+  <property name="bucket-name" value="ccdp-settings" />
 
-  <!-- Determines whether to compile as 1.7, 1.8, 10, or 12.0.1
+  <!-- Determines whether to compile as 1.7, 1.8, or 10
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
   -->
-  <property name="tgt.jdk" value="12.0.1" />
+  <property name="tgt.jdk" value="10" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -106,24 +106,17 @@
 		</antcall>
 	</target>
 	
-	<!-- Runs all the unit tests to the AWS tasking controller interface -->
+	<!-- Runs all the unit tests to the the AWS tasking controller interface -->
 	<target name="AWSController" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AWSControllerUnitTest" />
 	  </antcall>
 	</target>
 
-  <!-- Runs all the unit tests to the AWS tasking controller interface -->
+  <!-- Runs all the unit tests to the the AWS tasking controller interface -->
   <target name="AmqConnections" depends="test-compile">
 	  <antcall target="junit.testing">
 	    <param name="test.pattern" value="AmqConnectionsUnitTest" />
-	  </antcall>
-	 </target>
-	
-  <!-- Runs all the unit tests to manipulate MongoDB -->
-  <target name="MongoDb" depends="test-compile">
-	  <antcall target="junit.testing">
-	    <param name="test.pattern" value="MongoDbUnitTest" />
 	  </antcall>
 	 </target>
 

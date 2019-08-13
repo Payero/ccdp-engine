@@ -98,7 +98,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public void configure( JsonNode config )
   {
-    logger.debug("Configuring ResourceController using: " + config);
+    //logger.debug("Configuring ResourceController using: " + config);
     
     // the configuration is required
     if( config == null )
@@ -118,7 +118,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       this.use_fs = true;
     }
     //Use environment vars
-    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && System.getenv(ACCESS_SECRET_ENV_VAR) != null)
+    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && 
+            System.getenv(ACCESS_SECRET_ENV_VAR) != null)
     {
       logger.info("Getting Distribution File from AWS S3 using Env Vars");
       this.config.put("aws-access-id", System.getenv(ACCESS_KEY_ID_ENV_VAR));
@@ -174,15 +175,11 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     try
     {
       int min = imgCfg.getMinReq();
-      int max = imgCfg.getMaxReq();
       int numLaunched = 0;
       if( min == 0 )
         min = 1;
-     
-      if( max == 0 )
-        max = 1;
       
-      while (numLaunched < max) 
+      while (numLaunched < min) 
       {
         // if the session id is not assigned, then use the node type
         String session_id = imgCfg.getSessionId();
@@ -191,25 +188,28 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         
         String type = imgCfg.getNodeType();
         
-        logger.info("Starting VM of type " + type + " for session " + session_id ) ;
+        logger.info("Starting VM of type " + type + " for SID " + session_id ) ;
         // Setting all the environment variables
         List<String> envs = new ArrayList<>();
         
-        JsonNode res_mon = CcdpUtils.getResourceMonitorIntfCfg();
+        JsonNode res_mon = CcdpUtils.getResourceCfg(type);
         String url = "http://172.17.0.1:2375";
         if( res_mon.has("docker-url") )
           url = res_mon.get("docker-url").asText();
         
-        logger.info("Connecting to docker enging at: " + url);
+        logger.info("Connecting to docker engine at: " + url);
         
         envs.add("DOCKER_HOST=" + url );
         envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
         // Add AWS specific ones if we are using AWS S3 Bucket
         if( !this.use_fs )
         {
-          envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws-region").asText());
-          envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws-secret-key").asText());
-          envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws-access-id").asText());
+          envs.add("AWS_DEFAULT_REGION=" + 
+                    this.config.get("aws-region").asText());
+          envs.add("AWS_SECRET_ACCESS_KEY=" + 
+                    this.config.get("aws-secret-key").asText());
+          envs.add("AWS_ACCESS_KEY_ID=" + 
+                    this.config.get("aws-access-id").asText());
         }
         
         // Parsing the command to start the docker container

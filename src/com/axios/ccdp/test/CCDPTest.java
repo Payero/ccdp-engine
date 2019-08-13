@@ -50,7 +50,7 @@ public class CCDPTest
       this.logger.debug("Connected");
       List<String> envs = new ArrayList<>();
       logger.info("Connecting to docker enging at: " + url);
-      
+      //System.out.println(CcdpUtils.getNodeTypes().toString());
       envs.add("DOCKER_HOST=" + url );
       envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
       envs.add("AWS_ACCESS_KEY_ID=" + System.getenv("AWS_ACCESS_KEY_ID"));
@@ -91,7 +91,7 @@ public class CCDPTest
           .entrypoint(cmd)
           .build();
       
-      System.out.println(cfg.toString());
+      logger.debug(cfg.toString());
       
       ContainerCreation cc = client.createContainer(cfg);
       String cid = cc.id();
@@ -141,7 +141,10 @@ public class CCDPTest
     //System.out.println(cfg_file); ///projects/users/srbenne/workspace/engine/config/ccdp-config.json AS EXPECTED
     
     // Uses the cfg file to configure all CcdpUtils for use in the next service
+    System.out.println("Before loadProperties");
+    // Calling getNodeTypes() here give nullptr, THIS IS WHAT BREAKS THE AGENT.
     CcdpUtils.loadProperties(cfg_file);
+    System.out.println("After Load properties");
     CcdpUtils.configLogger();
     
     new CCDPTest();

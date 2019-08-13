@@ -63,7 +63,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
   /**
    * Stores the command to execute at startup
    */
-  public static final String USER_DATA =  "#!/bin/bash\n\n ";
+  public static final String USER_DATA =  "#!/bin/bash\n";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -209,13 +209,9 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     String imgId = imgCfg.getImageId();
     int min = imgCfg.getMinReq();
-    int max = imgCfg.getMaxReq();
     if( min == 0 )
       min = 1;
-   
-    if( max == 0 )
-      max = 1;
-
+    
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )
@@ -228,7 +224,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     Map<String, String> tags = imgCfg.getTags();
     
     //RunInstancesRequest request = new RunInstancesRequest(imgId, min, max);
-    RunInstancesRequest request = new RunInstancesRequest(imgId, 1, 1);
+    RunInstancesRequest request = new RunInstancesRequest(imgId, min, min);
     String instType = imgCfg.getInstanceType();
     
     // Do we need to add session id?
@@ -240,7 +236,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
       //Not need to send -s session id anymore because the nodeType is passed instead
       //if ( session_id != null )
         //user_data += " -s " + session_id;
-      logger.info("Using User Data: " + user_data);
+      logger.info("Using User Data: \n" + user_data);
     }
     else
     {

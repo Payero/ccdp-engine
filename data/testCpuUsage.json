@@ -1,6 +1,12 @@
 {
   "jobs": 
     [
-      {"session-id":"test-1",  "command": ["/data/CCDP/bin/ccdp_mod_test.py", "-a", "testCpuUsage" , "-p", "60"]}
+      {
+      "session-id":"test-1",  
+      "node-type": "DOCKER",
+      "command": 
+		[
+		"/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+      "-a", "testCpuUsage" , "-p", "60"]}
     ]
 }

@@ -156,6 +156,8 @@ case $1 in
   else
     CMD="${JAVA_HOME}/bin/java ${JAVA_OPTS} ${JMX_PROP} -cp ${CLASS_PATH} ${JAVA_APP} $ARGS"
     echo "Cmd run: $CMD"
+    echo ""
+    echo ""
     exec $CMD
   fi
 

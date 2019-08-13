@@ -161,7 +161,8 @@ public class CcdpObjectFactory
    */
   public SystemResourceMonitorAbs getResourceMonitorInterface(JsonNode config)
   {
-    String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    String key = CcdpConfigParser.KEY_VM_RESOURCE_MONITOR;
     String classname = config.get(key).asText();
     Object obj = this.getNewInstance(classname, SystemResourceMonitorAbs.class);
     SystemResourceMonitorAbs impl = (SystemResourceMonitorAbs)obj;
@@ -265,4 +266,23 @@ public class CcdpObjectFactory
     return impl;
   }
   
+  /**
+   * Gets the object responsible for controlling the resources.  For instance, 
+   * it starts and stops VMs, ask for status, etc.
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @param classname the name of the resource controller class
+   * 
+   * @return an actual implementation of the object that allows the scheduler
+   *         to manipulate the resources
+   */
+  public CcdpVMControllerIntf getCcdpVMResourceController(JsonNode config, String classname)
+  {
+    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
+    //String classname = config.get(key).asText();
+    Object obj = this.getNewInstance(classname,CcdpVMControllerIntf.class);
+    CcdpVMControllerIntf impl = (CcdpVMControllerIntf)obj;
+    impl.configure(config);
+    return impl;
+  }
 }

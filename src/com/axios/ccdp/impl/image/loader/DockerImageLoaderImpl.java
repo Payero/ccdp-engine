@@ -4,7 +4,7 @@
 package com.axios.ccdp.impl.image.loader;
 
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 
 import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.resources.CcdpImageInfo;
@@ -22,8 +22,8 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = 
-                    Logger.getLogger(DockerImageLoaderImpl.class.getName());
+  //private Logger logger = 
+  //                  Logger.getLogger(DockerImageLoaderImpl.class.getName());
   /**
    * Stores all the configurations for this image
    */
@@ -44,7 +44,7 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
   {
     this.nodeType = nodeType;
     this.config = config;
-    logger.debug("Configure completed");
+    //logger.debug("Configure completed");
   }
 
   /**
@@ -65,7 +65,6 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
     img.setNodeType(nodeType);
     img.setImageId (this.config.get("image-id").asText() );
     img.setMinReq( this.config.get("min-number-free-agents").asInt());
-    img.setMaxReq( this.config.get("min-number-free-agents").asInt());
     
     JsonNode node = this.config.get("startup-command");
     if( node != null && node.isArray() )
@@ -77,7 +76,6 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
       }
       img.setStartupCommand( startupCommand );
     }
-    logger.debug("Got img: " + img.toPrettyPrint());
     return img;
   }
 

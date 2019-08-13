@@ -111,17 +111,20 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     // creating the factory that generates the objects used by the agent
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
-    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();
-    
-    JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
+    JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();    
+    //JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
-    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
+    //this.monitor = CcdpMasterResourceMonitor.getCcdpResourceMonitor(type);
+    JsonNode res_cfg = CcdpUtils.getResourceCfg(type);
+    this.monitor = factory.getResourceMonitorInterface(res_cfg);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
+    
     this.dbClient = factory.getCcdpDatabaseIntf( db_node );
+    this.dbClient.configure(db_node);
     this.dbClient.connect();
     
     this.logger.info("Done with the connections: " + task_msg_node.toString());
@@ -240,7 +243,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         this.setSessionId(sessionMsg.getSessionId());
         this.runAssignmentTask(sessionMsg.getAssignCommand());
         break;
-      case RESOURCE_UPDATE:
       case RUN_TASK:
         RunTaskMessage taskMsg = (RunTaskMessage)message;
         this.launchTask(taskMsg.getTask());
@@ -308,7 +310,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
    */
   public void onEvent()
   {
-    this.logger.trace("Storing hearbeat");
+    this.logger.debug("Storing heartbeat");
     this.updateResourceInfo();
     //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
     this.dbClient.storeVMInformation(this.vmInfo);
@@ -559,7 +561,11 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       String fname = CcdpUtils.expandVars(System.getProperty(key));
       File file = new File( fname );
       if( file.isFile() )
+      {
         cfg_file = fname;
+        CcdpUtils.loadProperties(file);
+        loaded = true;
+      }
       else
         usage("The config file (" + fname + ") is invalid");
     }
@@ -596,7 +602,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       }
       catch( Exception e )
       {
-        System.err.println("Ooof, Invalid Node Type " + val + " using DEFAULT");
+        System.err.println("Invalid Node Type " + val + " using DEFAULT");
       }
     }
     else  // attempting to get it from the environment variable
@@ -611,7 +617,7 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
         }
         catch( Exception e )
         {
-          System.err.println("BLAH, Invalid Node Type " + env + " using DEFAULT");
+          System.err.println("Invalid Node Type " + env + " using DEFAULT");
         }
       }
     }
@@ -620,7 +626,6 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
       CcdpUtils.loadProperties(cfg_file);
     
     CcdpUtils.configLogger();
-    type = "DOCKER";
     new CcdpAgent(type);
 
   }

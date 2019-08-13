@@ -1,4 +1,4 @@
-package com.axios.ccdp.test.unittest.MainApplication;
+package com.axios.ccdp.test.unittest.MainApplication.old;
 
 import static org.junit.Assert.*;
 
@@ -91,10 +91,9 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	protected static double addSecond = 15;
 
 	@BeforeClass
-	public static void initialization() {
-		//load the config file before every test case
+	public static void initialization() 
+	{
 		JUnitTestHelper.initialize();
-		System.out.println("Im in the class with the test cases");
 	}
 	@Before
 	public  void setUpTest()
@@ -126,8 +125,8 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	//setting the controller and storage properties to the appropriate name
 		ObjectNode res_mgr = CcdpUtils.getResourceManagerIntfCfg().deepCopy();
 		res_mgr.put("classname", CcdpMainApplicationTests.CcdpVMcontroller);
-		String expDist = CcdpUtils.expandVars("${CCDP_HOME}/dist/ccdp-engine.tgz");
-    res_mgr.put("dist-file", expDist);  
+		//String expDist = CcdpUtils.expandVars("${CCDP_HOME}/dist/ccdp-engine.tgz");
+    //res_mgr.put("dist-file", expDist);  
 		res_mgr.put("docker-url", "http://172.17.0.1:2375");
 		CcdpUtils.setResourceManagerIntfCfg(res_mgr);
     
@@ -151,16 +150,24 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
     ObjectNode nif_cfg = CcdpUtils.getResourceCfg("NIFI").deepCopy();
     nif_cfg.put("min-number-free-agents", 0);
     CcdpUtils.setResourceCfg("NIFI", nif_cfg);
-
+    
 		System.out.println("\n ***************************************************************************** \n");
+    //ccdpEngine = new CcdpMainApplication(null);
 
 	}
 
 	/**
+	 * Did setup even work?
+	 */
+	@Test
+	public void testSetupCompletion()
+	{
+	  this.logger.info("Set up complete.");
+	}
+	/**
 	 * Testing the checkFreeVMRequirements() function
 	 * Making sure there are no vms running
 	 */
-
 	@Test
 	public void ZeroFreeVMTest()
 	{
@@ -254,7 +261,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 	 * Making sure there is only one vm running and is of session NIFI
 	 */
 
-	@Test(timeout=120000)//test fails if it takes longer than 2 min
+	//@Test(timeout=120000)//test fails if it takes longer than 2 min
 	public void OneFreeVMforNifi()
 	{
 		this.logger.info("Running OneFreeVMforNifi");
@@ -285,6 +292,38 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("NIFI").get(0).getStatus().toString();
 		assertEquals("RUNNING",vmStatus);
 	}
+	
+ @Test (timeout=120000)//test fails if it takes longer than 2 min
+ public void OneFreeVMforDocker()
+  {
+    this.logger.info("Running OneFreeVMforDocker");
+    ObjectNode docker_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    docker_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", docker_cfg);
+    
+    ccdpEngine= new CcdpMainApplication(null);
+    assertNotNull("The application should not be null", ccdpEngine);
+    //waiting for the engine to get settle and launch vms if need
+    double pauseTime = ccdpEngine.getTimerDelay()/1000 + addSecond;
+    CcdpUtils.pause(pauseTime);
+
+    Iterator<String> sessions = ccdpEngine.getSessionIds().iterator();
+   
+    while( sessions.hasNext() )
+    {
+      String sid = sessions.next();
+      List<CcdpVMResource> list = ccdpEngine.getCcdpVMResourcesBySID(sid);
+      int numberOfVM = list.size();
+      if(sid.equals("DOCKER")) {
+        assertEquals(1,numberOfVM);
+      }else {
+        assertEquals(0,numberOfVM);
+      }
+    }
+    waitUntilVMisRunning("DOCKER");
+    String vmStatus = ccdpEngine.getCcdpVMResourcesBySID("DOCKER").get(0).getStatus().toString();
+    assertEquals("RUNNING",vmStatus);
+  }
 
 	/**
 	 * Testing that the engine launches free VMs when needed based on the config file
@@ -1443,6 +1482,7 @@ public class CcdpMainApplicationTests implements CcdpMessageConsumerIntf
 		ccdpEngine.stopCCDPApplication(true);
 		this.connection.disconnect();
 		this.taskMap.clear();
+		this.logger.debug("Tear down complete");
 	}
 
 

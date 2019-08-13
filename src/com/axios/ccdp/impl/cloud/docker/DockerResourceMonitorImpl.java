@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.spotify.docker.client.DefaultDockerClient;
@@ -104,7 +105,8 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     String units = UNITS.KB.toString();
     String url = DockerResourceMonitorImpl.DEFAULT_DOCKER_HOST;
     String fname = DockerResourceMonitorImpl.DEFAULT_CGROUP_FILE;
-    JsonNode node = config.get("units");
+    //JsonNode node = config.get("units");
+    JsonNode node = config.get(CcdpConfigParser.KEY_VM_RESOURCE_UNITS);
     
     if( node != null )
       units = node.asText();
@@ -113,9 +115,14 @@ public class DockerResourceMonitorImpl extends SystemResourceMonitorAbs
     
     this.setUnits( units );
     
-    if( config.has("docker-url") && config.get("docker-url") != null )
+    /*if( config.has("docker-url") && config.get("docker-url") != null )
     {
       JsonNode obj = config.get("docker-url");
+      url = obj.asText();
+    }*/
+    if( config.has(CcdpConfigParser.KEY_DOCKER_URL) && config.get(CcdpConfigParser.KEY_DOCKER_URL) != null )
+    {
+      JsonNode obj = config.get(CcdpConfigParser.KEY_DOCKER_URL);
       url = obj.asText();
     }
     else

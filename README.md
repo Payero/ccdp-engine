@@ -17,8 +17,8 @@ modules
    
 ### Minimum Requirements:
 
-- Java SDK 8
-- Ant 1.7
+- Java SDK <s>8</s> 12
+- Ant <s>1.7</s> 1.10
 
 ### Installing
 
@@ -46,12 +46,10 @@ of agents is not limited.
 
 ### To Do:
 - Add running on a single VM to the Thread Request
-- Need to add different images based on node types!!
+- <s>Need to add different images based on node types!!</s>
 - How to handle lambda tasks
 - Add launching jar files using lambda
 - <s>Integrate NiFi into it</s>
 - If a task fails, it retries properly and eventually fails, but it never gets removed
-- Use the Abstract Factory approach to allocating the resource manager, monitor and storage
-
-
+- <s>Develop Hybrid support, allowing both Docker and AWS instances to be run at the same time using CCDP</s>
 

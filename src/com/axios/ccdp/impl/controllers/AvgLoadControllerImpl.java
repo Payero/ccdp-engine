@@ -33,6 +33,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
   public AvgLoadControllerImpl()
   {
     super();
+    this.logger.debug("New AvgLoadControllerImpl called");
+
   }
 
   /**
@@ -60,11 +62,14 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
    */
   public void configure(JsonNode config)
   {
+    if (config == null)
+      throw new RuntimeException("The configuration cannot be null");
+    
     // set all the defaults first
     ObjectNode allocate = this.mapper.createObjectNode();
     allocate.put("cpu", 70);
     allocate.put("mem", 70);
-    allocate.put("time", 2);
+    allocate.put("time", 3);
     allocate.put("max-tasks", -1);
     
     ObjectNode deallocate = this.mapper.createObjectNode();
@@ -139,6 +144,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
 //    if( avail.size() == 0 )
 //      return imgCfg;
     
+    // Get the allocation parameters from config and prepare for checking
     JsonNode alloc = this.config.get("allocate");
     double cpu = alloc.get("cpu").asDouble();
     double mem = alloc.get("mem").asDouble();
@@ -154,12 +160,15 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     // let's try to guess the node type
     Map<String, CcdpImageInfo> types = new HashMap<>();
     
+    // For all resources, get the CPU and Mem statistics, add to array
     for( int i = 0; i < sz; i++ )
     {
       CcdpVMResource vm = resources.get(i);
+      // Add node type to hashmap
       String type = vm.getNodeType();
       types.put(type, CcdpUtils.getImageInfo(type));
       
+      // Get statistics
       double vm_cpu = vm.getCPULoad() * 100;
       double vm_mem = vm.getMemLoad();
       double vm_tc = vm.getCPU();
@@ -175,9 +184,12 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
       load += vm.getNumberTasks();
     }
     
+    // What is the purpose of this??
+    // Possibly unneeded because of hybrid controllers
     for( String type : types.keySet() )
       imgCfg = CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
     
+    // This DOES NOT work well for hybrid node support
     if( types.size() == 1 )
       this.logger.info("Need more " + imgCfg.getNodeType() + " nodes");
     else
@@ -319,7 +331,7 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
     // Now let's check averages...
     double avgCpu = this.getAverageCPU(assignedCPU);
     double avgMem = this.getAverageMem(assignedMEM, availableMEM);
-    this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
+    //this.logger.debug("Avg CPU: " + avgCpu + " Avg Mem: " + avgMem);
     
     this.logger.debug("Dealloc: Avg CPU Utilization: " + avgCpu);
     this.logger.debug("Dealloc: Avg MEM Utilization: " + avgMem);
@@ -370,7 +382,8 @@ public class AvgLoadControllerImpl extends CcdpVMControllerAbs
      customTaskAssignment(CcdpTaskRequest task, List<CcdpVMResource> resources)
    { 
      CcdpVMResource leastUsed = CcdpVMResource.leastUsed(resources);
-     int cpu_load = this.config.get("allocate").get("avg-cpu-load").asInt();
+     logger.debug("Least Used: " + leastUsed.toString());
+     int cpu_load = this.config.get("allocate").get("cpu").asInt();
      if(leastUsed ==null || ((leastUsed.getCPULoad()*100) >= cpu_load) ) {
        boolean first = true;
        

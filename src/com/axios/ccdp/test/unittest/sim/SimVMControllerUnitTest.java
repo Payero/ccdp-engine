@@ -116,9 +116,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -136,11 +134,9 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(3);
+    image.setMinReq(3);
     image.setSessionId("test-session");
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
+    assertTrue("The minimum should be ", image.getMinReq() == 3);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 3);
@@ -158,10 +154,8 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     image.setSessionId("test-session");
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -182,9 +176,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -205,9 +197,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 1);
@@ -239,9 +229,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 3);
@@ -282,9 +270,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(3);
-    image.setMaxReq(3);
     assertTrue("The minimum should be ", image.getMinReq() == 3);
-    assertTrue("The maximum should be ", image.getMaxReq() == 3);
     
     List<String> ids = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", ids.size() == 3);
@@ -341,9 +327,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
     
     List<String> vms = this.controller.startInstances(image);
     assertTrue("Wrong number of instances", vms.size() == 1);
@@ -372,9 +356,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags);
     
@@ -390,9 +372,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags2);
     
@@ -408,9 +388,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
-    image.setMaxReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 1);
 
     image.setTags(tags3);
     
@@ -463,10 +441,8 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", imgInf);
     CcdpImageInfo image = CcdpImageInfo.copyImageInfo(imgInf);
     assertNotNull("Could not find Image information", image);
-    image.setMinReq(1);
-    image.setMaxReq(5);
-    assertTrue("The minimum should be ", image.getMinReq() == 1);
-    assertTrue("The maximum should be ", image.getMaxReq() == 5);
+    image.setMinReq(5);
+    assertTrue("The minimum should be ", image.getMinReq() == 5);
 
     List<String> iids = this.controller.startInstances(image);
     assertEquals("Shoud have five instances", iids.size(), 5);

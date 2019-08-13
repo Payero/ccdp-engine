@@ -40,10 +40,6 @@ public class CcdpImageInfo
    */
   private int minReq = 0;
   /**
-   * The maximum number of running instances at any given time
-   */
-  private int maxReq = 1;
-  /**
    * The session id that will use an instance of this type of node
    */
   private String sessionId = null;
@@ -153,27 +149,6 @@ public class CcdpImageInfo
   public void setMinReq(int minReq)
   {
     this.minReq = minReq;
-  }
-
-  /**
-   * Gets the maximum number of running instances at any given time 
-   * @return the maximum number of running instances at any given time
-   */
-  @JsonGetter("max-req")
-  public int getMaxReq()
-  {
-    return maxReq;
-  }
-
-  /**
-   * Sets the maximum number of running instances at any given time 
-   * 
-   * @param maxReq the maximum number of running instances at any given time
-   */
-  @JsonSetter("max-req")
-  public void setMaxReq(int maxReq)
-  {
-    this.maxReq = maxReq;
   }
   
   /**

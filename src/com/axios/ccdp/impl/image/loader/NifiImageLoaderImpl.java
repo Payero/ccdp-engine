@@ -59,7 +59,6 @@ public class NifiImageLoaderImpl implements CcdpImgLoaderIntf
     img.setNodeType(nodeType);
     img.setImageId (this.config.get("image-id").asText() );
     img.setMinReq( this.config.get("min-number-free-agents").asInt());
-    img.setMaxReq( this.config.get("min-number-free-agents").asInt());
     img.setSecGrp( this.config.get("security-group").asText() );
     img.setSubnet( this.config.get("subnet-id").asText() );
     img.setKeyFile( this.config.get("key-file-name").asText() );

@@ -20,6 +20,7 @@
     },
     "task-allocator": {
       "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl",
+      "__classname": "com.axios.ccdp.impl.controllers.AvgLoadControllerImpl",
       "allocate": {
         "avg-cpu-load": 80,
         "avg-mem-load": 15,
@@ -31,17 +32,6 @@
         "avg-mem-load": 20,
         "avg-time-load": 2
       }
-    },
-    "resource-manager": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl"
-    },
-    "storage": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl"
-    },
-    "resource-monitor": {
-      "classname": "com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
-      "units": "MB",
-      "docker-url": "http://172.17.0.1:2375"
     },
     "database": {
       "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
@@ -55,77 +45,81 @@
     "resources": {
       "DEFAULT": {
         "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
+        "image-id":"ami-0c82c390543920339",
+        "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
+        "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+        "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
-        "security-group": "sg-9e30a2ed",
-        "__security-group": "sg-54410d2f",
+        "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
-            "session-id": "Service-Node", "Name": "SRB-Test-Agent"
+            "session-id": "Service-Node", "Name": "SRB-Test-Default"
           },
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine.tgz", 
             "-w", 
             "-t", 
-            "/data/ccdp"
+            "/data/ccdp/",
+            "-n",
+            "DEFAULT"
           ],
-        "__assignment-command": "/home/oeg/scripts/test.sh",
-        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "assignment-command": "touch ~/hi.txt",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
-        "__role-name": "my-Role",
         "proxy-url": "",
-        "__proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": -1,
-        "__proxy-port": 1234,
         "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "__credentials-file": "/home/oeg/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "EC2": {
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
-        "image-id": "ami-00960e391c6790e70",
+        "image-id":"ami-0c82c390543920339",
+        "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
+        "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+        "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
-        "security-group": "sg-9e30a2ed",
-        "__security-group": "sg-54410d2f",
+        "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
         "key-file-name": "aws_serv_server_key",
         "tags": {
-            "session-id": "Service-Node", "Name": "SRB-Test-Agent"
+            "session-id": "Service-Node", "Name": "SRB-Test-EC2"
           },
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "s3://ccdp-dist/ccdp-engine.tgz", 
             "-w", 
             "-t", 
-            "/data/ccdp"
+            "/data/ccdp/",
+            "-n",
+            "EC2"
           ],
-        "__assignment-command": "/home/oeg/scripts/test.sh",
-        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
+        "assignment-command": "touch ~/hi.txt",
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
-        "__role-name": "my-Role",
         "proxy-url": "",
         "__proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": -1,
-        "__proxy-port": 1234,
         "_credentials-file": "",
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "__credentials-file": "/home/oeg/.aws/credentials",
-        
+        "credentials-file": "/nishome/srbenne/.aws/credentials",        
         "credentials-profile-name": "default"
       },
       "NIFI": {
         "classname": "com.axios.ccdp.impl.image.loader.NifiImageLoaderImpl",
         "image-id": "ami-00960e391c6790e70",
+        "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
+        "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+        "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
         "min-number-free-agents": 0,
         "security-group": "sg-54410d2f",
         "subnet-id": "subnet-d7008b8f",
@@ -141,20 +135,26 @@
             "s3://ccdp-settings/ccdp-engine.tgz", 
             "-w", 
             "-t", 
-            "/data/ccdp"
+            "/data/ccdp",
+            "-n",
+            "NIFI"
           ],
-        "assignment-command": "/nishome/srbenne/Scripts/test.sh",
-        "__assignment-command": "/home/oeg/scripts/test.sh",
+        "assignment-command": "touch ~/hi.txt",
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": 1234,
-        "credentials-file": "/home/oeg/.aws/credentials",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
-        "image-id": "payero/centos-7:ccdp",
+        "image-id": "payero/centos-7:ccdp12",
+        "resource-controller": "com.axios.ccdp.impl.cloud.docker.DockerVMControllerImpl",
+        "resource-monitor":"com.axios.ccdp.impl.cloud.docker.DockerResourceMonitorImpl",
+        "docker-url": "http://172.17.0.1:2375",
+        "resource-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.docker.DockerStorageControllerImpl",
         "min-number-free-agents": 0,
         "startup-command": [
           	"/data/ccdp/ccdp_install.py",
@@ -165,25 +165,12 @@
           	"-w",
           	"-t",
           	"/data/ccdp",
-          	"-D"
-          ],
-        "__startup-command": [
-            "/data/ccdp/ccdp_install.py",
-            "-a", 
-            "download", 
-            "-d", 
-            "/data/ccdp/ccdp-engine.tgz", 
-            "${CCDP_HOME}/config/ccdp-config.json",
-            "-w", 
-            "-t", 
-            "/data/ccdp",
-            "-D",
-            "-n",
+          	"-D",
+          	"-n",
             "DOCKER"
           ],
         "__dist-file":"/data/ccdp/ccdp-engine.tgz",
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "credentials-profile-name": "default"
+        "credentials-file": "/nishome/srbenne/.aws/credentials"
       }
     }
   }

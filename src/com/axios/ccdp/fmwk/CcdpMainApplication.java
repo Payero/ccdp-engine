@@ -23,6 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.impl.cloud.aws.LambdaController;
 import com.axios.ccdp.impl.controllers.CcdpMasterVMController;
 import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -1081,152 +1082,159 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 
         // need to check for the special case when a Task needs a whole VM
         for( CcdpTaskRequest task: request.getTasks() )
-        {
+        {          
+            
           if( task.isSubmitted() )
             continue;
 
-          String tid = task.getTaskId();
-          // Allowing for tasks with no node type
-          String type = task.getNodeType();
-          //this.logger.debug("Task:\n" + task);
-          if (type == null)
+          // If the task is not serverless
+          if (!task.getServerless())
           {
-            this.logger.debug("No node type sent, setting to Default");
-            type = "DEFAULT";
-            task.setNodeType("DEFAULT");
-          }
-          double cpu = task.getCPU();
-          this.logger.info("Checking Task " + tid + " CPU " + cpu );
-          boolean fail = true;
-
-          if( cpu >= 100 )
-          {
-            this.logger.info("Allocating whole VM to Task " + tid);
-            List<CcdpVMResource> list = this.getResources(request);
-            String requestSID = request.getSessionId();
-            //check if list is empty or not
-            if (list.size() == 0)
+            String tid = task.getTaskId();
+            // Allowing for tasks with no node type
+            String type = task.getNodeType();
+            //this.logger.debug("Task:\n" + task);
+            if (type == null)
             {
-              //Check on node type for resources and give it one if available
-              CcdpVMResource vm =
-                  this.giveAvailableResource(type, requestSID);
-              // For some reason when trying to add the vm to list. the vm is 
-              // added twice to the session list in this.resources
-              // But this changes does not reflects in the actual variable list. 
-              // For this reason the issue is resolve by assigning list equals 
-              // to the list in the resources.
-              if( vm != null )
-                list = this.dbClient.getAllVMInformationBySessionId(requestSID);
+              this.logger.debug("No node type sent, setting to Default");
+              type = "DEFAULT";
+              task.setNodeType("DEFAULT");
             }
-
-            for( CcdpVMResource vm : list )
+            double cpu = task.getCPU();
+            this.logger.info("Checking Task " + tid + " CPU " + cpu );
+            boolean fail = true;
+  
+            if( cpu >= 100 )
             {
-              // It has not been assigned yet and there is nothing running
-              if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+              this.logger.info("Allocating whole VM to Task " + tid);
+              List<CcdpVMResource> list = this.getResources(request);
+              String requestSID = request.getSessionId();
+              //check if list is empty or not
+              if (list.size() == 0)
               {
-                String iid = vm.getInstanceId();
-                vm.setSingleTask(tid);
-                vm.setAssignedSession(task.getSessionId());
-                task.setHostId( iid );
-                this.logger.debug("The task HostID was set to " + task.getHostId());
-                this.dbClient.storeVMInformation(vm);
-
-                if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
-                    vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                //Check on node type for resources and give it one if available
+                CcdpVMResource vm =
+                    this.giveAvailableResource(type, requestSID);
+                // For some reason when trying to add the vm to list. the vm is 
+                // added twice to the session list in this.resources
+                // But this changes does not reflects in the actual variable list. 
+                // For this reason the issue is resolve by assigning list equals 
+                // to the list in the resources.
+                if( vm != null )
+                  list = this.dbClient.getAllVMInformationBySessionId(requestSID);
+              }
+  
+              for( CcdpVMResource vm : list )
+              {
+                // It has not been assigned yet and there is nothing running
+                if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
                 {
-                  fail = false;
-                  this.sendTaskRequest(task, vm );
-                  break;
+                  String iid = vm.getInstanceId();
+                  vm.setSingleTask(tid);
+                  vm.setAssignedSession(task.getSessionId());
+                  task.setHostId( iid );
+                  this.logger.debug("The task HostID was set to " + task.getHostId());
+                  this.dbClient.storeVMInformation(vm);
+  
+                  if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                      vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                  {
+                    fail = false;
+                    this.sendTaskRequest(task, vm );
+                    break;
+                  }
+                  else
+                    this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
                 }
-                else
-                  this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
+                else {
+                  this.logger.info("Resource had more task running");
+                }
               }
-              else {
-                this.logger.info("Resource had more task running");
-              }
-            }
-
-            // Couldn't find any resources assigned to the request
-            // Check available resources or create a new one.
-            if (fail)
-            {
-              if(task.getSessionId().equals(task.getNodeType())) {
-                this.logger.debug("Could not find a free vm. Need to Launch a new one");
-                // Getting a copy rather than the actual configured object so I can
-                // modify it without affecting the initial configuration
-                CcdpImageInfo imgInfo =
-                    CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
-                imgInfo.setSessionId(task.getSessionId());
-                imgInfo.setMinReq(1);
-                imgInfo.setMaxReq(1);
-                List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
-                for( CcdpVMResource vm : secondlist )
-                {
-                  // It has not been assigned yet and there is nothing running
-                  
-                  if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
-                  {
-                    String iid = vm.getInstanceId();
-                    vm.setSingleTask(tid);
-                    vm.setAssignedSession(task.getSessionId());
-                    task.setHostId( iid );
-                    this.dbClient.storeVMInformation(vm);
-
-                    this.logger.debug("The task HostID was set to " + task.getHostId());
-                    if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
-                        vm.getStatus().equals(ResourceStatus.LAUNCHED))
-                    {
-                      this.sendTaskRequest(task, vm );
-                      break;
-                    }
-                    else
-                      this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
-                  }
-                } 
-              }
-              else // failed to find resources assigned to the request
+  
+              // Couldn't find any resources assigned to the request
+              // Check available resources or create a new one.
+              if (fail)
               {
-                CcdpImageInfo imgCfg = 
-                    CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
-                imgCfg.setSessionId( task.getSessionId() );
-                list = this.allocateResource(imgCfg); //updated list
-                this.logger.debug("The size of the list after allocating " +
-                                  "Resources is " + list.size());
-                
-                //get the new resource we created
-                for( CcdpVMResource vm : list )
-                {
-                  this.logger.debug("The vm NodeType is " + vm.getNodeType() + 
-                                    " the task type is " + type);
-                  // need to make sure we are running on the appropriate node
-                  if( !vm.getNodeType().equals( type ) )
-                    continue;
-                  // It has not been assigned yet and there is nothing running
-                  String txt = "The vm " + vm.getInstanceId() + 
-                      " is running " + vm.getNumberTasks() + 
-                      " tasks and is single tasked =  " + vm.isSingleTasked();
-                  
-                  this.logger.debug(txt);
-                  if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+                if(task.getSessionId().equals(task.getNodeType())) {
+                  this.logger.debug("Could not find a free vm. Need to Launch a new one");
+                  // Getting a copy rather than the actual configured object so I can
+                  // modify it without affecting the initial configuration
+                  CcdpImageInfo imgInfo =
+                      CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+                  imgInfo.setSessionId(task.getSessionId());
+                  imgInfo.setMinReq(1);
+                  imgInfo.setMaxReq(1);
+                  List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
+                  for( CcdpVMResource vm : secondlist )
                   {
-                    String iid = vm.getInstanceId();
-                    vm.setSingleTask(tid);
-                    task.setHostId( iid );
-                    this.dbClient.storeVMInformation(vm);
-
-                    this.logger.debug("The task HostID was set to " + task.getHostId());
-                    if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
-                        vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                    // It has not been assigned yet and there is nothing running
+                    
+                    if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
                     {
-                      this.logger.info("Successfully assigned VM: " + iid + " to Task: " + task.getTaskId());
-                      this.sendTaskRequest(task, vm );
-                      continue;
+                      String iid = vm.getInstanceId();
+                      vm.setSingleTask(tid);
+                      vm.setAssignedSession(task.getSessionId());
+                      task.setHostId( iid );
+                      this.dbClient.storeVMInformation(vm);
+  
+                      this.logger.debug("The task HostID was set to " + task.getHostId());
+                      if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                          vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                      {
+                        this.sendTaskRequest(task, vm );
+                        break;
+                      }
+                      else
+                        this.logger.info("Resource wasn't running :(  the resource was " + vm.getStatus());
                     }
-                  }
-                }// end of for loop iteration 
-              }
-            }// if we couldn't find a resource
-          }// the CPU is >= 100
+                  } 
+                }
+                else // failed to find resources assigned to the request
+                {
+                  CcdpImageInfo imgCfg = 
+                      CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+                  imgCfg.setSessionId( task.getSessionId() );
+                  list = this.allocateResource(imgCfg); //updated list
+                  this.logger.debug("The size of the list after allocating " +
+                                    "Resources is " + list.size());
+                  
+                  //get the new resource we created
+                  for( CcdpVMResource vm : list )
+                  {
+                    this.logger.debug("The vm NodeType is " + vm.getNodeType() + 
+                                      " the task type is " + type);
+                    // need to make sure we are running on the appropriate node
+                    if( !vm.getNodeType().equals( type ) )
+                      continue;
+                    // It has not been assigned yet and there is nothing running
+                    String txt = "The vm " + vm.getInstanceId() + 
+                        " is running " + vm.getNumberTasks() + 
+                        " tasks and is single tasked =  " + vm.isSingleTasked();
+                    
+                    this.logger.debug(txt);
+                    if( vm.getNumberTasks() == 0 && !vm.isSingleTasked() )
+                    {
+                      String iid = vm.getInstanceId();
+                      vm.setSingleTask(tid);
+                      task.setHostId( iid );
+                      this.dbClient.storeVMInformation(vm);
+  
+                      this.logger.debug("The task HostID was set to " + task.getHostId());
+                      if( vm.getStatus().equals(ResourceStatus.RUNNING) ||
+                          vm.getStatus().equals(ResourceStatus.LAUNCHED))
+                      {
+                        this.logger.info("Successfully assigned VM: " + iid + " to Task: " + task.getTaskId());
+                        this.sendTaskRequest(task, vm );
+                        continue;
+                      }
+                    }
+                  }// end of for loop iteration 
+                }
+              }// if we couldn't find a resource
+            }// the CPU is >= 100
+          }
+          else
+            logger.debug("A serverless task was received");
         }// for each task
         this.requests.add( request );
       }
@@ -1363,103 +1371,122 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           continue;
         }
 
-        String sid = req.getSessionId();
-        String nodeType = req.getNodeType();
-        this.logger.debug("Allocating resources to sid: " + sid +", and node-type: " + req.getNodeType());
-        List<CcdpVMResource> resources = this.getCcdpVMResourcesBySIDAndNode(sid, nodeType);
-        resources.addAll(this.getFreeCcdpResourcesOfType(nodeType));
-        
-        /* There are 3 possibilities
-         * 1. There are no nodes of correct type
-         * 2. There are nodes of correct type and correct session
-         * 3. There are nodes of correct type that are free agents
-         * I think they should be handled appropriately in that order
-         */
-        // Case 1: There are no nodes of the correct type
-        if ( resources.isEmpty() )
+        String rsid = req.getSessionId();
+        for (CcdpTaskRequest taskRequest : req.getTasks())
         {
-          this.logger.info("There are no nodes of correct type.\nLaunching one new VM of type: " + nodeType);
-          CcdpImageInfo imgCfg = 
-              CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(nodeType));
-          imgCfg.setSessionId(sid);
-          resources = this.startInstances(imgCfg);
-        }
-        // Cases 2, 3, and 4 here
-        else
-        // Cases 3 and 4
-        {
-          this.logger.debug("List contains nodes of correct node type and either correct session or free agent");
-          this.logger.info("Reassigning VM to " + sid);
-          if ( !this.sessions.contains(sid) )
-            this.sessions.add(sid);
+          String nodeType = taskRequest.getNodeType();
+          String sid = taskRequest.getSessionId();
+          // Check request session matches the tasks session
+          if ( !rsid.equals(sid) )
+          {
+            logger.error("Session ID does not match for task and request, discarding this task.");
+            taskRequest.fail();
+            continue;
+          }
+          // Handle serverless here
+          if ( taskRequest.getServerless() == true ) 
+          {
+            // Do the serverless thing
+            new LambdaController(taskRequest);
+            taskRequest.setSubmitted(true);
+            continue;
+          }
+          this.logger.debug("Allocating resources to sid: " + sid +", and node-type: " + nodeType);
+          List<CcdpVMResource> resources = this.getCcdpVMResourcesBySIDAndNode(sid, nodeType);
+          resources.addAll(this.getFreeCcdpResourcesOfType(nodeType));
           
-          // Get the first available FREE resource and give it to the sid
-          for (CcdpVMResource res : resources)
+          /* There are 3 possibilities
+           * 1. There are no nodes of correct type
+           * 2. There are nodes of correct type and correct session
+           * 3. There are nodes of correct type that are free agents
+           * I think they should be handled appropriately in that order
+           */
+          // Case 1: There are no nodes of the correct type
+          if ( resources.isEmpty() )
           {
-            if (res.isFree())
+            this.logger.info("There are no nodes of correct type.\nLaunching one new VM of type: " + nodeType);
+            CcdpImageInfo imgCfg = 
+                CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(nodeType));
+            imgCfg.setSessionId(sid);
+            resources = this.startInstances(imgCfg);
+          }
+          // Cases 2 and 3 here
+          else
+          // Cases 2 and 3
+          {
+            this.logger.debug("List contains nodes of correct node type and either correct session or free agent");
+            this.logger.info("Reassigning VM to " + sid);
+            if ( !this.sessions.contains(sid) )
+              this.sessions.add(sid);
+            
+            // Get the first available FREE resource and give it to the sid
+            for (CcdpVMResource res : resources)
             {
-              //Found a free resource
-              this.logger.debug("Reassigning " + res.getInstanceId() +
-                  " " + res.getAssignedSession() + " to " + sid);
-              this.changeSession(res, sid);
-              // resource is added in the changeSession method, so need
-              // to update list
-              resources = 
-                  this.dbClient.getAllVMInformationBySessionIdAndNodeType(sid, nodeType);
-              break;
+              if (res.isFree())
+              {
+                //Found a free resource
+                this.logger.debug("Reassigning " + res.getInstanceId() +
+                    " " + res.getAssignedSession() + " to " + sid);
+                this.changeSession(res, sid);
+                // resource is added in the changeSession method, so need
+                // to update list
+                resources = 
+                    this.dbClient.getAllVMInformationBySessionIdAndNodeType(sid, nodeType);
+                break;
+              }
             }
           }
-        }
-                
-        this.logger.debug("Found " + resources.size() + " assigned VMs");
-        for( CcdpVMResource v : resources )
-          this.logger.info("Resource ID " + v.getInstanceId());
-
-        Map<CcdpVMResource, List<CcdpTaskRequest>> map =
-            this.tasker.assignTasks(req.getTasks(), resources);
-
-        int num_tasks = req.getPendingTasks();
-        int num_map = map.size();
-        if( num_tasks > 0 && num_map == 0 )
-        {
-          List<String> typesLaunched = new ArrayList<>();
-          this.logger.info("Need to run " + num_tasks + " but no VM available");
-          for( CcdpTaskRequest task : req.getTasks() )
+                  
+          this.logger.debug("Found " + resources.size() + " assigned VMs");
+          for( CcdpVMResource v : resources )
+            this.logger.info("Resource ID " + v.getInstanceId());
+  
+          Map<CcdpVMResource, List<CcdpTaskRequest>> map =
+              this.tasker.assignTasks(req.getTasks(), resources);
+  
+          int num_tasks = req.getPendingTasks();
+          int num_map = map.size();
+          if( num_tasks > 0 && num_map == 0 )
           {
-            String type = task.getNodeType();
-            if( typesLaunched.contains(type) )
+            List<String> typesLaunched = new ArrayList<>();
+            this.logger.info("Need to run " + num_tasks + " but no VM available");
+            for( CcdpTaskRequest task : req.getTasks() )
             {
-              this.logger.info("Already launched one of same type, skipping it");
-              continue;
+              String type = task.getNodeType();
+              if( typesLaunched.contains(type) )
+              {
+                this.logger.info("Already launched one of same type, skipping it");
+                continue;
+              }
+              typesLaunched.add(type);
+  
+              // Getting a copy rather than the actual configured object so I can
+              // modify it without affecting the initial configuration
+              CcdpImageInfo imgInfo =
+                  CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
+              this.logger.info("Did not find an available resource, creating one");
+              imgInfo.setSessionId(sid);
+              imgInfo.setMinReq(1);
+              imgInfo.setMaxReq(1);
+              this.startInstances(imgInfo);
             }
-            typesLaunched.add(type);
-
-            // Getting a copy rather than the actual configured object so I can
-            // modify it without affecting the initial configuration
-            CcdpImageInfo imgInfo =
-                CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
-            this.logger.info("Did not find an available resource, creating one");
-            imgInfo.setSessionId(sid);
-            imgInfo.setMinReq(1);
-            imgInfo.setMaxReq(1);
-            this.startInstances(imgInfo);
+            // Once some new VMs are started we need to start all over again
+            this.allocateTasks();
           }
-          // Once some new VMs are started we need to start all over again
-          this.allocateTasks();
-        }
-
-        for( CcdpVMResource resource : map.keySet() )
-        {
-          List<CcdpTaskRequest> tasks = map.get(resource);
-          this.logger.info("Tasking " + tasks.size() +
-              " tasks to " + resource.getInstanceId());
-          for( CcdpTaskRequest task : tasks )
+  
+          for( CcdpVMResource resource : map.keySet() )
           {
-            if (task.isSubmitted())
-              this.logger.warn("Task " + task.getTaskId() + 
-                               " has already been submitted.");
-            else
-              this.sendTaskRequest(task, resource);
+            List<CcdpTaskRequest> tasks = map.get(resource);
+            this.logger.info("Tasking " + tasks.size() +
+                " tasks to " + resource.getInstanceId());
+            for( CcdpTaskRequest task : tasks )
+            {
+              if (task.isSubmitted())
+                this.logger.warn("Task " + task.getTaskId() + 
+                                 " has already been submitted.");
+              else
+                this.sendTaskRequest(task, resource);
+            }
           }
         }
       }
@@ -1492,10 +1519,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     List<CcdpVMResource> listByNode = new ArrayList<>();
     for( CcdpVMResource vm : list )
     {
-      if( vm.getNodeType().equals(req.getNodeType()) )
-        listByNode.add(vm);
+      for (CcdpTaskRequest taskReq : req.getTasks())
+      {
+        if( vm.getNodeType().equals(taskReq.getNodeType()) )
+          listByNode.add(vm);
+      }
     }
-
     //Allocating resources to meet min req
     CcdpImageInfo imgCfg = this.tasker.allocateResources(listByNode);
     if ( imgCfg != null  )

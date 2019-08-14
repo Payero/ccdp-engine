@@ -133,6 +133,12 @@ public class CcdpTaskRequest implements Serializable
    * The session this task belongs to
    */
   private String sessionId = null;
+  /*
+   * A map for the serverless configuration and a boolean to represent the serverless mode
+   */
+  private boolean isServerless = false;
+  private Map<String, String> serverlessCfg = new HashMap<String, String>();
+  private List<String> serverlessArgs = new ArrayList<String>();
   /**
    * The time this task was launched
    */
@@ -339,6 +345,59 @@ public class CcdpTaskRequest implements Serializable
   public void setTaskId(String taskId)
   {
     this.taskId = taskId;
+  }
+  
+  /*
+   * @param isServerless the serverless status
+   */
+  @JsonSetter("serverless")
+  public void setServeless(boolean isServerless)
+  {
+    this.isServerless = isServerless;
+  }
+  
+  /*
+   * @return the serverless status
+   */
+  @JsonGetter("serverless")
+  public boolean getServerless()
+  {
+    return this.isServerless;
+  }
+  
+  /*
+   * @param serverCfg the serverless configuration data
+   */
+  @JsonSetter("serverless-config")
+  public void setServelessCfg(Map<String, String> serverlessCfg)
+  {
+    this.serverlessCfg = serverlessCfg;
+  }
+  
+  /*
+   * @return the serverless status
+   */
+  @JsonGetter("serverless-config")
+  public Map<String, String> getServerlessCfg()
+  {
+    return this.serverlessCfg;
+  }
+  
+  /*
+   * @param serverArgs the arguements for the serverless task
+   */
+  @JsonSetter("arguements")
+  public void setServerArgs(List<String> serverArgs)
+  {
+    this.serverlessArgs = serverArgs;
+  }
+  /*
+   * @return The arguements to the server
+   */
+  @JsonGetter("arguements")
+  public List<String> getServerArgs()
+  {
+    return this.serverlessArgs;
   }
 
   /**

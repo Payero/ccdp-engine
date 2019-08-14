@@ -62,6 +62,7 @@ public class CcdpUtils
   
   /** The string for CCDP free agents' session id */
   public static final String FREE_AGENT_SID = "FREE_AGENT";
+  public static final String SERVERLESS_NODETYPE = "NONE";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-heartbeats";  
@@ -560,8 +561,8 @@ public class CcdpUtils
         if( task.getSessionId() != null )
           request.setSessionId( task.getSessionId() );
         
-        // making sure the task has a command
-        if( task.getCommand().isEmpty() )
+        // making sure the task has a command if it isn't serverless
+        if( !task.getServerless() && task.getCommand().isEmpty() )
           throw new RuntimeException("The command is required");
         
         request.getTasks().add(task);
@@ -590,7 +591,7 @@ public class CcdpUtils
         
         JsonNode job = jobs.get(i);
         
-        JsonNode cmd;
+        JsonNode cmd, cfg;
         
         if( job.has("cpu") )
           task.setCPU( job.get("cpu").asDouble() );
@@ -598,12 +599,10 @@ public class CcdpUtils
         {
           String type = job.get("node-type").asText();
           task.setNodeType( type.toUpperCase() );
-          request.setNodeType(type);
         }
         else
         {
           task.setNodeType("DEFAULT");
-          request.setNodeType("DEFAULT");
         }
         
         if( job.has("mem") )
@@ -615,7 +614,7 @@ public class CcdpUtils
           request.setSessionId(sid);
         }
         
-        if( job.has("command") )
+        if( (!job.has("serverless") || (job.has("serverless") && job.get("serverless").asBoolean() == false)) && job.has("command") )
         {
           cmd = job.get("command");
           List<String> args = new ArrayList<String>();
@@ -624,11 +623,41 @@ public class CcdpUtils
           
           task.setCommand(args);
         }
+        else if (job.has("serverless") && job.get("serverless").asBoolean() == true)
+        {
+          logger.debug("Serverless Job, command not required");
+          try
+          {
+            task.setServeless(true);
+            
+            List<String> args = new ArrayList<String>();
+            for(int n = 0; n < job.get("arguments").size(); n++ )
+              args.add( job.get("arguments").get(n).asText() );
+            task.setServerArgs(args);
+            
+            Map<String, String> config = new HashMap<String, String>();
+            cfg = job.get("serverless-config");
+            config.put("provider", cfg.get("provider").asText());
+            config.put("URL-Gateway", cfg.get("URL-Gateway").asText());
+            config.put("bkt_name", cfg.get("bkt_name").asText());
+            config.put("zip_file", cfg.get("zip_file").asText());
+            config.put("mod_name", cfg.get("mod_name").asText());
+            config.put("keep_files", cfg.get("keep_files").asText());
+            config.put("verb_level", cfg.get("verb_level").asText());
+            config.put("res_file", cfg.get("res_file").asText());
+            task.setServelessCfg(config);
+          }
+          catch (Exception e)
+          {
+            logger.debug("A necessary field was missing from the serverless task.");
+            e.printStackTrace();
+          }
+        }
         else
         {
           throw new RuntimeException("The command is required");
         }
-        
+      
         request.getTasks().add(task);
         requests.add(request);
       }

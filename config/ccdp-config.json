@@ -74,7 +74,7 @@
         "role-name": "EMR_EC2_DefaultRole",
         "proxy-url": "",
         "proxy-port": -1,
-        "__credentials-file": "/nishome/oegante/.aws/credentials",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "EC2": {
@@ -109,8 +109,7 @@
         "proxy-url": "",
         "__proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": -1,
-        "_credentials-file": "",
-        "__credentials-file": "/nishome/oegante/.aws/credentials",        
+        "credentials-file": "/nishome/srbenne/.aws/credentials",        
         "credentials-profile-name": "default"
       },
       "NIFI": {
@@ -144,7 +143,7 @@
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
         "proxy-port": 1234,
-        "__credentials-file": "/nishome/oegante/.aws/credentials",
+        "credentials-file": "/nishome/srbenne/.aws/credentials",
         "credentials-profile-name": "default"
       },
       "DOCKER": {
@@ -170,7 +169,7 @@
             "DOCKER"
           ],
         "__dist-file":"/data/ccdp/ccdp-engine.tgz",
-        "__credentials-file": "/nishome/oegante/.aws/credentials"
+        "credentials-file": "/nishome/srbenne/.aws/credentials"
       }
     }
   }

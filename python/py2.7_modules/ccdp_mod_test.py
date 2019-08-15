@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 '''
 Created on Mar 1, 2017
@@ -59,7 +59,7 @@ class Test():
     action = cli_args.action
     
     # Was the action valid?
-    if action is not None and action in todo:
+    if action is not None and todo.has_key(action):
       self.__logger.debug("About to run test %s" % action)
       test = todo[action]
       # getting all the parameters, if have some pass them otherwise skip it

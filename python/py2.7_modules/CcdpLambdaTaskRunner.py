@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
-
+from __future__ import print_function
 
 import boto3, botocore
 import json
@@ -11,7 +11,7 @@ from pprint import pformat, pprint
 import os, sys, traceback
 import tarfile
 from subprocess import call
-import shutil, ast, urllib.request, urllib.parse, urllib.error
+import shutil, ast, urllib
 
 class TaskRunner:
   """
@@ -260,12 +260,12 @@ class TaskRunner:
 
     res = None
     args = ""
-    if 'arguments' in params:
+    if params.has_key('arguments'):
       args = params['arguments']
     
     self.__logger.info("Using Arguments: %s" % args)
 
-    if 'out_file' in params and params['out_file'] != None:
+    if params.has_key('out_file') and params['out_file'] != None:
       out = os.path.join(_root, params['out_file'])
       print("Redirecting to %s" % out)
       with RedirectStdStreams(stdout=out, stderr=out):
@@ -290,7 +290,7 @@ class TaskRunner:
           res = runTask(args)
                 
     res_file = None
-    if 'res_file' in params and params['res_file'] != None:
+    if params.has_key('res_file') and params['res_file'] != None:
       res_file = os.path.join(_root, params['res_file'])
     
     
@@ -302,7 +302,7 @@ class TaskRunner:
       results.close()
       self.__load_file(bkt_name, res_file)
 
-    if 'keep_files' in params and not params['keep_files']:
+    if params.has_key('keep_files') and not params['keep_files']:
       self.__clean_files()
 
     # returning the results in case is from the lambda function

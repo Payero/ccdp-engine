@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
-
+from __future__ import print_function
 
 import boto3, botocore
 import json
@@ -15,7 +15,7 @@ from pprint import pformat, pprint
 import os, sys, traceback
 import tarfile
 from subprocess import call
-import shutil, ast, urllib.request, urllib.parse, urllib.error
+import shutil, ast, urllib
 
 
 def handler(event, context):
@@ -132,11 +132,11 @@ class ModuleRunner:
     handler = logging.StreamHandler()
     logs_dir = None
 
-    if 'CCDP_GUI' in os.environ:
+    if os.environ.has_key('CCDP_GUI'):
       tmp_dir = os.path.join(os.environ['CCDP_GUI'], "logs")
       if os.path.isdir(tmp_dir):
         logs_dir = tmp_dir
-    elif 'CCDP_HOME' in os.environ:
+    elif os.environ.has_key('CCDP_HOME'):
       tmp_dir = os.path.join(os.environ['CCDP_HOME'], "logs")
       if os.path.isdir(tmp_dir):
         logs_dir = tmp_dir
@@ -187,7 +187,7 @@ class ModuleRunner:
       
       file_name = os.path.expandvars(params['file_name'])
       self.__logger.debug("Running from file %s" % file_name)
-      if 'arguments' in params:
+      if params.has_key('arguments'):
         self.__logger.debug("The args type: %s" % type(params['arguments']))
       
       path, _name = os.path.split(file_name)
@@ -196,7 +196,7 @@ class ModuleRunner:
       
       mod_name = None
       if file_name.endswith('.zip'):
-        if 'mod_name' not in params or params['mod_name'] is None:
+        if not params.has_key('mod_name') or params['mod_name'] is None:
           self.__logger.error('A zip file was provided, but the module to run from that zip file was not specified')
           sys.exit(-3)
         else:
@@ -212,7 +212,7 @@ class ModuleRunner:
   
       self.res = None
       args = None
-      if 'arguments' in params and params['arguments'] is not None:
+      if params.has_key('arguments') and params['arguments'] is not None:
         args = params['arguments']
   
       self.invoke_module(name if mod_name is None else mod_name, params, args)
@@ -236,7 +236,7 @@ class ModuleRunner:
     '''
     #TODO what is the purpose of including the GUI environment?
     self.__logger.info("Looking for the GUI framework")
-    if 'CCDP_GUI' in os.environ:
+    if os.environ.has_key('CCDP_GUI'):
       src_dir = os.path.join(os.environ['CCDP_GUI'], 'src')
       if os.path.isdir(src_dir):
         sys.path.append( src_dir )
@@ -274,7 +274,7 @@ class ModuleRunner:
     Gets the ccdp-dist.tar.gz and the ccdp_mesos_settings.json from the CCDP
     Settings bucket.  These files are used to install CCDP
     """
-    if 'arguments' in params and params['arguments'] is not None:
+    if params.has_key('arguments') and params['arguments'] is not None:
       self.__logger.debug("The args type: %s" % type(params['arguments']))
     
     file_name = params['file_name'][len(self.__S3_TAG):]
@@ -288,7 +288,7 @@ class ModuleRunner:
     tgt_dir = os.path.join(_root, bkt_path)
     if not os.path.isdir(tgt_dir):
       os.makedirs(tgt_dir)
-      os.chmod(tgt_dir, 0o750)
+      os.chmod(tgt_dir, 0750)
 
     fpath = os.path.join(tgt_dir, fname)
     params['local-path'] = fpath
@@ -301,12 +301,12 @@ class ModuleRunner:
       sys.exit(-3)
         
     self.__logger.error("File download completed")
-    os.chmod(fpath, 0o777)
+    os.chmod(fpath, 0777)
     self.__files.append(fpath)
     
     mod_name = None
     if file_name.endswith('.zip'):
-      if 'mod_name' not in params or params['mod_name'] is None:
+      if not params.has_key('mod_name') or params['mod_name'] is None:
         self.__logger.error('A zip file was provided, but the module to run from that zip file was not specified')
         sys.exit(-3)
       else:
@@ -324,10 +324,10 @@ class ModuleRunner:
 
     self.res = None
     args = None
-    if 'arguments' in params and params['arguments'] is not None:
+    if params.has_key('arguments') and params['arguments'] is not None:
       args = params['arguments']
 
-    if 'out_file' in params and params['out_file'] is not None:
+    if params.has_key('out_file') and params['out_file'] is not None:
       out = os.path.join(_root, params['out_file'])
       self.__logger.debug(("Redirecting to %s" % out))
       with RedirectStdStreams(stdout=out, stderr=out):
@@ -337,7 +337,7 @@ class ModuleRunner:
       self.invoke_module(file_name.replace('.py', '') if mod_name is None else mod_name, params, args)
     
     res_file = None
-    if 'res_file' in params and params['res_file'] is not None:
+    if params.has_key('res_file') and params['res_file'] is not None:
       res_file = os.path.join(_root, params['res_file'])
       self.__logger.info("Output (from lambda module only) will be written to %s" % res_file)
     
@@ -350,7 +350,7 @@ class ModuleRunner:
       results.close()
       self.__load_file(bkt_name, res_file)
 
-    if 'keep_files' not in params:
+    if not params.has_key('keep_files'):
       self.__clean_files()
 
     # returning the results in case is from the lambda function
@@ -362,7 +362,7 @@ class ModuleRunner:
     self.__logger.debug("The mod_name: %s params: %s args: %s" % 
       (mod_name, pformat(params), pformat(args) ) )
 
-    if 'class_name' not in params or params['class_name'] is None:
+    if not params.has_key('class_name') or params['class_name'] is None:
       try:
         exec("from %s import runTask" % mod_name.replace('.py', ''))
         self.__logger.debug('Imported runTask from lambda module %s' % mod_name)

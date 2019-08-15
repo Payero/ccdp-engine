@@ -15,13 +15,19 @@ def find_unittest():
     sys.exit(-1)
 
   files = []
-  def visit(arg, dirname, names):
-    for name in names:
+  src_dir = os.path.join(path, "src")
+  for dirName, subdirList, fileList in os.walk(src_dir, topdown=False ):
+    for name in fileList:
       if name.endswith("UnitTest.java"):
         files.append(name)
 
-  src_dir = os.path.join(path, "src")
-  os.path.walk(src_dir, visit, "The arg")
+  # def visit(arg, dirname, names):
+  #   for name in names:
+  #     if name.endswith("UnitTest.java"):
+  #       files.append(name)
+
+  # src_dir = os.path.join(path, "src")
+  # os.path.walk(src_dir, visit, "The arg")
   
   names = []
   for name in files:

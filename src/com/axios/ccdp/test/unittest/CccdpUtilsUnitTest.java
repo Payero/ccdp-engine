@@ -13,7 +13,7 @@ public class CccdpUtilsUnitTest
   @BeforeClass
   public static void initialize()
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
   }
 
   @Test

@@ -25,7 +25,7 @@ public class MongoDbUnitTest
   @BeforeClass
   public static void initialize() 
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
   }
   
   @Before

@@ -67,8 +67,10 @@ public class NifiImageLoaderImpl implements CcdpImgLoaderIntf
     img.setRoleName( this.config.get("role-name").asText() );
     img.setProxyUrl( this.config.get("proxy-url").asText() );
     img.setProxyPort( this.config.get("proxy-port").asInt() );
-    img.setCredentialsFile( this.config.get("credentials-file").asText() );
-    img.setProfileName( this.config.get("credentials-profile-name").asText() );
+    if( this.config.has("credentials-file") )
+      img.setCredentialsFile( this.config.get("credentials-file").asText() );
+    if( this.config.has("credentials-profile-name") )
+      img.setProfileName( this.config.get("credentials-profile-name").asText() );
     
     JsonNode node = this.config.get("startup-command");
     if( node != null && node.isArray() )

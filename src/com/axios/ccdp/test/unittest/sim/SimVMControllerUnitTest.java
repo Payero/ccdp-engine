@@ -28,7 +28,7 @@ import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.test.unittest.JUnitTestHelper;
+import com.axios.ccdp.test.unittest.TestHelperUnitTest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -71,7 +71,7 @@ public class SimVMControllerUnitTest implements CcdpMessageConsumerIntf
   @BeforeClass
   public static void initialize()
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
   }
   
   /**

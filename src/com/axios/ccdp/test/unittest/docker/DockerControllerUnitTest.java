@@ -513,8 +513,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     
-    logger.debug("Waiting 45 seconds for VMs to spool up");  
-    CcdpUtils.pause(45);
+    logger.debug("Waiting 15 seconds for VMs to spool up");  
+    CcdpUtils.pause(15);
     
     CcdpVMResource vm = vms.get(0);
     String testId = vm.getInstanceId();
@@ -536,6 +536,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     {
       String iid = res.getInstanceId();
       ResourceStatus status = this.docker.getInstanceState(iid);
+      logger.debug("The Status " + status);
       assertNotNull("Could not find Resource " + iid, status);
       logger.debug("VM Status " + status + " with IID " + iid);
       assertTrue("The VM is not running", status.equals(ResourceStatus.RUNNING));

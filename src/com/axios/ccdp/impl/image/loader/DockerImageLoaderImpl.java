@@ -65,7 +65,6 @@ public class DockerImageLoaderImpl implements CcdpImgLoaderIntf
     img.setNodeType(nodeType);
     img.setImageId (this.config.get("image-id").asText() );
     img.setMinReq( this.config.get("min-number-free-agents").asInt());
-    img.setMaxReq( this.config.get("min-number-free-agents").asInt());
     
     JsonNode node = this.config.get("startup-command");
     if( node != null && node.isArray() )

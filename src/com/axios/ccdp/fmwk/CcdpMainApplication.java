@@ -1163,7 +1163,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                       CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
                   imgInfo.setSessionId(task.getSessionId());
                   imgInfo.setMinReq(1);
-                  imgInfo.setMaxReq(1);
                   List<CcdpVMResource> secondlist = this.startInstances(imgInfo);
                   for( CcdpVMResource vm : secondlist )
                   {
@@ -1467,7 +1466,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               this.logger.info("Did not find an available resource, creating one");
               imgInfo.setSessionId(sid);
               imgInfo.setMinReq(1);
-              imgInfo.setMaxReq(1);
               this.startInstances(imgInfo);
             }
             // Once some new VMs are started we need to start all over again
@@ -1486,12 +1484,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                                  " has already been submitted.");
               else
                 this.sendTaskRequest(task, resource);
-            }
-          }
-        }
-      }
-    }
-  }
+            } //end for task in tasks
+          } // resource in map.keySet
+        } // taskrequest in req.getTasks
+      } // req in this.requests
+    } //synchronization
+  } //allocateTasks method
 
   /**
    * Gets all the resources assigned to the session.  The following checks are
@@ -1801,7 +1799,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
       this.logger.info("Did not find an available resource, creating one");
       imgInfo.setSessionId(sid);
       imgInfo.setMinReq(1);
-      imgInfo.setMaxReq(1);
       this.startInstances(imgInfo);
     }
 

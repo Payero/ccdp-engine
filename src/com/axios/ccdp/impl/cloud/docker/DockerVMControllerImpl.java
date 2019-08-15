@@ -170,20 +170,16 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
   public List<String> startInstances( CcdpImageInfo imgCfg )
   {
     List<String> launched = new ArrayList<>();;
-  
+    int numLaunched = 0;
     try
     {
       int min = imgCfg.getMinReq();
-      int max = imgCfg.getMaxReq();
       //int numLaunched = 0;
       if( min == 0 )
         min = 1;
-     
-      if( max == 0 )
-        max = 1;
       
-      //while (numLaunched < max) 
-      //{
+      while (numLaunched < min) 
+      {
         // if the session id is not assigned, then use the node type
         String session_id = imgCfg.getSessionId();
         if( session_id == null )
@@ -258,8 +254,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         
         logger.info("May want to add tags as well???");
         //Map<String, String> tags = imgCfg.getTags();
-        //numLaunched += 1;
-      //}
+        numLaunched += 1;
+      }
     }
     catch( Exception e )
     {

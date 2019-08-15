@@ -112,10 +112,10 @@ public class CcdpAgent implements CcdpMessageConsumerIntf, TaskEventIntf,
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
     JsonNode task_msg_node = CcdpUtils.getConnnectionIntfCfg();    
-    JsonNode res_mon_node = CcdpUtils.getResourceMonitorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     
-    this.monitor = factory.getResourceMonitorInterface(res_mon_node);
+    JsonNode res_cfg = CcdpUtils.getResourceCfg(type);
+    this.monitor = factory.getResourceMonitorInterface(res_cfg);
     
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.connection.configure(task_msg_node);

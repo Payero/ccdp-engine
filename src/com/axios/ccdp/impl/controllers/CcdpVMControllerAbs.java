@@ -136,6 +136,8 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
   public Map<CcdpVMResource, List<CcdpTaskRequest>> 
         assignTasks(List<CcdpTaskRequest> tasks, List<CcdpVMResource> resources)
   {
+    logger.debug("Tasks: " + tasks);
+    logger.debug("Resources: " + resources);
     Map<CcdpVMResource, List<CcdpTaskRequest>> tasked = new HashMap<>();
     
     if( resources == null || resources.isEmpty() )
@@ -202,7 +204,7 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
         }
       }
     }
-    
+    logger.debug("Tasked Map: " + tasked);
     return tasked;
   }
 

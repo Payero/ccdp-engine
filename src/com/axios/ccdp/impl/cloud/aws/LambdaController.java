@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.utils.CcdpUtils;
 
 public class LambdaController
 {
@@ -38,11 +39,11 @@ public class LambdaController
     post_command = post_command + "\\\"arguments\\\": \\\"" + String.join(", ", taskArgs) + "\\\"";
     for ( String key : serverCfg.keySet() )
     {
-      if ( key.equals("provider") || key.equals("URL-Gateway") )
+      if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) )
         continue;
       post_command = post_command + ",\\\"" + key + "\\\": \\\"" + serverCfg.get(key) + "\\\"";
     }
-    post_command = post_command + "}\" " + serverCfg.get("URL-Gateway");
+    post_command = post_command + "}\" " + serverCfg.get(CcdpUtils.S_CFG_GATEWAY);
     this.logger.debug("The curl cmd: " + command + post_command);
     exec_command[2] = command + post_command;
     

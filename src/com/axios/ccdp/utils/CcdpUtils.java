@@ -79,6 +79,20 @@ public class CcdpUtils
   
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
+  
+  /**  The key names for Lambda Task fields  */
+  public static final String CFG_SERVERLESS = "serverless";
+  public static final String CFG_SERVERLESS_ARGS = "arguments";
+  public static final String CFG_SERVERLESS_CONFIG = "serverless-config";
+  /**  The key names for Lambda Server Configuration fields  **/
+  public static final String S_CFG_PROVIDER = "provider";
+  public static final String S_CFG_GATEWAY = "URL-Gateway";
+  public static final String S_CFG_BUCKET_NAME = "bkt_name";
+  public static final String S_CFG_ZIP_FILE = "zip_file";
+  public static final String S_CFG_MOD_NAME = "mod_name";
+  public static final String S_CFG_KEEP_FILES = "keep_files";
+  public static final String S_CFG_VERB_LEVEL = "verb_level";
+  public static final String S_CFG_RES_FILE = "res_file";
  
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
@@ -614,7 +628,7 @@ public class CcdpUtils
           request.setSessionId(sid);
         }
         
-        if( (!job.has("serverless") || (job.has("serverless") && job.get("serverless").asBoolean() == false)) && job.has("command") )
+        if( (!job.has(CFG_SERVERLESS) || (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean() == false)) && job.has("command") )
         {
           cmd = job.get("command");
           List<String> args = new ArrayList<String>();
@@ -623,7 +637,7 @@ public class CcdpUtils
           
           task.setCommand(args);
         }
-        else if (job.has("serverless") && job.get("serverless").asBoolean() == true)
+        else if (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean() == true)
         {
           logger.debug("Serverless Job, command not required");
           try
@@ -631,20 +645,20 @@ public class CcdpUtils
             task.setServeless(true);
             
             List<String> args = new ArrayList<String>();
-            for(int n = 0; n < job.get("arguments").size(); n++ )
-              args.add( job.get("arguments").get(n).asText() );
+            for(int n = 0; n < job.get(CFG_SERVERLESS_ARGS).size(); n++ )
+              args.add( job.get(CFG_SERVERLESS_ARGS).get(n).asText() );
             task.setServerArgs(args);
             
             Map<String, String> config = new HashMap<String, String>();
-            cfg = job.get("serverless-config");
-            config.put("provider", cfg.get("provider").asText());
-            config.put("URL-Gateway", cfg.get("URL-Gateway").asText());
-            config.put("bkt_name", cfg.get("bkt_name").asText());
-            config.put("zip_file", cfg.get("zip_file").asText());
-            config.put("mod_name", cfg.get("mod_name").asText());
-            config.put("keep_files", cfg.get("keep_files").asText());
-            config.put("verb_level", cfg.get("verb_level").asText());
-            config.put("res_file", cfg.get("res_file").asText());
+            cfg = job.get(CFG_SERVERLESS_CONFIG);
+            config.put(S_CFG_PROVIDER, cfg.get(S_CFG_PROVIDER).asText());
+            config.put(S_CFG_GATEWAY, cfg.get(S_CFG_GATEWAY).asText());
+            config.put(S_CFG_BUCKET_NAME, cfg.get(S_CFG_BUCKET_NAME).asText());
+            config.put(S_CFG_ZIP_FILE, cfg.get(S_CFG_ZIP_FILE).asText());
+            config.put(S_CFG_MOD_NAME, cfg.get(S_CFG_MOD_NAME).asText());
+            config.put(S_CFG_KEEP_FILES, cfg.get(S_CFG_KEEP_FILES).asText());
+            config.put(S_CFG_VERB_LEVEL, cfg.get(S_CFG_VERB_LEVEL).asText());
+            config.put(S_CFG_RES_FILE, cfg.get(S_CFG_RES_FILE).asText());
             task.setServelessCfg(config);
           }
           catch (Exception e)

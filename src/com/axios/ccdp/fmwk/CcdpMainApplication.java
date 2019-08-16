@@ -1469,6 +1469,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               this.startInstances(imgInfo);
             }
             // Once some new VMs are started we need to start all over again
+            logger.debug("Restarting allocateTasks");
             this.allocateTasks();
           }
   

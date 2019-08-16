@@ -142,8 +142,10 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
     
     
     if( resources == null || resources.isEmpty() )
+    {
+      logger.debug("Tasked Map is empty");
       return tasked;
-    
+    }
     for( CcdpTaskRequest task: tasks )
     {
       double cpu = task.getCPU();

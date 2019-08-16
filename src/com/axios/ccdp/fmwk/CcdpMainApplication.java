@@ -1346,6 +1346,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   {
     synchronized( this.requests )
     {
+      List<CcdpVMResource> resources = null;
       for( CcdpThreadRequest req : this.requests )
       {
         // if all the tasks have been submitted, then continue
@@ -1371,6 +1372,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         }
 
         String rsid = req.getSessionId();
+        if (resources != null)
+          resources.clear();
+        
         for (CcdpTaskRequest taskRequest : req.getTasks())
         {
           String nodeType = taskRequest.getNodeType();
@@ -1391,7 +1395,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
             continue;
           }
           this.logger.debug("Allocating resources to sid: " + sid +", and node-type: " + nodeType);
-          List<CcdpVMResource> resources = this.getCcdpVMResourcesBySIDAndNode(sid, nodeType);
+          resources = this.getCcdpVMResourcesBySIDAndNode(sid, nodeType);
           resources.addAll(this.getFreeCcdpResourcesOfType(nodeType));
           
           /* There are 3 possibilities
@@ -1435,7 +1439,9 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               }
             }
           }
-                  
+        }
+        if (resources != null)
+        {
           this.logger.debug("Found " + resources.size() + " assigned VMs");
           for( CcdpVMResource v : resources )
             this.logger.info("Resource ID " + v.getInstanceId());
@@ -1464,7 +1470,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
               CcdpImageInfo imgInfo =
                   CcdpImageInfo.copyImageInfo(CcdpUtils.getImageInfo(type));
               this.logger.info("Did not find an available resource, creating one");
-              imgInfo.setSessionId(sid);
+              imgInfo.setSessionId(rsid);
               imgInfo.setMinReq(1);
               this.startInstances(imgInfo);
             }
@@ -1487,7 +1493,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.sendTaskRequest(task, resource);
             } //end for task in tasks
           } // resource in map.keySet
-        } // taskrequest in req.getTasks
+        } //  if resources != null
       } // req in this.requests
     } //synchronization
   } //allocateTasks method
@@ -1571,6 +1577,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
                 this.logger.debug("The node type is " + type + 
                          " and the image session is " + imgCfg.getSessionId());
                 imgCfg.setSessionId(CcdpUtils.FREE_AGENT_SID);
+                imgCfg.setMinReq(1);
                 this.startInstances(imgCfg);
               }
             }// need to deploy agents

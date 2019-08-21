@@ -7,6 +7,7 @@
 package com.axios.ccdp.impl.cloud.aws;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +61,7 @@ public class LambdaTaskRunner implements Runnable
   String post_command = "\"{";
   String result = "";
   String errors = "";
+  String localFileLocation = "";
 
   public LambdaTaskRunner(CcdpTaskRequest task, CcdpServerlessControllerAbs task_controller)
   {
@@ -82,8 +84,16 @@ public class LambdaTaskRunner implements Runnable
     post_command = post_command + "}\" " + serverCfg.get(CcdpUtils.S_CFG_GATEWAY);
     this.logger.debug("The curl cmd: " + command + post_command);
     exec_command[cmd_index] = command + post_command;
+    
+    localFileLocation = serverCfg.get(CcdpUtils.S_CFG_LOCAL_FILE);
+    
+    /******* DO EXISTENCE CHECKING HERE!!!!!!!!!!! ******/
+    /*if (localFileLocation != "" || localFileLocation != null)
+    {
+      File localFile = new File ( localFileLocation );
+      
+    }*/
   }
-
   
   /*
    * (non-Javadoc)
@@ -131,6 +141,13 @@ public class LambdaTaskRunner implements Runnable
     logger.info("Result of the Lambda Function: " + result);
     logger.debug("Errors from Lambda Execution: \n" + errors);
     logger.debug("Done with Lambda Function");
+    
+    if ( !localFileLocation.equals("") )
+    {
+      this.logger.debug("Store file locally");
+    }
+    else
+      this.logger.debug("Opted out of local storage");
     
   }
 

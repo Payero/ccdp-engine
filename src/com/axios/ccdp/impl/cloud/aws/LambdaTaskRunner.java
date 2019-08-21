@@ -142,7 +142,7 @@ public class LambdaTaskRunner implements Runnable
     logger.debug("Errors from Lambda Execution: \n" + errors);
     logger.debug("Done with Lambda Function");
     
-    if ( !localFileLocation.equals("") )
+    if ( localFileLocation != null && !localFileLocation.equals("") )
     {
       this.logger.debug("Store file locally");
     }

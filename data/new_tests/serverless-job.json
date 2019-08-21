@@ -15,7 +15,8 @@
 		   "mod_name": "simple_pi",
 		   "keep_files": "False",
 		   "verb_level": "debug",
-		   "res_file": "pi.out"
+		   "res_file": "pi.out",
+		   "local_file": "~/pi.out"
          }
        }        
    ]  

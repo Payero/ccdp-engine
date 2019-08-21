@@ -279,8 +279,6 @@ public class CcdpObjectFactory
    */
   public CcdpVMControllerIntf getCcdpVMResourceController(JsonNode config, String classname)
   {
-    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
-    //String classname = config.get(key).asText();
     Object obj = this.getNewInstance(classname,CcdpVMControllerIntf.class);
     CcdpVMControllerIntf impl = (CcdpVMControllerIntf)obj;
     impl.configure(config);
@@ -299,8 +297,6 @@ public class CcdpObjectFactory
    */
   public CcdpServerlessControllerAbs getCcdpServerlessResourceController(JsonNode config, String classname)
   {
-    //String key = CcdpConfigParser.CFG_KEY_CLASSNAME;
-    //String classname = config.get(key).asText();
     Object obj = this.getNewInstance(classname, CcdpServerlessControllerAbs.class);
     CcdpServerlessControllerAbs impl = (CcdpServerlessControllerAbs)obj;
     impl.configure(config);

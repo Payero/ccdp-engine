@@ -16,20 +16,9 @@ import java.util.Map;
 
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
-import com.axios.ccdp.intfs.CcdpConnectionIntf;
-import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
-import com.axios.ccdp.messages.AssignSessionMessage;
-import com.axios.ccdp.messages.CcdpMessage;
-import com.axios.ccdp.messages.KillTaskMessage;
-import com.axios.ccdp.messages.RunTaskMessage;
-import com.axios.ccdp.messages.ShutdownMessage;
-import com.axios.ccdp.messages.ThreadRequestMessage;
-import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.JsonNode;
 
 public class LambdaTaskRunner implements Runnable
 {
@@ -63,6 +52,14 @@ public class LambdaTaskRunner implements Runnable
   String errors = "";
   String localFileLocation = "";
 
+  /*
+   * A new Lambda Task Runner is created and configured using the task request passed
+   * to the constructor
+   * 
+   * @param task A CcdpTaskRequest object containing information about the serverless task
+   * 
+   * @param task_controller The controller that created this Runner instance.
+   */
   public LambdaTaskRunner(CcdpTaskRequest task, CcdpServerlessControllerAbs task_controller)
   {
     this.logger.debug("New AWS Lambda Runnable constructed.");
@@ -103,8 +100,7 @@ public class LambdaTaskRunner implements Runnable
    */
   @Override
   public void run()
-  {
-    
+  {    
     try
     {
       // Build the process with the command and start it

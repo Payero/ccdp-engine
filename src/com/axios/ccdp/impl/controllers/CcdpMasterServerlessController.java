@@ -1,6 +1,5 @@
 /*
- * Scott Bennett, scott.bennett@caci.com
- * 
+ * @author Scott Bennett, scott.bennett@caci.com  
  * This controller works similarly to how the CcdpMasterVMController works
  * Instead of dealing with the node controllers, this controller allocates one
  * instance of every type of serverless provider controller outlined in the 
@@ -41,6 +40,14 @@ public class CcdpMasterServerlessController
    */
   private CcdpServerlessControllerAbs serverless_cont = null;
 
+  /*
+   *  Constructs a master serverless controller which contains a map
+   * for allocating concrete serverless controllers.
+   * 
+   * @param svr_cfg the serverless configuration provided in the config file
+   * 
+   * @param db_config the database configuration provided in the config file
+   */
   public CcdpMasterServerlessController(JsonNode svr_cfg, JsonNode db_config)
   {
     this.logger.debug("New Serverless Controller created, configuring");
@@ -78,6 +85,12 @@ public class CcdpMasterServerlessController
     this.logger.debug("ControllerMap: \n" + controllerMap.toString());
   }
   
+  /*
+   * This method runs the CcdpTaskRequest that is given in the parameter. It uses the controller
+   * map to appropriate allocate the task to the correct controller and then runs the task.
+   * 
+   * @param task a CcdpTaskRequest that contains a serverless task
+   */
   public void runTask (CcdpTaskRequest task)
   {
     // Check to make sure task is serverless and the config is not null

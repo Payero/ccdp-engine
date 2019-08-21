@@ -1,7 +1,5 @@
 package com.axios.ccdp.impl.cloud.aws;
 
-
-
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;

@@ -1,9 +1,10 @@
+package com.axios.ccdp.impl.controllers;
+
 /*
- * Scott Bennett, scott.bennett@caci.com
+ * @author Scott Bennett, scott.bennett@caci.com
  * This class allows the CCDP Engine to handle nodes of all kinds,
  * provided their VM Controller Type in the "resource" section.
  */
-package com.axios.ccdp.impl.controllers;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,6 +45,15 @@ public class CcdpMasterVMController
    */
   private CcdpVMControllerIntf vm_controller = null;
   
+  /*
+   * Creates a new CcdpMasterVMController using the provided configurations.
+   * This class uses the Object Factory to create specific VM controllers outlined
+   * in the configuration file
+   * 
+   * @param ctl_config The different node configurations for node types
+   * 
+   * @param db_config The database configuration found in the configuration file
+   */
   public CcdpMasterVMController( JsonNode ctl_config, JsonNode db_config )
   {
     this.logger.debug("New MasterVMController created, configuring");
@@ -82,6 +92,12 @@ public class CcdpMasterVMController
     this.logger.debug("ControllerMap: \n" + controllerMap.toString());
   }
   
+  /*
+   * Determines the appropriate controller and tells it to start
+   * image(s) using the image passed as a parameter
+   * 
+   * @param imgCfg A node image configuration in CcdpImageInfo form
+   */
   public List<String> startInstances( CcdpImageInfo imgCfg )
   {
     List<String> launched = new ArrayList<>();

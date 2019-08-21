@@ -21,15 +21,15 @@ public abstract class CcdpServerlessControllerAbs
    * A connection interface for sending task updates to
    * the CCDP Engine
    */
-  private CcdpConnectionIntf connection = null;
+  protected CcdpConnectionIntf connection = null;
   /*
    * The main application's connection channel
    */
-  private String toMain = null;
+  protected String toMain = null;
   /*
    * A client to connect to the database
    */
-  private CcdpDatabaseIntf dbClient = null;
+  protected CcdpDatabaseIntf dbClient = null;
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -72,4 +72,11 @@ public abstract class CcdpServerlessControllerAbs
    * @param task A CcdpTaskRequest object containing task information
    */
   public abstract void runTask(CcdpTaskRequest task);
+  
+  /*
+   * Called when the thread completes, returns to controller to send updates on status
+   * 
+   * @param task A CcdpTaskRequest object containing task information
+   */
+  public abstract void completeTask(CcdpTaskRequest task);
 }

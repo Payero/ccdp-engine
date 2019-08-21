@@ -7,7 +7,9 @@
 package com.axios.ccdp.impl.cloud.aws;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,7 +20,10 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class LambdaTaskRunner implements Runnable
 {
@@ -41,6 +46,10 @@ public class LambdaTaskRunner implements Runnable
    */
   List<String> taskArgs = new ArrayList<>();
   /*
+   * Object mapper to map strings to json
+   */
+  ObjectMapper mapper = new ObjectMapper();
+  /*
    * Index to add the command to, just making sure it isn't hard coded
    */
   final int cmd_index = 2;
@@ -50,7 +59,12 @@ public class LambdaTaskRunner implements Runnable
   String post_command = "\"{";
   String result = "";
   String errors = "";
-  String localFileLocation = "";
+  String localFileLocation;
+  
+  /*
+   * Task used in generating this runnable
+   */
+  private CcdpTaskRequest running_task = null;
 
   /*
    * A new Lambda Task Runner is created and configured using the task request passed
@@ -90,6 +104,7 @@ public class LambdaTaskRunner implements Runnable
       File localFile = new File ( localFileLocation );
       
     }*/
+    running_task = task;
   }
   
   /*
@@ -110,20 +125,12 @@ public class LambdaTaskRunner implements Runnable
       // Read the output and errors
       BufferedReader reader =  
             new BufferedReader(new InputStreamReader(proc.getInputStream()));
-      BufferedReader ereader =  
-          new BufferedReader(new InputStreamReader(proc.getErrorStream()));
   
       // Get the output result of the Lambda Function
       String line = null;
-      while((line = reader.readLine()) != null) {
+      while((line = reader.readLine()) != null) 
           result = result + line + "\n";
-      }
       
-      // Get the error output of the Lambda Function
-      String eline = null;
-      while((eline = ereader.readLine()) != null) {
-          errors = errors + eline + "\n";
-      }
   
       // Wait for the process to finish execution
       proc.waitFor();
@@ -134,17 +141,55 @@ public class LambdaTaskRunner implements Runnable
       e.printStackTrace();
     }
     
-    logger.info("Result of the Lambda Function: " + result);
+    logger.debug("Result of the Lambda Function: " + result);
     logger.debug("Errors from Lambda Execution: \n" + errors);
     logger.debug("Done with Lambda Function");
     
+    // Try to convert the result to Json
+    try 
+    {
+      JsonNode resultJson = this.mapper.readTree(result);
+      // Check if the task failed by return fields
+      if (resultJson.has("stackTrace"))
+      {
+        this.logger.debug("The task failed, setting failed");
+        running_task.setState(CcdpTaskState.FAILED);
+        this.controller.completeTask(running_task);
+      }
+    }
+    catch ( Exception e )
+    {
+      this.logger.debug("Error translating string to Json, failing task");
+      e.printStackTrace();
+      running_task.setState(CcdpTaskState.FAILED);
+      this.controller.completeTask(running_task);
+    }
+    
+    // Save file locally
     if ( localFileLocation != null && !localFileLocation.equals("") )
     {
       this.logger.debug("Store file locally");
+      //File localFile = new File ( localFileLocation );
+      
+      /*** TODO: DEAL WITH WHAT IF FILE EXISTS ***/
+      try
+      {
+        BufferedWriter out = new BufferedWriter( 
+            new FileWriter(localFileLocation, true)); 
+        out.write("\n" + result); 
+        out.close();
+      }
+      catch ( Exception e )
+      {
+        logger.error("Exception caught while writing to output file");
+        e.printStackTrace();
+      }
     }
     else
       this.logger.debug("Opted out of local storage");
     
+    running_task.setState(CcdpTaskState.SUCCESSFUL);
+    controller.completeTask(running_task);
   }
 
 }

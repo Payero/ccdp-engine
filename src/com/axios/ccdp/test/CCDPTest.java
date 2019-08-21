@@ -1,10 +1,16 @@
 package com.axios.ccdp.test;
 
-import java.io.*;
+import java.util.HashMap;
 
 import org.apache.log4j.Logger;
 
+import com.axios.ccdp.factory.CcdpObjectFactory;
+import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.spotify.docker.client.shaded.com.google.common.collect.ArrayListMultimap;
+import com.spotify.docker.client.shaded.com.google.common.collect.Multimap;
 
 
 
@@ -15,46 +21,42 @@ public class CCDPTest
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
   
-  
+  private CcdpServerlessControllerAbs serverless_cont = null;
+  private HashMap<String, CcdpServerlessControllerAbs> controllerMap = new HashMap<>();
+
+
   public CCDPTest() throws Exception
   {
-    String[] cmd = {"/bin/bash", "-c", "curl -X POST -d \"{\\\"arguments\\\": \\\"1000000\\\",\\\"bkt_name\\\": \\\"ccdp-tasks\\\",\\\"keep_files\\\": \\\"False\\\",\\\"mod_name\\\": \\\"simple_pi\\\",\\\"verb_level\\\": \\\"debug\\\",\\\"res_file\\\": \\\"pi_out\\\",\\\"zip_file\\\": \\\"simple_pi.zip\\\"}\" https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager"};
-    System.out.println(cmd[0] + " " + cmd[1] + " " + cmd[2]);
-    //Process proc = Runtime.getRuntime().exec(cmd);
-    ProcessBuilder pb = new ProcessBuilder(cmd);
-    Process proc = pb.start();
-    // Read the output
-    BufferedReader reader =  
-          new BufferedReader(new InputStreamReader(proc.getInputStream()));
-    BufferedReader ereader =  
-        new BufferedReader(new InputStreamReader(proc.getErrorStream()));
-
-    String line = null;
-    System.out.println("\n\nOutput: ");
-    while((line = reader.readLine()) != null) {
-        System.out.print(line + "\n");
-    }
+    JsonNode svr_cfg = CcdpUtils.getServerlessCfg();
+    System.out.println(svr_cfg);
+    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
-    String eline = null;
-    System.out.println("\n\nErrors: ");
-    while((eline = ereader.readLine()) != null) {
-        System.out.print(eline + "\n");
+    Multimap<String,String> controllerTypes = ArrayListMultimap.create();
+    for ( String svrlessType : CcdpUtils.getServerlessTypes())
+    {
+      //For some reason, the quotes are preserved, so get rid of them with replace
+      controllerTypes.put(svr_cfg.get(svrlessType).get(CcdpConfigParser.KEY_SERVERLESS_CONTROLLER).toString().replace("\"", ""), svrlessType);
     }
-
-    proc.waitFor();
+    System.out.println(controllerTypes);
     
-    logger.debug("Done");
+    for (String key : controllerTypes.keySet())
+    {
+      serverless_cont = factory.getCcdpServerlessResourceController( svr_cfg, key);
+      for (String serverlessType : controllerTypes.get(key))
+      {
+        this.logger.debug("Adding <" + serverlessType + ", " + serverless_cont.toString() + "> to map");
+        controllerMap.put(serverlessType, serverless_cont);
+      }
+    }
+    this.logger.debug("ControllerMap: \n" + controllerMap.toString());
   }
   
-
   public static void main( String[] args ) throws Exception
   {
     String cfg_file = System.getProperty("ccdp.config.file");
         
     // Uses the cfg file to configure all CcdpUtils for use in the next service
-    System.out.println("Before loadProperties");
     CcdpUtils.loadProperties(cfg_file);
-    System.out.println("After Load properties");
     CcdpUtils.configLogger();
     
     new CCDPTest();

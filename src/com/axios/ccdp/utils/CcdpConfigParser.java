@@ -35,7 +35,9 @@ public class CcdpConfigParser
 //  public static final String KEY_TASKING = "tasking";
   public static final String KEY_RES_PROV = "resource-provisioning";
   public static final String KEY_RESOURCES = "resources";
+  public static final String KEY_SERVERLESS = "serverless";
   
+  public static final String KEY_SERVERLESS_CONTROLLER = "serverless-controller";
   public static final String KEY_VM_CONTROLLER = "resource-controller";
   public static final String KEY_VM_RESOURCE_MONITOR = "resource-monitor";
   public static final String KEY_VM_RESOURCE_UNITS = "resource-units";
@@ -49,12 +51,12 @@ public class CcdpConfigParser
   /** The JSON key used to store the resource's instance id **/
   public static final String KEY_INSTANCE_ID = "instance-id";
   
-
   /**  The name of the default resource type  */
   public static final String DEFAULT_IMG_NAME = "DEFAULT";
   /**  The name of the AWS EC2 resource type  */
   public static final String EC2_IMG_NAME = "EC2";
- 
+  /** The name of the Docker resource type */
+  public static final String DOCKER_IMG_NAME = "DOCKER";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -239,6 +241,26 @@ public class CcdpConfigParser
   }
   
   /**
+   * Gets all the serverless types under the resource provisioning tag
+   * 
+   * @return a list containing all the serverless types under the resource 
+   *         provisioning tag
+   */
+  public List<String> getServerlessTypes()
+  {
+    List<String> serverlessTypes = new ArrayList<>();
+    JsonNode nodes = this.getServerlessCfg();
+    if( nodes != null && nodes.isContainerNode() )
+    {
+      Iterator<String> names = nodes.fieldNames();
+      while( names.hasNext() )
+        serverlessTypes.add( names.next() );
+    }
+    
+    return serverlessTypes;
+  }
+  
+  /**
    * Gets all the configuration parameters used by the connection object
    * 
    * @return an object containing all the different configuration parameters
@@ -375,6 +397,17 @@ public class CcdpConfigParser
   {
     JsonNode prov = this.config.get( CcdpConfigParser.KEY_RES_PROV );
     return prov.get( CcdpConfigParser.KEY_RESOURCES );
+  }
+  
+  /**
+   * Gets all the serverless configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different resources
+   */
+  public JsonNode getServerlessCfg()
+  {
+    JsonNode prov = this.config.get( CcdpConfigParser.KEY_RES_PROV );
+    return prov.get( CcdpConfigParser.KEY_SERVERLESS );
   }
 
   /**

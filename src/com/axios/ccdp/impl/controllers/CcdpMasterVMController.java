@@ -1,9 +1,7 @@
 /*
- * 
  * Scott Bennett, scott.bennett@caci.com
  * This class allows the CCDP Engine to handle nodes of all kinds,
  * provided their VM Controller Type in the "resource" section.
- * 
  */
 package com.axios.ccdp.impl.controllers;
 
@@ -49,7 +47,7 @@ public class CcdpMasterVMController
   public CcdpMasterVMController( JsonNode ctl_config, JsonNode db_config )
   {
     this.logger.debug("New MasterVMController created, configuring");
-    if( ctl_config == null )
+    if( ctl_config == null  || db_config == null)
       throw new IllegalArgumentException("The config cannot be null");
     
     

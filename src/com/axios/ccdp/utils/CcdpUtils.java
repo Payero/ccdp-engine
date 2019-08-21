@@ -93,6 +93,7 @@ public class CcdpUtils
   public static final String S_CFG_KEEP_FILES = "keep_files";
   public static final String S_CFG_VERB_LEVEL = "verb_level";
   public static final String S_CFG_RES_FILE = "res_file";
+  public static final String S_CFG_LOCAL_FILE = "local_file";
  
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
@@ -640,6 +641,8 @@ public class CcdpUtils
         else if (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean() == true)
         {
           logger.debug("Serverless Job, command not required");
+          Map<String, String> config = new HashMap<String, String>();
+          cfg = job.get(CFG_SERVERLESS_CONFIG);
           try
           {
             task.setServeless(true);
@@ -649,8 +652,6 @@ public class CcdpUtils
               args.add( job.get(CFG_SERVERLESS_ARGS).get(n).asText() );
             task.setServerArgs(args);
             
-            Map<String, String> config = new HashMap<String, String>();
-            cfg = job.get(CFG_SERVERLESS_CONFIG);
             config.put(S_CFG_PROVIDER, cfg.get(S_CFG_PROVIDER).asText());
             config.put(S_CFG_GATEWAY, cfg.get(S_CFG_GATEWAY).asText());
             config.put(S_CFG_BUCKET_NAME, cfg.get(S_CFG_BUCKET_NAME).asText());
@@ -658,14 +659,18 @@ public class CcdpUtils
             config.put(S_CFG_MOD_NAME, cfg.get(S_CFG_MOD_NAME).asText());
             config.put(S_CFG_KEEP_FILES, cfg.get(S_CFG_KEEP_FILES).asText());
             config.put(S_CFG_VERB_LEVEL, cfg.get(S_CFG_VERB_LEVEL).asText());
-            config.put(S_CFG_RES_FILE, cfg.get(S_CFG_RES_FILE).asText());
-            task.setServelessCfg(config);
           }
           catch (Exception e)
           {
             logger.debug("A necessary field was missing from the serverless task.");
             e.printStackTrace();
           }
+          // Add local and remote save locations if they are given
+          if ( cfg.has(S_CFG_LOCAL_FILE) && cfg.get(S_CFG_LOCAL_FILE) != null )
+            config.put(S_CFG_LOCAL_FILE, cfg.get(S_CFG_LOCAL_FILE).asText());
+          if ( cfg.has(S_CFG_RES_FILE) && cfg.get(S_CFG_RES_FILE) != null )
+            config.put( S_CFG_RES_FILE, cfg.get(S_CFG_RES_FILE).asText() );
+          task.setServelessCfg(config);
         }
         else
         {
@@ -1008,6 +1013,17 @@ public class CcdpUtils
   }
   
   /**
+   * Gets all the serverless types under the resource provisioning tag
+   * 
+   * @return a list containing all the serverless types under the resource 
+   *         provisioning tag
+   */
+  public static List<String> getServerlessTypes()
+  {
+    return CcdpUtils.parser.getServerlessTypes();
+  }
+  
+  /**
    * Gets all the configuration parameters used by the connection object
    * 
    * @return an object containing all the different configuration parameters
@@ -1158,6 +1174,16 @@ public class CcdpUtils
   public static JsonNode getResourcesCfg()
   {
     return CcdpUtils.parser.getResourcesCfg();
+  }
+  
+  /**
+   * Gets all the serverless resources configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different serverless resources
+   */
+  public static JsonNode getServerlessCfg()
+  {
+    return CcdpUtils.parser.getServerlessCfg();
   }
   
   /**

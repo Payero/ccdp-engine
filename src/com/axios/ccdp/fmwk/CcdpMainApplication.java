@@ -23,7 +23,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.impl.cloud.aws.LambdaController;
+import com.axios.ccdp.impl.controllers.CcdpMasterServerlessController;
 import com.axios.ccdp.impl.controllers.CcdpMasterVMController;
 import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.factory.CcdpObjectFactory;
@@ -103,15 +103,15 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   /**
    * Stores the object that determines the logic to assign tasks to VMs
    */
-  //private AvgLoadControllerImpl tasker = null;
   private CcdpVMControllerAbs tasker = null;
-  
+  /*
+   * Controls all serverless controllers
+   */
+  private CcdpMasterServerlessController srvrless_controller = null;
   /**
    * Controls all the VMs
    */
-  private CcdpMasterVMController controller = null;
-  //private CcdpVMControllerIntf controller =null;
-  
+  private CcdpMasterVMController controller = null;  
   /**
    * Object responsible for creating/deleting files
    */
@@ -128,7 +128,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Stores all the different sessions currently being handled
    */
   private List<String> sessions = new ArrayList<>();
-  
   /**
    * Stores the instance id of the EC2 running this framework
    */
@@ -194,9 +193,12 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     JsonNode task_ctr_node = CcdpUtils.getTaskAllocatorIntfCfg();
     JsonNode db_node = CcdpUtils.getDatabaseIntfCfg();
     JsonNode imgCfgs = CcdpUtils.getResourcesCfg();
+    JsonNode serverlessCfgs = CcdpUtils.getServerlessCfg();
 //    ObjectNode storage_node =
 //        CcdpUtils.getJsonKeysByFilter(CcdpUtils.CFG_KEY_STORAGE);
 
+    this.srvrless_controller = 
+        new CcdpMasterServerlessController(serverlessCfgs, db_node);
     this.controller = new CcdpMasterVMController(imgCfgs, db_node);
     this.connection = factory.getCcdpConnectionInterface(task_msg_node);
     this.tasker = factory.getCcdpTaskingController(task_ctr_node);
@@ -1390,7 +1392,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           if ( taskRequest.getServerless() == true ) 
           {
             // Do the serverless thing
-            new LambdaController(taskRequest);
+            srvrless_controller.runTask(taskRequest);
             taskRequest.setSubmitted(true);
             continue;
           }

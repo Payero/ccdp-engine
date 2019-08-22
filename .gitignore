@@ -4,6 +4,7 @@
 
 # IdeaJ
 *.iml
+.idea
 
 # SonarQube results, don't think I need it
 .scannerwork/

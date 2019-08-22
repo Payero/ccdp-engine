@@ -1385,7 +1385,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
           if ( !rsid.equals(sid) )
           {
             logger.error("Session ID does not match for task and request, discarding this task.");
-            taskRequest.fail();
+            taskRequest.setState(CcdpTaskState.FAILED);
             continue;
           }
           // Handle serverless here
@@ -1768,7 +1768,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Adds more resources to the given session-id.  It first attempts to get it
    * from the available pool, if it cannot find one then it launches one.
    *
-   * @param req the request that needs resources
+   * @param imgCfg the request that needs resources
    * @return the updated list of resources assigned to the session
    */
   private List<CcdpVMResource> allocateResource( CcdpImageInfo imgCfg )

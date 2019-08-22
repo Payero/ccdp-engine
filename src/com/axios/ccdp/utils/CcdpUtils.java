@@ -571,11 +571,30 @@ public class CcdpUtils
       {
         CcdpTaskRequest task = 
             mapper.treeToValue(tasks.get(i), CcdpTaskRequest.class);
-        
+
+        // Don't allow tasks with no sid
+        if ( task.getSessionId() == null)
+        {
+          logger.debug("Ignoring a task without a session ID:");
+          logger.debug("Ignored task:\n" + task.toPrettyPrint());
+          continue;
+        }
         // if at least one of them has a session-id, then use is
-        if( task.getSessionId() != null )
+        else if( request.getSessionId() == null )
           request.setSessionId( task.getSessionId() );
-        
+
+        // if the request already has a session and it does not match the task, discard the task
+        else if ( !task.getSessionId().equals(request.getSessionId()) )
+        {
+          logger.debug("Ignoring task with SID: " + task.getSessionId() +
+                  " because it doesn't match the request id: " + request.getSessionId());
+          logger.debug("Ignored task:\n" + task.toPrettyPrint());
+          continue;
+        }
+        // If task id and request id match
+        else
+          logger.debug("Task ID matched request ID");
+
         // making sure the task has a command if it isn't serverless
         if( !task.getServerless() && task.getCommand().isEmpty() )
           throw new RuntimeException("The command is required");

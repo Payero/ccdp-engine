@@ -2,6 +2,9 @@
 .settings
 .vscode
 
+# IdeaJ
+*.iml
+
 # SonarQube results, don't think I need it
 .scannerwork/
 

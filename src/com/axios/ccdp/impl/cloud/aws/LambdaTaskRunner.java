@@ -11,6 +11,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,7 +60,6 @@ public class LambdaTaskRunner implements Runnable
   String command = "curl -X POST -d ";
   String post_command = "\"{";
   String result = "";
-  String errors = "";
   String localFileLocation;
   
   /*
@@ -142,7 +143,6 @@ public class LambdaTaskRunner implements Runnable
     }
     
     logger.debug("Result of the Lambda Function: " + result);
-    logger.debug("Errors from Lambda Execution: \n" + errors);
     logger.debug("Done with Lambda Function");
     
     // Try to convert the result to Json
@@ -150,7 +150,7 @@ public class LambdaTaskRunner implements Runnable
     {
       JsonNode resultJson = this.mapper.readTree(result);
       // Check if the task failed by return fields
-      if (resultJson.has("stackTrace"))
+      if (resultJson.has("stackTrace") && resultJson.has("errorType"))
       {
         this.logger.debug("The task failed, setting failed");
         running_task.setState(CcdpTaskState.FAILED);
@@ -168,15 +168,14 @@ public class LambdaTaskRunner implements Runnable
     // Save file locally
     if ( localFileLocation != null && !localFileLocation.equals("") )
     {
-      this.logger.debug("Store file locally");
-      //File localFile = new File ( localFileLocation );
-      
-      /*** TODO: DEAL WITH WHAT IF FILE EXISTS ***/
+      this.logger.debug("Store file locally");       
       try
       {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
         BufferedWriter out = new BufferedWriter( 
             new FileWriter(localFileLocation, true)); 
-        out.write("\n" + result); 
+        out.write("\nLambda Result from " + dtf.format(now) +"\n" + result); 
         out.close();
       }
       catch ( Exception e )

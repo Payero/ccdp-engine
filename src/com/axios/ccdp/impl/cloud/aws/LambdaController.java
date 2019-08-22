@@ -36,7 +36,6 @@ public class LambdaController extends CcdpServerlessControllerAbs
   @Override
   public void completeTask(CcdpTaskRequest task)
   {
-    /*** TODO: Proper completion checking of Lambda Task *****/
     this.logger.debug("Thread Completed");
     this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
     this.connection.sendTaskUpdate(toMain, task);

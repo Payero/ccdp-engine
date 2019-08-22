@@ -861,7 +861,6 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   public void NumberTasksControllerTest()
   {
     logger.info("Starting NumberTasksController Test!");
-    final int NumTasksToLaunch = 5;
         
     // Set no free agents
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
@@ -882,14 +881,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-    int sentTasks = 0;
+    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";       
+    this.sendJob(task_filename);
     
-    while (sentTasks < NumTasksToLaunch)
-    {
-      this.sendJob(task_filename);
-      sentTasks++;
-    }
     CcdpUtils.pause(25);
     // Check there is one VM with five tasks
     logger.debug("Checking for 1 VM with 5 Tasks");
@@ -901,7 +895,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String originalID = vm.getInstanceId();
     
     // Send one more task
-    //task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
 
     this.sendJob(task_filename);
     CcdpUtils.pause(20);

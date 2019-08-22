@@ -8,7 +8,47 @@
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
               "-a", "testRandomTime", 
-              "-p", "min=48,max=50"
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "DOCKER", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "DOCKER", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "DOCKER", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "DOCKER", 
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
             ]
        }
     ]

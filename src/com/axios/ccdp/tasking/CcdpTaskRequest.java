@@ -384,17 +384,17 @@ public class CcdpTaskRequest implements Serializable
   }
   
   /*
-   * @param serverArgs the arguements for the serverless task
+   * @param serverArgs the arguments for the serverless task
    */
-  @JsonSetter("arguements")
+  @JsonSetter("arguments")
   public void setServerArgs(List<String> serverArgs)
   {
     this.serverlessArgs = serverArgs;
   }
   /*
-   * @return The arguements to the server
+   * @return The arguments to the server
    */
-  @JsonGetter("arguements")
+  @JsonGetter("arguments")
   public List<String> getServerArgs()
   {
     return this.serverlessArgs;

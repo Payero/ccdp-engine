@@ -8,7 +8,6 @@ package com.axios.ccdp.impl.cloud.aws;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
@@ -27,7 +26,7 @@ import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class LambdaTaskRunner implements Runnable
+public class AWSLambdaTaskRunner implements Runnable
 {
 
   /*
@@ -37,7 +36,7 @@ public class LambdaTaskRunner implements Runnable
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private Logger logger = Logger.getLogger(LambdaTaskRunner.class.getName());
+  private Logger logger = Logger.getLogger(AWSLambdaTaskRunner.class.getName());
   /*
    * Object for holding the server configuration
    */
@@ -75,7 +74,7 @@ public class LambdaTaskRunner implements Runnable
    * 
    * @param task_controller The controller that created this Runner instance.
    */
-  public LambdaTaskRunner(CcdpTaskRequest task, CcdpServerlessControllerAbs task_controller)
+  public AWSLambdaTaskRunner(CcdpTaskRequest task, CcdpServerlessControllerAbs task_controller)
   {
     this.logger.debug("New AWS Lambda Runnable constructed.");
     

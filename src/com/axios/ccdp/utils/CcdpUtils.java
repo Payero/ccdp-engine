@@ -648,7 +648,7 @@ public class CcdpUtils
           request.setSessionId(sid);
         }
         
-        if( (!job.has(CFG_SERVERLESS) || (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean() == false)) && job.has("command") )
+        if( (!job.has(CFG_SERVERLESS) || (job.has(CFG_SERVERLESS) && !job.get(CFG_SERVERLESS).asBoolean())) && job.has("command") )
         {
           cmd = job.get("command");
           List<String> args = new ArrayList<String>();
@@ -657,7 +657,7 @@ public class CcdpUtils
           
           task.setCommand(args);
         }
-        else if (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean() == true)
+        else if (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean())
         {
           logger.debug("Serverless Job, command not required");
           Map<String, String> config = new HashMap<String, String>();

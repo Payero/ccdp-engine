@@ -178,6 +178,10 @@
        "name": "AWS Lambda",
        "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController",
        "credentials-file": "/nishome/srbenne/.aws/credentials"
+     },
+     "Local Sim":{
+     	"name": "Local Sim",
+     	"serverless-controller": "com.axios.ccdp.test.mock.LocalSim"
      }
    } 
   }

@@ -1,0 +1,23 @@
+{
+  "jobs":
+    [
+       { 
+         "session-id": "Local Sim",
+         "node-type": "None",
+         "serverless": true,
+         "arguments":["echo \"{\\\"result\\\": \\\"Hello\\\"}\""],
+         "serverless-config":
+         {       
+           "provider": "Local Sim",
+       	   "URL-Gateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",		  
+		   "bkt_name": "ccdp-tasks",
+		   "zip_file": "simple_pi.zip",
+		   "mod_name": "simple_pi",
+		   "keep_files": "False",
+		   "verb_level": "debug",
+		   "res_file": "pi.out",
+		   "local_file": "/nishome/srbenne/local.out"
+         }
+       }        
+   ]  
+}

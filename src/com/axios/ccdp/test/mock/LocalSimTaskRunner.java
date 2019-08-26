@@ -47,7 +47,7 @@ public class LocalSimTaskRunner implements Runnable
     this.logger.debug("New LocalSimTaskRunner created");
     this.running_task = task;
     this.controller = task_controller;
-    exec_command[cmd_index] = String.join(" ", task.getServerArgs());
+    exec_command[cmd_index] = "echo \"{\\\"result\\\": \\\"" + String.join(" ", task.getServerArgs()) + "\\\"}\"";
     
     serverCfg = task.getServerlessCfg();
     localFileLocation = serverCfg.get(CcdpUtils.S_CFG_LOCAL_FILE);

@@ -179,8 +179,8 @@
        "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController",
        "credentials-file": "/nishome/srbenne/.aws/credentials"
      },
-     "Local Sim":{
-     	"name": "Local Sim",
+     "Local Echo":{
+     	"name": "Local Echo",
      	"serverless-controller": "com.axios.ccdp.test.mock.LocalSim"
      }
    } 

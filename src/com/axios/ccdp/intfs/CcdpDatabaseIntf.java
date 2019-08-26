@@ -2,6 +2,8 @@ package com.axios.ccdp.intfs;
 
 import java.util.List;
 
+import com.axios.ccdp.resources.CcdpResourceAbs;
+import com.axios.ccdp.resources.CcdpServerlessResource;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -33,6 +35,16 @@ public interface CcdpDatabaseIntf
   public boolean storeVMInformation( CcdpVMResource vm );
 
   /**
+   * Stores the information from the Resource object into the database.
+   * Returns true if was able to store the information or false otherwise
+   *
+   * @param controller the object with the information to store
+   *
+   * @return true if was able to store the information or false otherwise
+   */
+  public boolean storeServerlessInformation( CcdpServerlessResource controller );
+
+  /**
    * Gets the first object whose instance-id matches the given uniqueId.  If 
    * the object is not found it returns null
    * 
@@ -43,9 +55,26 @@ public interface CcdpDatabaseIntf
   public CcdpVMResource getVMInformation( String uniqueId );
   
   /**
+   * Gets the first object whose node type matches the given controller type.  If 
+   * the object is not found it returns null
+   * 
+   * @param nodeType the object's controller Type
+   * 
+   * @return returns the object if found or null otherwise
+   */
+  public CcdpServerlessResource getServerlessInformation( String nodeType );
+  
+  /**
    * Gets a list of all the resources stored in the database.
    * 
    * @return a list of the resources stored in the database
+   */
+  public List<CcdpResourceAbs> getAllInformation();
+  
+  /**
+   * Gets a list of all the VM resources stored in the database.
+   * 
+   * @return a list of the VM resources stored in the database
    */
   public List<CcdpVMResource> getAllVMInformation();
   
@@ -105,6 +134,15 @@ public interface CcdpDatabaseIntf
    * @return returns the  number of entries that were removed 
    */
   public long deleteVMInformation( String uniqueId );
+  
+  /**
+   * Deletes all the entries whose serverless controller type matches the given one.
+   * 
+   * @param nodeType the object's controller type
+   * 
+   * @return returns the  number of entries that were removed 
+   */
+  public long deleteServerlessInformation( String nodeType );
   
   /**
    * Disconnects the client from the database

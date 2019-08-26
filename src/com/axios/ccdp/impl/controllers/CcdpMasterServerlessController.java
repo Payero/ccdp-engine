@@ -50,7 +50,7 @@ public class CcdpMasterServerlessController
    */
   public CcdpMasterServerlessController(JsonNode svr_cfg, JsonNode db_config)
   {
-    this.logger.debug("New Serverless Controller created, configuring");
+    this.logger.debug("New Master Serverless Controller created, configuring");
     if (svr_cfg == null || db_config == null)
       throw new IllegalArgumentException("The config cannot be null");  
     
@@ -75,14 +75,15 @@ public class CcdpMasterServerlessController
      */
     for (String key : controllerTypes.keySet())
     {
-      serverless_cont = factory.getCcdpServerlessResourceController( svr_cfg, key);
+      serverless_cont = factory.getCcdpServerlessResourceController( svr_cfg, key );
       for (String serverlessType : controllerTypes.get(key))
       {
         this.logger.debug("Adding <" + serverlessType + ", " + serverless_cont.toString() + "> to map");
         controllerMap.put(serverlessType, serverless_cont);
+        serverless_cont.configure(svr_cfg.get(serverlessType));
       }
     }
-    this.logger.debug("ControllerMap: \n" + controllerMap.toString());
+    this.logger.debug("ServerlessController Map: \n" + controllerMap.toString());
   }
   
   /*
@@ -110,6 +111,7 @@ public class CcdpMasterServerlessController
       this.logger.error("The serverless provider from the task doesn't match a loaded configuration, aborting");
       throw new IllegalArgumentException("Serverless provider doesn't exist in Provider Map");
     }
+    
     serverless_cont.runTask(task);
   }
 }

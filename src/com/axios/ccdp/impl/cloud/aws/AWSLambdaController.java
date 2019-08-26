@@ -23,6 +23,7 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
   public void runTask(CcdpTaskRequest task)
   {
     this.logger.debug("New task received: \n" + task.toPrettyPrint());
+    this.controllerInfo.addTask(task);
     task.setState(CcdpTaskState.STAGING);
     this.connection.sendTaskUpdate(toMain, task);
     // Create a new thread for the lambda runner
@@ -37,7 +38,15 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
   public void completeTask(CcdpTaskRequest task)
   {
     this.logger.debug("Thread Completed");
+    this.controllerInfo.removeTask(task);
     this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
     this.connection.sendTaskUpdate(toMain, task);
+  }
+
+  @Override
+  public void onEvent()
+  {
+    this.logger.debug("Storing Lambda Heartbeat");
+    this.dbClient.storeServerlessInformation(this.controllerInfo);  
   }
 }

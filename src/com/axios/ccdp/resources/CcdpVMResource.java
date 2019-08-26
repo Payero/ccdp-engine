@@ -6,7 +6,6 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -16,7 +15,6 @@ import org.fusesource.hawtbuf.ByteArrayInputStream;
 
 import com.amazonaws.services.route53.model.InvalidArgumentException;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -33,7 +31,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *
  */
 @JsonIgnoreProperties({"free"})
-public class CcdpVMResource implements Serializable
+public class CcdpVMResource extends CcdpResourceAbs implements Serializable
 {
   /**
    * Randomly generated version id used during serialization
@@ -45,17 +43,9 @@ public class CcdpVMResource implements Serializable
   public enum ResourceStatus { OFFLINE, LAUNCHED, INITIALIZING, REASSIGNED, 
                       RUNNING, STOPPED, TERMINATED, SHUTTING_DOWN, FAILED }
   /**
-   * Generates all the JSON objects
-   */
-  private ObjectMapper mapper = new ObjectMapper();
-  /**
    * The unique identifier to distinguish this VM
    */
   private String instanceId = null;
-  /**
-   * Stores what type of resource is running in this VM
-   */
-  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   /**
    * A unique identifier to distinguish the agent executing the tasks
    */
@@ -108,31 +98,22 @@ public class CcdpVMResource implements Serializable
    */
   private String singleTask = null;
   /**
-   * Stores all the tasks assigned to this resource
-   */
-  private List<CcdpTaskRequest> tasks = new ArrayList<>();
-  /**
-   * Stores the last time this resource was tasked
-   */
-  private long last_assignment = System.currentTimeMillis();
-  /**
    * Whether or not this resource was allocated to run a single task
    */
   private boolean isSingleTasked = false;
-  /**
-   * Stores all the tags assigned to this resource
-   */
-  private Map<String, String> tags = new HashMap<>();
   /**
    * The last time this resource was updated either by allocating a task or
    * by a heartbeat.
    */
   private long lastUpdated = System.currentTimeMillis();
+  /*
+   * Use to distinguish between VMs and serverless controller
+   * during querying
+   */
+  private final boolean isServerless = false;
   
   public CcdpVMResource()
-  {
-    
-  }
+  {}
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
    * 
@@ -142,6 +123,13 @@ public class CcdpVMResource implements Serializable
   {
     this.setInstanceId(iid);
   }
+
+  /*
+   * Returns the serverless status of the resource
+   *
+   * @return returns whether the resource is serverless or not
+   */
+  public boolean getIsServerless(){ return this.isServerless; }
 
   /**
    * Updates the resource status based on the the incoming ObjectNode object.

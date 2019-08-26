@@ -174,9 +174,9 @@
       }
     },
    "serverless":{
-     "Lambda":{
-       "name": "Lambda",
-       "serverless-controller":"com.axios.ccdp.impl.cloud.aws.LambdaController",
+     "AWS Lambda":{
+       "name": "AWS Lambda",
+       "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController",
        "credentials-file": "/nishome/srbenne/.aws/credentials"
      }
    } 

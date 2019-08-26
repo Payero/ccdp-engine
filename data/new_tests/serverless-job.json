@@ -2,13 +2,13 @@
   "jobs":
     [
        { 
-         "session-id": "Lambda",
+         "session-id": "AWS Lambda",
          "node-type": "None",
          "serverless": true,
          "arguments":["1000000"],
          "serverless-config":
          {       
-           "provider": "Lambda",
+           "provider": "AWS Lambda",
        	   "URL-Gateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",		  
 		   "bkt_name": "ccdp-tasks",
 		   "zip_file": "simple_pi.zip",

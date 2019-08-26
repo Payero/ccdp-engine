@@ -299,7 +299,6 @@ public class CcdpObjectFactory
   {
     Object obj = this.getNewInstance(classname, CcdpServerlessControllerAbs.class);
     CcdpServerlessControllerAbs impl = (CcdpServerlessControllerAbs)obj;
-    impl.configure(config);
     return impl;
   }
 }

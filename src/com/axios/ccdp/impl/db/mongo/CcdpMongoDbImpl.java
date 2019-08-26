@@ -7,6 +7,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.axios.ccdp.resources.CcdpResourceAbs;
+import com.axios.ccdp.resources.CcdpServerlessResource;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.bson.Document;
@@ -157,6 +159,41 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   }
 
   /**
+   * Stores the information from the Resource object into the database.
+   * Returns true if was able to store the information or false otherwise
+   *
+   * @param controller the object with the information to store
+   *
+   * @return true if was able to store the information or false otherwise
+   */
+  public boolean storeServerlessInformation(CcdpServerlessResource controller )
+  {
+    Document doc = Document.parse( controller.toJSON().toString() );
+    String type = doc.get("node-type").toString();
+    try
+    {
+      Bson query = Filters.and(Filters.eq("node-type", type), Filters.eq("isServerless", true));
+      Document myFirst = this.statusColl.find(query).first();
+      if( myFirst == null )
+      {
+        this.statusColl.insertOne(doc);
+      }
+      else
+      {
+        this.statusColl.findOneAndReplace(query, doc);
+      }
+
+    }
+    catch( Exception e )
+    {
+      this.logger.error("ERROR " + e.getMessage());
+      e.printStackTrace();
+    }
+
+    return true;
+  }
+
+  /**
    * Gets the first object whose instance-id matches the given uniqueId.  If 
    * the object is not found it returns null
    * 
@@ -182,6 +219,32 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   }
   
   /**
+   * Gets the first object whose node type matches the given controller type.  If 
+   * the object is not found it returns null
+   * 
+   * @param nodeType the object's controller Type
+   * 
+   * @return returns the object if found or null otherwise
+   */
+  public CcdpServerlessResource getServerlessInformation(String nodeType)
+  {
+    FindIterable<Document> docs = 
+        this.statusColl.find(Filters.and(Filters.eq("node-type", nodeType),
+            Filters.eq("isServerless", true) ));
+    try
+    {
+      return this.getCcdpServerlessResource( docs.first() );
+    }
+    catch( Exception e )
+    {
+      this.logger.error("Got an error " + e.getMessage());
+      e.printStackTrace();
+      return null;
+    }
+    
+  }
+  
+  /**
    * Deletes all the entries whose instance-id matches the given one.
    * 
    * @param uniqueId the object's unique identifier
@@ -191,7 +254,21 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public long deleteVMInformation(String uniqueId)
   {
     DeleteResult delRes = 
-        this.statusColl.deleteMany(Filters.eq("instance-id", uniqueId)); 
+        this.statusColl.deleteMany(Filters.and(Filters.eq("instance-id", uniqueId), Filters.eq("isServerless", false))); 
+    return delRes.getDeletedCount();
+  }
+  
+  /**
+   * Deletes all the entries whoseserverless controller type matches the given one.
+   * 
+   * @param nodeType the object's controller type
+   * 
+   * @return returns the  number of entries that were removed 
+   */
+  public long deleteServerlessInformation(String nodeType)
+  {
+    DeleteResult delRes = 
+        this.statusColl.deleteMany(Filters.and(Filters.eq("node-type", nodeType), Filters.eq("isServerless", true))); 
     return delRes.getDeletedCount();
   }
 
@@ -200,10 +277,37 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
    * 
    * @return a list of the resources stored in the database
    */
+  public List<CcdpResourceAbs> getAllInformation()
+  {
+    List<CcdpResourceAbs> result = new ArrayList<>();
+    FindIterable<Document> docs = this.statusColl.find();
+    for( Document doc : docs )
+    {
+      try
+      {
+        if ( !doc.getBoolean("isServerless", false) )
+          result.add( this.getCcdpVMResource(doc) );
+        else 
+          result.add( this.getCcdpServerlessResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM " + jpe.getMessage() );
+        continue;
+      }
+    }
+    return result;
+  }
+  
+  /**
+   * Gets a list of all the resources stored in the database.
+   * 
+   * @return a list of the resources stored in the database
+   */
   public List<CcdpVMResource> getAllVMInformation()
   {
     List<CcdpVMResource> result = new ArrayList<>();
-    FindIterable<Document> docs = this.statusColl.find();
+    FindIterable<Document> docs = this.statusColl.find( Filters.eq("isServerless", false) );
     for( Document doc : docs )
     {
       try
@@ -228,12 +332,40 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformationOfType( String type )
   {
     List<CcdpVMResource> result = new ArrayList<>();
-    FindIterable<Document> docs = this.statusColl.find(Filters.eq("node-type", type));
+    FindIterable<Document> docs = this.statusColl.find(
+        Filters.and(Filters.eq("node-type", type), Filters.eq("isServerless", false)));
     for( Document doc : docs )
     {
       try
       {
         result.add( this.getCcdpVMResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM " + jpe.getMessage() );
+        continue;
+      }
+    }
+    
+    return result;
+  }
+  
+  /**
+   * Gets a list of all the resources stored in the database of specified type.
+   * 
+   * @param type the type of node to filter the return list for
+   * @return a list of the resources stored in the database of the specified type
+   */
+  public List<CcdpServerlessResource> getAllServerlessInformationOfType( String type )
+  {
+    List<CcdpServerlessResource> result = new ArrayList<>();
+    FindIterable<Document> docs = this.statusColl.find(
+        Filters.and(Filters.eq("node-type", type), Filters.eq("isServerless", true)));
+    for( Document doc : docs )
+    {
+      try
+      {
+        result.add( this.getCcdpServerlessResource(doc) );
       }
       catch( JsonProcessingException jpe )
       {
@@ -333,6 +465,36 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     }
     JsonNode node = this.mapper.valueToTree(map);
     return this.mapper.treeToValue(node, CcdpVMResource.class);
+    
+  }
+  
+  /**
+   * Translates the given Document object into a CcdpServerlessResource.  Basically it
+   * removes the _id field and uses ObjectMapper and a HashMap for the 
+   * translation.
+   * 
+   * @param doc the MongoDB Document to translate
+   * 
+   * @return a CcdpServerlessResource object with all its fields populated
+   * 
+   * @throws JsonProcessingException a JsonProcessingException is thrown if 
+   *         there is a problem during the translation
+   */
+  private CcdpServerlessResource getCcdpServerlessResource( Document doc ) throws JsonProcessingException
+  {
+    if( doc == null )
+      return null;
+    
+    Map<String, Object> map = new HashMap<>();
+    doc.remove("_id");
+    Iterator<String> keys = doc.keySet().iterator();
+    while( keys.hasNext() )
+    {
+      String key = keys.next();
+      map.put(key,  doc.get(key) );
+    }
+    JsonNode node = this.mapper.valueToTree(map);
+    return this.mapper.treeToValue(node, CcdpServerlessResource.class);
     
   }
 

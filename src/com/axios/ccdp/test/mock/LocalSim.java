@@ -6,11 +6,14 @@
 
 package com.axios.ccdp.test.mock;
 
+import java.util.List;
+
 import org.apache.log4j.Logger;
 
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
+import com.axios.ccdp.utils.ServerlessTaskRunner;
 
 
 public class LocalSim extends CcdpServerlessControllerAbs
@@ -22,7 +25,7 @@ public class LocalSim extends CcdpServerlessControllerAbs
 
   public LocalSim()
   {
-    this.logger.debug("New Docker Serverless Sim created");
+    this.logger.debug("New Local Sim created");
   }
   
   @Override
@@ -32,28 +35,22 @@ public class LocalSim extends CcdpServerlessControllerAbs
     this.controllerInfo.addTask(task);
     task.setState(CcdpTaskState.STAGING);
     this.connection.sendTaskUpdate(toMain, task);
+    
+    List<String> taskArgs = task.getServerArgs();
     // Create a new thread for the lambda runner
-    Thread t = new Thread(new LocalSimTaskRunner(task, this));
+    //Thread t = new Thread(new LocalSimTaskRunner(task, this));
+    Thread t = new Thread(new ServerlessTaskRunner(
+        "echo " + String.join(" ", taskArgs), task, this));
     this.logger.debug("Thread configured, starting thread");
     task.setState(CcdpTaskState.RUNNING);
     this.connection.sendTaskUpdate(toMain, task);
     t.start();
   }
-
+  
   @Override
-  public void onEvent()
+  public void onEvent() 
   {
-    //this.logger.debug("Storing Local Sim Heartbeat");
     this.dbClient.storeServerlessInformation(this.controllerInfo);
   }
-
-  @Override
-  public void completeTask(CcdpTaskRequest task)
-  {
-    this.logger.debug("Thread Completed");
-    this.controllerInfo.removeTask(task);
-    this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
-    this.connection.sendTaskUpdate(toMain, task);
-  }
-  
 }
+

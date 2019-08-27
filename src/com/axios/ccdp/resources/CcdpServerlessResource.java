@@ -135,22 +135,43 @@ public class CcdpServerlessResource extends CcdpResourceAbs
   @JsonIgnore 
   public int getNumberTasks() { return this.tasks.size(); }
     
-   /**
-      * Removes the first task in the VM Resource list matching the given task's
-      * ID. If the task is found it returns true otherwise it returns false
-      *
-      * @param task
-      *          the task to remove from the list
-      * @return true if the task is found or false otherwise
-      *
-      */
+  /**
+    * Removes the first task in the VM Resource list matching the given task's
+    * ID. If the task is found it returns true otherwise it returns false
+    *
+    * @param task
+    *          the task to remove from the list
+    * @return true if the task is found or false otherwise
+    *
+    */
+
+  public boolean removeTask( CcdpTaskRequest task ) 
+  { 
+    this.last_assignment = System.currentTimeMillis(); 
+    return this.tasks.remove(task); 
+  }
   
-    public boolean removeTask( CcdpTaskRequest task ) 
-    { 
-      this.last_assignment = System.currentTimeMillis(); 
-      return this.tasks.remove(task); 
-    }
-    
+  /**
+   * Removes the first task in the VM Resource list matching the given task's
+   * ID. If the task is found it returns true otherwise it returns false
+   *
+   * @param ID the task to remove from the list
+   * 
+   * @return the task if the task is found or null otherwise
+   */
+
+ public CcdpTaskRequest getTask( String ID ) 
+ { 
+   this.last_assignment = System.currentTimeMillis();
+   for ( CcdpTaskRequest task : this.tasks )
+   {
+     if ( task.getTaskId().equals(ID) )
+     {  
+       return task;
+     }
+   }
+   return null;
+ }
    /**
     * Removes the first task in the VM Resource list matching the given task's
     * ID. If the task is found it returns true otherwise it returns false

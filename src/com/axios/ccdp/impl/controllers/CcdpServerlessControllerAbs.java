@@ -1,11 +1,18 @@
-package com.axios.ccdp.impl.controllers;
-
 /*
  * @author Scott Bennett, scott.bennett@caci.com
  * 
  * An abstract class to respresent a high level approach to Serverless Controller 
  * implementations. All serverless controllers will extend this class.
  */
+
+package com.axios.ccdp.impl.controllers;
+
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.log4j.Logger;
 
@@ -14,6 +21,7 @@ import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
+import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -38,6 +46,11 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
    * A class to store the controller information to do data processing
    */
   protected CcdpServerlessResource controllerInfo;
+  /*
+   * A map to used to map task IDs to runnables
+   */
+  protected Map<String, Runnable> IDtoThreadMap = new ConcurrentHashMap<>();
+   
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -120,5 +133,54 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
    * 
    * @param task A CcdpTaskRequest object containing task information
    */
-  public abstract void completeTask(CcdpTaskRequest task);
+  public void completeTask(CcdpTaskRequest task, JsonNode result)
+  {
+    this.logger.debug("Task " + task.getTaskId() + " completed");
+    this.controllerInfo.removeTask(task);
+    this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
+    this.connection.sendTaskUpdate(toMain, task);
+    
+    if ( result.get("status").asText().equals("PASSED") )
+      task.setState(CcdpTaskState.SUCCESSFUL);
+    else
+      task.setState(CcdpTaskState.FAILED);
+    
+    this.connection.sendTaskUpdate(toMain, task);
+    
+    String localSave = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
+    String provider = task.getServerlessCfg().get(CcdpUtils.S_CFG_PROVIDER);
+    this.processResult(result, localSave, provider);
+  }
+  
+  /*
+   * Processes the result and saves the result if dictated by the task request
+   * 
+   * @param result the string result of the lambda task
+   * 
+   * @param localSaveLocation the local file location to save the result of the request
+   */
+  protected void processResult(JsonNode result, String localSaveLocation, String cont_name)
+  {
+    if ( localSaveLocation != null )
+    {
+      this.logger.debug("Store file locally");       
+      try
+      {
+        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        BufferedWriter out = new BufferedWriter( 
+            new FileWriter(localSaveLocation, true)); 
+        out.write("\n" + cont_name + " Result from " + 
+            dtf.format(now) +"\n" + result.toString() + "\n"); 
+        out.close();
+      }
+      catch ( Exception e )
+      {
+        logger.error("Exception caught while writing to output file");
+        e.printStackTrace();
+      }
+    }
+    else
+      this.logger.debug("Opted out of local storage");
+  }
 }

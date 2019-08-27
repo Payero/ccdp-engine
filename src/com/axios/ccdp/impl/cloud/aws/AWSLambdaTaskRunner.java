@@ -98,12 +98,6 @@ public class AWSLambdaTaskRunner implements Runnable
     
     localFileLocation = serverCfg.get(CcdpUtils.S_CFG_LOCAL_FILE);
     
-    /******* DO EXISTENCE CHECKING HERE!!!!!!!!!!! ******/
-    /*if (localFileLocation != "" || localFileLocation != null)
-    {
-      File localFile = new File ( localFileLocation );
-      
-    }*/
     running_task = task;
   }
   

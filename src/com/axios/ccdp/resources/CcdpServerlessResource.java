@@ -22,8 +22,7 @@ import java.util.Map;
  * @author Scott Bennett, scott.bennett@caci.com
  *
  */
-@JsonIgnoreProperties(
-{ "free" })
+@JsonIgnoreProperties({"free"})
 public class CcdpServerlessResource extends CcdpResourceAbs
     implements Serializable
 {
@@ -32,7 +31,8 @@ public class CcdpServerlessResource extends CcdpResourceAbs
    */
   private static final long serialVersionUID = -705689459501099746L;
 
-  /* Use to distinguish between VMs and serverless controllers during
+  /* 
+   * Use to distinguish between VMs and serverless controllers during
    * querying
    */
   private final boolean isServerless = true;
@@ -55,8 +55,8 @@ public class CcdpServerlessResource extends CcdpResourceAbs
    *
    * @return returns whether the resource is serverless or not
    */
-  
   public boolean getIsServerless(){ return this.isServerless; }
+ 
    /**
     * @return the the type of serverless resource
     */
@@ -68,12 +68,11 @@ public class CcdpServerlessResource extends CcdpResourceAbs
     * 
     * Sets the instance id, if is null it throws an InvalidArgumentException
     *
-    * @param type
-    *          the instanceId to set
+    * @param type the instanceId to set
     *
-    * @throws InvalidArgumentException
-    *           an InvalidArgumentException exception is thrown if the
-    *           instance id is null
+    * @throws InvalidArgumentException an InvalidArgumentException exception is 
+    * thrown if the instance id is null
+    * 
     */
   
    @JsonSetter("node-type") 
@@ -111,11 +110,12 @@ public class CcdpServerlessResource extends CcdpResourceAbs
     *
     * @param task
     *          the task to add
-    */
-  
-  public void addTask(CcdpTaskRequest task) {
-    
-  this.last_assignment = System.currentTimeMillis(); this.tasks.add(task); }
+    */ 
+  public void addTask(CcdpTaskRequest task) 
+  {  
+    this.last_assignment = System.currentTimeMillis(); 
+    this.tasks.add(task); 
+  }
     
    /**
     * Gets all the tasks assigned to this resource
@@ -145,8 +145,11 @@ public class CcdpServerlessResource extends CcdpResourceAbs
       *
       */
   
-    public boolean removeTask( CcdpTaskRequest task ) { this.last_assignment =
-    System.currentTimeMillis(); return this.tasks.remove(task); }
+    public boolean removeTask( CcdpTaskRequest task ) 
+    { 
+      this.last_assignment = System.currentTimeMillis(); 
+      return this.tasks.remove(task); 
+    }
     
    /**
     * Removes the first task in the VM Resource list matching the given task's

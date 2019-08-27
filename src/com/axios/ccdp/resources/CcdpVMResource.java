@@ -113,7 +113,8 @@ public class CcdpVMResource extends CcdpResourceAbs implements Serializable
   private final boolean isServerless = false;
   
   public CcdpVMResource()
-  {}
+  {
+  }
   /**
    * Instantiates a new CcdpVMResource and sets the unique identifier
    * 
@@ -130,6 +131,7 @@ public class CcdpVMResource extends CcdpResourceAbs implements Serializable
    * @return returns whether the resource is serverless or not
    */
   public boolean getIsServerless(){ return this.isServerless; }
+  
 
   /**
    * Updates the resource status based on the the incoming ObjectNode object.

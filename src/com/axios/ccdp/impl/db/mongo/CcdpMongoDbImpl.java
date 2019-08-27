@@ -136,7 +136,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     String id = doc.get("instance-id").toString();
     try
     {
-      Bson query = Filters.eq("instance-id", id);
+      Bson query = Filters.and(Filters.eq("instance-id", id), Filters.eq("isServerless", false));
       Document myFirst = this.statusColl.find(query).first();
       if( myFirst == null )
       {
@@ -204,7 +204,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public CcdpVMResource getVMInformation(String uniqueId)
   {
     FindIterable<Document> docs = 
-        this.statusColl.find(Filters.eq("instance-id", uniqueId) );
+        this.statusColl.find(Filters.and( Filters.eq("instance-id", uniqueId), Filters.eq("isServerless", false) ));
     try
     {
       return this.getCcdpVMResource( docs.first() );
@@ -254,12 +254,12 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
   public long deleteVMInformation(String uniqueId)
   {
     DeleteResult delRes = 
-        this.statusColl.deleteMany(Filters.and(Filters.eq("instance-id", uniqueId), Filters.eq("isServerless", false))); 
+        this.statusColl.deleteMany(Filters.and( Filters.eq("instance-id", uniqueId), Filters.eq("isServerless", false) )); 
     return delRes.getDeletedCount();
   }
   
   /**
-   * Deletes all the entries whoseserverless controller type matches the given one.
+   * Deletes all the entries whose serverless controller type matches the given one.
    * 
    * @param nodeType the object's controller type
    * 
@@ -392,7 +392,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     this.logger.debug("Finding all VMs for " + sid);
     List<CcdpVMResource> result = new ArrayList<>();
     FindIterable<Document> docs = 
-        this.statusColl.find(Filters.eq("session-id", sid) );
+        this.statusColl.find(Filters.and( Filters.eq("session-id", sid), Filters.eq("isServerless", false) ));
     
     for( Document doc : docs )
     {
@@ -515,7 +515,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     this.logger.debug("Finding all VMs for " + SID + " and " + node_type);
     List<CcdpVMResource> result = new ArrayList<>();
     FindIterable<Document> docs = 
-        this.statusColl.find( Filters.and(Filters.eq("session-id", SID), Filters.eq("node-type", node_type)) );
+        this.statusColl.find( Filters.and(Filters.eq("session-id", SID), Filters.eq("node-type", node_type), Filters.eq("isServerless", false)) );
     
     for( Document doc : docs )
     {

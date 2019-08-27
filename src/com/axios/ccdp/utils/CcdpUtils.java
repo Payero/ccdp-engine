@@ -549,7 +549,7 @@ public class CcdpUtils
         // Making sure each task has a command
         for( CcdpTaskRequest task : req.getTasks() )
         {
-          if( task.getCommand().isEmpty() )
+          if( task.getCommand().isEmpty() && task.getServerless() == false)
             throw new RuntimeException("The command is required");
         }
         

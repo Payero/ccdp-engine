@@ -1,17 +1,10 @@
 package com.axios.ccdp.test;
 
-import java.util.HashMap;
-
 import org.apache.log4j.Logger;
 
-import com.axios.ccdp.factory.CcdpObjectFactory;
-import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
-import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.spotify.docker.client.shaded.com.google.common.collect.ArrayListMultimap;
-import com.spotify.docker.client.shaded.com.google.common.collect.Multimap;
 
 
 
@@ -22,8 +15,6 @@ public class CCDPTest
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
   
-  private CcdpServerlessControllerAbs serverless_cont = null;
-  private HashMap<String, CcdpServerlessControllerAbs> controllerMap = new HashMap<>();
 
 
   public CCDPTest() throws Exception
@@ -62,6 +53,7 @@ public class CCDPTest
     
     System.out.println(actualObj);
     System.out.println(justString);
+    this.logger.debug("Done test");
   }
   
   public static void main( String[] args ) throws Exception

@@ -7,6 +7,7 @@
  */
 package com.axios.ccdp.impl.cloud.aws;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +18,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.ServerlessTaskRunner;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AWSLambdaController extends CcdpServerlessControllerAbs
@@ -29,7 +31,6 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
    * Strings for the curl command
    */
   private final String curlCmd = "curl -X POST -d ";
-  private final String post_command = "\"{";
   /**
    * Generates debug print statements based on the verbosity level.
    */
@@ -49,12 +50,11 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     this.connection.sendTaskUpdate(toMain, task);
     
     //Create the command
-    String dataField = this.generateCurl(task);
-    this.logger.debug("Curl cmd: " + curlCmd + dataField);
+    String curlData = this.generateCurl(task);
+    this.logger.debug("Curl cmd: " + curlCmd + curlData);
     
     // Create a new thread for the lambda runner
-    Thread t = new Thread(new ServerlessTaskRunner(curlCmd + dataField, task, this));
-    //Thread t = new Thread(new AWSLambdaTaskRunner(task, this));
+    Thread t = new Thread(new ServerlessTaskRunner(curlCmd + curlData, task, this));
     this.logger.debug("Thread configured, starting thread");
     task.setState(CcdpTaskState.RUNNING);
     this.connection.sendTaskUpdate(toMain, task);
@@ -83,15 +83,20 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     this.logger.debug("Server Cfg: " + serverCfg.toString());
     this.logger.debug("Task Arguments: " + taskArgs.toString());
     
-    String specific_post_command = this.post_command + "\\\"arguments\\\": \\\"" + String.join(", ", taskArgs) + "\\\"";
+    // Create a map and add all the needed data fields to the map
+    Map<String, String> dataMap = new HashMap<>();
+    dataMap.put("arguments", String.join(" ", taskArgs));
     for ( String key : serverCfg.keySet() )
     {
       if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) )
         continue;
-      specific_post_command = specific_post_command + ",\\\"" + key + "\\\": \\\"" + serverCfg.get(key) + "\\\"";
+      dataMap.put(key, serverCfg.get(key));
     }
-    specific_post_command = specific_post_command + "}\" " + serverCfg.get(CcdpUtils.S_CFG_GATEWAY);
-    this.logger.debug("The AWS Lambda Request: " + specific_post_command);
-    return specific_post_command;
+    
+    // Turn the map into a JsonNode, change it to a string an format it for AWS
+    JsonNode dataNode = mapper.valueToTree(dataMap);
+    String curlData = "\"" + dataNode.toString().replace("\"", "\\\"") + "\" " + serverCfg.get(CcdpUtils.S_CFG_GATEWAY);
+    this.logger.debug("The AWS Lambda Request: " + curlData);
+    return curlData;
   }
 }

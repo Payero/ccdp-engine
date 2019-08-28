@@ -1,7 +1,7 @@
 /*
  * @author Scott Bennett
  * 
- * A simple controller to send tasks to a Docker container to run commands. 
+ * A simple controller that echos the input arguments. 
  */
 
 package com.axios.ccdp.test.mock;
@@ -37,10 +37,11 @@ public class LocalSim extends CcdpServerlessControllerAbs
     this.connection.sendTaskUpdate(toMain, task);
     
     List<String> taskArgs = task.getServerArgs();
-    // Create a new thread for the lambda runner
-    //Thread t = new Thread(new LocalSimTaskRunner(task, this));
+    
+    // Create a new thread and configure the runner
     Thread t = new Thread(new ServerlessTaskRunner(
         "echo " + String.join(" ", taskArgs), task, this));
+    
     this.logger.debug("Thread configured, starting thread");
     task.setState(CcdpTaskState.RUNNING);
     this.connection.sendTaskUpdate(toMain, task);

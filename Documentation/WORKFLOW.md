@@ -109,3 +109,44 @@ In other words, there is a single message queue that the Engine listens to for u
 
 In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 
+####The Database Interface
+
+The purpose of the Database interface is to provide a persistent method of system status monitoring in case of unexpected crashes. It is also a powerful tool for debugging the system when resource tasking isn't behaving as expected. Every resource that is created by the Engine has an entry in the database as long as the resource is still active. If a resource is terminated by the Engine, its database entry is deleted. 
+
+The database fields and types for agents are:
+
+- Map<String, String> tags: Additional tags to add to the resource
+- String status: The status of the resource *("Launched", "Running", "Shutting Down", etc)*
+- String hostname: The hostname of the resource
+- boolean isServerless: Whether the resource is a serverless resource or not *(should be false for agents)*
+- String node-type: The type of node the resource is
+- List\<CcdpTaskRequest> tasks: A list of task requests assinged to the resource
+- String instance-id: A unique identifier applied to the resource
+- String session-id: The session that the Engine assigned to the resource
+- int assigned-cpu: The assigned CPU to the resource by the allocator
+- int assigned-mem: The assigned memory (RAM) to the resource by the allocator
+- int assigned-disk: The assigned disk space to the resource by the allocator
+- int total-cpu: The total CPU available to the resource
+- int total-mem: The total memory (RAM) available to the resource
+- int total-disk-space: The total disk space available to the resource
+- int free-mem: The current free memory (RAM) available to the resource
+- int system-cpu-load: The current CPU load used by the resource
+- int free-disk-space: The current free disk space available to the resource
+- boolean is-single-tasked* Whether the resource is single tasked*
+- CcdpTaskRequest single-task: The task that is causing the resource to be single tasked, null if not single tasked
+- last-updated: The last time the resource was updated by an Engine probe
+- last-assignment: The last time the resource was assigned a tasked by the task allocator
+
+*\* Note: a task makes a resource "single tasked" if the task is given all of the agent's allocated CPU processing power*
+
+The database field sand types for serverless resources are:
+
+- Map<String, String> tags: Additional tags to add to the resource
+- boolean isServerless: Whether the resource is a serverless resource or not *(should be true for serverless resources)*
+- String node-type: The name of the service the controller corresponds to
+- List\<CcdpTaskRequest> tasks: A list of task requests assinged to the resource
+- last-assignment: The last time the resource was assigned a tasked by the task allocator
+
+As stated earlier, I used MongoDb to implement the Database interface with my database entries looking like the following:
+![alt-text](./DatabaseSS.png)
+<p style="text-align:center">Database Interface Implementation</p>

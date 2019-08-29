@@ -79,7 +79,7 @@ public class ServerlessTaskRunner implements Runnable
     catch ( Exception e)
     {
       task.setState(CcdpTaskState.FAILED);
-      resultMap.put("status", "FAILED");
+      resultMap.put("status", CcdpTaskState.FAILED.name());
       resultMap.put("stacktrace", e.toString());
       this.logger.debug("Exception thrown from process building");
       e.printStackTrace();
@@ -87,7 +87,8 @@ public class ServerlessTaskRunner implements Runnable
     
     logger.debug("Result of TaskRunner: " + result);
     if ( !resultMap.containsKey("status") )
-      resultMap.put("status", "PASSED");
+      resultMap.put("status", CcdpTaskState.SUCCESSFUL.name());
+    task.setState(CcdpTaskState.SUCCESSFUL);
     JsonNode resultJson = mapper.valueToTree(resultMap);
     this.controller.completeTask(this.task, resultJson);
   }

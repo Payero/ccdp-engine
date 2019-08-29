@@ -27,7 +27,7 @@ import com.amazonaws.services.ec2.model.RunInstancesRequest;
 import com.amazonaws.services.ec2.model.RunInstancesResult;
 import com.amazonaws.services.ec2.model.Tag;
 import com.amazonaws.util.Base64;
-import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
+import com.axios.ccdp.impl.cloud.aws.AWSUtilities;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl;
@@ -244,7 +244,10 @@ public class VmLauncher
       iips.setName(role);
       request.setIamInstanceProfile(iips);
     }
-    AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+    JsonNode awsCreds = CcdpUtils.getCredentials();
+    AWSCredentials credentials = AWSUtilities.getAWSCredentials(
+        awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(),
+        awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
     //System.out.println(credentials.toString());
     
     ClientConfiguration cc = new ClientConfiguration();

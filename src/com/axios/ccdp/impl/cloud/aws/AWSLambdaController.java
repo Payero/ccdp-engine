@@ -7,12 +7,21 @@
  */
 package com.axios.ccdp.impl.cloud.aws;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.axios.ccdp.impl.cloud.aws.AWSUtilities;
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
@@ -35,6 +44,12 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(AWSLambdaController.class.getName());
+  
+  /*
+   * Beginning string for S3 uploads
+   */
+  private String s3_proto = "s3://";
+  private String AWS = "AWS";
 
   public AWSLambdaController()
   {
@@ -88,7 +103,7 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     dataMap.put("arguments", String.join(" ", taskArgs));
     for ( String key : serverCfg.keySet() )
     {
-      if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) )
+      if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) || key.equals(CcdpUtils.S_CFG_REMOTE_FILE) )
         continue;
       dataMap.put(key, serverCfg.get(key));
     }
@@ -98,5 +113,62 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     String curlData = "\"" + dataNode.toString().replace("\"", "\\\"") + "\" " + serverCfg.get(CcdpUtils.S_CFG_GATEWAY);
     this.logger.debug("The AWS Lambda Request: " + curlData);
     return curlData;
+  }
+
+  @Override
+  public void remoteSave(JsonNode result, String location, String cont_name)
+  {
+    this.logger.debug("Uploading AWS Lambda result to S3 at: " + location);
+    
+    try
+    {
+   // Remove appended s3 proto if it was there
+      if ( location.contains(s3_proto) )
+        location = location.substring(s3_proto.length());
+      this.logger.debug("location: " + location);
+      
+      // Get the bucket name and separate it from the folders/fname
+      Path tgt_loc = Paths.get(location);
+      String bucket = tgt_loc.subpath(0, 1).toString();
+      location = location.substring(bucket.length() + 1);
+      this.logger.debug("Bucket: " + bucket + ", location: " + location);    
+      
+      // Get AWS Credentials and build a S3 client
+      JsonNode AWSCreds = CcdpUtils.getCredentials().get(AWS);
+      if ( AWSCreds == null )
+      {
+        this.logger.error("AWS Credentials were not found, aborting remote save");
+        return;
+      }
+      AWSCredentials creds = AWSUtilities.getAWSCredentials(
+          AWSCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(), 
+          AWSCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
+      
+      // Create the S3 Client and do upload
+      AmazonS3 s3 = new AmazonS3Client(creds, new ClientConfiguration());
+      
+      if ( !s3.doesBucketExist(bucket) )
+      {
+        this.logger.debug("Bucket \"" + bucket + "\" doesn't exist, creating it");
+        s3.createBucket(bucket);
+      }
+      
+      String existingObj = "";
+      if (s3.doesObjectExist(bucket, location))
+        existingObj = s3.getObjectAsString(bucket, location);
+      
+      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+      LocalDateTime now = LocalDateTime.now();
+      s3.putObject(bucket, location, existingObj + "\n" + cont_name + " Result from " + 
+          dtf.format(now) +"\n" + result.toString() + "\n");
+      
+      this.logger.debug("File uploaded to S3."); 
+    }
+    catch (Exception e)
+    {
+      this.logger.debug("Exception thrown while uploading to S3");
+      e.printStackTrace();
+    }
+     
   }
 }

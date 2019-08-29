@@ -80,6 +80,17 @@ public class CcdpUtils
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
   
+  public static final String CFG_KEY_CREDENTIALS_FILE = "credentials-file";
+  public static final String CFG_KEY_CREDENTIALS_PROFILE = "credentials-profile-name";
+  /** Stores the name of the ACCESS KEY Environment Variable **/
+  public static final String ACCESS_KEY_ID_ENV_VAR = "AWS_ACCESS_KEY_ID";
+  /** Stores the name of the ACCESS SECRET Environment Variable **/
+  public static final String ACCESS_SECRET_ENV_VAR = "AWS_SECRET_ACCESS_KEY";
+  /** Stores the name of the ACCESS KEY System Property **/
+  public static final String ACCESS_KEY_ID_PROPERTY = "aws.accessKeyId";
+  /** Stores the name of the ACCESS SECRET System Property **/
+  public static final String ACCESS_SECRET_PROPERTY = "aws.secretKey";
+  
   /**  The key names for Lambda Task fields  */
   public static final String CFG_SERVERLESS = "serverless";
   public static final String CFG_SERVERLESS_ARGS = "arguments";
@@ -92,7 +103,7 @@ public class CcdpUtils
   public static final String S_CFG_MOD_NAME = "mod_name";
   public static final String S_CFG_KEEP_FILES = "keep_files";
   public static final String S_CFG_VERB_LEVEL = "verb_level";
-  public static final String S_CFG_RES_FILE = "res_file";
+  public static final String S_CFG_REMOTE_FILE = "remote_file";
   public static final String S_CFG_LOCAL_FILE = "local_file";
  
   //  /**  The key name of the property storing the configuration filename  */
@@ -687,8 +698,8 @@ public class CcdpUtils
           // Add local and remote save locations if they are given
           if ( cfg.has(S_CFG_LOCAL_FILE) && cfg.get(S_CFG_LOCAL_FILE) != null )
             config.put(S_CFG_LOCAL_FILE, cfg.get(S_CFG_LOCAL_FILE).asText());
-          if ( cfg.has(S_CFG_RES_FILE) && cfg.get(S_CFG_RES_FILE) != null )
-            config.put( S_CFG_RES_FILE, cfg.get(S_CFG_RES_FILE).asText() );
+          if ( cfg.has(S_CFG_REMOTE_FILE) && cfg.get(S_CFG_REMOTE_FILE) != null )
+            config.put( S_CFG_REMOTE_FILE, cfg.get(S_CFG_REMOTE_FILE).asText() );
           task.setServelessCfg(config);
         }
         else
@@ -998,6 +1009,16 @@ public class CcdpUtils
   public static void setLoggingCfg(JsonNode node)
   {
     CcdpUtils.parser.setLoggingCfg(node);
+  }
+  
+  /**
+   * Get all the credentials in the config
+   * 
+   * @return a JsonNode object containing all the different credentials
+   */
+  public static JsonNode getCredentials()
+  {
+    return CcdpUtils.parser.getCredentialNode();
   }
   
   /**

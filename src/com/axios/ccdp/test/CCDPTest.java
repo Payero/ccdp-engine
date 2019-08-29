@@ -4,9 +4,6 @@ import org.apache.log4j.Logger;
 
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-
 
 public class CCDPTest 
 {
@@ -42,18 +39,9 @@ public class CCDPTest
     }
     this.logger.debug("ControllerMap: \n" + controllerMap.toString());*/
     
-    String test1 = "{\"stackTrace\": [[\"/var/task/CcdpLambdaTaskRunner.py\", 402, \"handler\", \"return \\\"%s\\\" % runner.runTask(args)\"], [\"/var/task/CcdpLambdaTaskRunner.py\", 245, \"runTask\", \"bkt.download_file(zip_mod, fpath)\"], [\"/var/runtime/boto3/s3/inject.py\", 246, \"bucket_download_file\", \"ExtraArgs=ExtraArgs, Callback=Callback, Config=Config)\"], [\"/var/runtime/boto3/s3/inject.py\", 172, \"download_file\", \"extra_args=ExtraArgs, callback=Callback)\"], [\"/var/runtime/boto3/s3/transfer.py\", 307, \"download_file\", \"future.result()\"], [\"/var/runtime/s3transfer/futures.py\", 73, \"result\", \"return self._coordinator.result()\"], [\"/var/runtime/s3transfer/futures.py\", 233, \"result\", \"raise self._exception\"]], \"errorType\": \"ClientError\", \"errorMessage\": \"An error occurred (404) when calling the HeadObject operation: Not Found\"}\n" + 
-        "";
-    String test2 = "{\"result\": \"3.137988\"}";
-    
-    ObjectMapper mapper = new ObjectMapper();
-    JsonNode actualObj = mapper.readTree(test1);
- 
-    JsonNode justString = mapper.readTree(test2);
-    
-    System.out.println(actualObj);
-    System.out.println(justString);
-    this.logger.debug("Done test");
+    System.out.println(CcdpUtils.getCredentials());
+    JsonNode aws = CcdpUtils.getCredentials().get("AWS");
+    this.logger.debug(aws);
   }
   
   public static void main( String[] args ) throws Exception

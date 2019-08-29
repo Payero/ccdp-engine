@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpConfigParser
 {
   public static final String KEY_LOGGING = "logging";
+  public static final String KEY_CREDENTIALS = "credentials";
   public static final String KEY_ENGINE = "engine";
   public static final String KEY_NODE_TYPES = "node-types";
   public static final String KEY_INTF_IMPLS = "interface-impls";
@@ -57,6 +58,7 @@ public class CcdpConfigParser
   public static final String EC2_IMG_NAME = "EC2";
   /** The name of the Docker resource type */
   public static final String DOCKER_IMG_NAME = "DOCKER";
+  public static final String AMAZON_WEB_SERVICES = "AWS";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -189,6 +191,16 @@ public class CcdpConfigParser
   public JsonNode getLoggingCfg()
   {
     return this.config.get( CcdpConfigParser.KEY_LOGGING );
+  }
+  
+  /*
+   * Gets the credentials from the config file in JsonNode format
+   * 
+   * @return a JsonNode with the credentials
+   */
+  public JsonNode getCredentialNode()
+  {
+    return this.config.get( CcdpConfigParser.KEY_CREDENTIALS);
   }
   /**
    * Sets all the configuration parameters used by the logging object

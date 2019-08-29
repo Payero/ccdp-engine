@@ -14,6 +14,7 @@ import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.ServerlessTaskRunner;
+import com.fasterxml.jackson.databind.JsonNode;
 
 
 public class LocalSim extends CcdpServerlessControllerAbs
@@ -52,6 +53,12 @@ public class LocalSim extends CcdpServerlessControllerAbs
   public void onEvent() 
   {
     this.dbClient.storeServerlessInformation(this.controllerInfo);
+  }
+
+  @Override
+  public void remoteSave(JsonNode result, String location, String cont_name)
+  {
+    this.logger.debug("Implement storage choice here");
   }
 }
 

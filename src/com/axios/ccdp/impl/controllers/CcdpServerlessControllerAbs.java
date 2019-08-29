@@ -21,7 +21,6 @@ import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.TaskEventIntf;
 import com.axios.ccdp.utils.ThreadedTimerTask;
@@ -129,6 +128,13 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
   public abstract void runTask(CcdpTaskRequest task);
   
   /*
+   * Handles sending the result to a cloud/external location
+   * 
+   * @param result a JsonNode with the result of the task
+   */
+  public abstract void remoteSave(JsonNode result, String location, String cont_name);
+  
+  /*
    * Called when the thread completes, returns to controller to send updates on status
    * 
    * @param task A CcdpTaskRequest object containing task information
@@ -139,17 +145,21 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
     this.controllerInfo.removeTask(task);
     this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
     this.connection.sendTaskUpdate(toMain, task);
-    
-    if ( result.get("status").asText().equals("PASSED") )
-      task.setState(CcdpTaskState.SUCCESSFUL);
-    else
-      task.setState(CcdpTaskState.FAILED);
-    
-    this.connection.sendTaskUpdate(toMain, task);
-    
-    String localSave = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
+        
+    String localSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
+    String remoteSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_REMOTE_FILE);
     String provider = task.getServerlessCfg().get(CcdpUtils.S_CFG_PROVIDER);
-    this.processResult(result, localSave, provider);
+    
+    
+    if (localSaveLoc != null)
+      this.localSave(result, localSaveLoc, provider);
+    else
+      this.logger.debug("Opted out of local storage");
+    
+    if (remoteSaveLoc != null)
+      this.remoteSave(result, remoteSaveLoc, provider);
+    else
+      this.logger.debug("Opted out of remote storage");
   }
   
   /*
@@ -159,28 +169,23 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
    * 
    * @param localSaveLocation the local file location to save the result of the request
    */
-  protected void processResult(JsonNode result, String localSaveLocation, String cont_name)
+  protected void localSave(JsonNode result, String localSaveLocation, String cont_name)
   {
-    if ( localSaveLocation != null )
+    this.logger.debug("Store file locally");       
+    try
     {
-      this.logger.debug("Store file locally");       
-      try
-      {
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
-        LocalDateTime now = LocalDateTime.now();
-        BufferedWriter out = new BufferedWriter( 
-            new FileWriter(localSaveLocation, true)); 
-        out.write("\n" + cont_name + " Result from " + 
-            dtf.format(now) +"\n" + result.toString() + "\n"); 
-        out.close();
-      }
-      catch ( Exception e )
-      {
-        logger.error("Exception caught while writing to output file");
-        e.printStackTrace();
-      }
+      DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+      LocalDateTime now = LocalDateTime.now();
+      BufferedWriter out = new BufferedWriter( 
+          new FileWriter(localSaveLocation, true)); 
+      out.write("\n" + cont_name + " Result from " + 
+          dtf.format(now) +"\n" + result.toString() + "\n"); 
+      out.close();
     }
-    else
-      this.logger.debug("Opted out of local storage");
+    catch ( Exception e )
+    {
+      logger.error("Exception caught while writing to output file");
+      e.printStackTrace();
+    }
   }
 }

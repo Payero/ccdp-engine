@@ -43,6 +43,7 @@ import com.axios.ccdp.messages.TaskUpdateMessage;
 import com.axios.ccdp.messages.ThreadRequestMessage;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
 import com.axios.ccdp.resources.CcdpImageInfo;
+import com.axios.ccdp.resources.CcdpServerlessResource;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
@@ -2069,6 +2070,16 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   public List<String> getSessionIds()
   {
     return this.sessions;
+  }
+  
+  /**
+   * Gets all the serverless resources being used by the engine
+   * 
+   * @return all the resources being used by the engine
+   */
+  public List<CcdpServerlessResource> getAllCcdpServerlessResources()
+  {
+    return this.dbClient.getAllServerlessInformation();
   }
   
   /**

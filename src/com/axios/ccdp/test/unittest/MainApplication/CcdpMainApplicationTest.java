@@ -1,5 +1,6 @@
 package com.axios.ccdp.test.unittest.MainApplication;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -24,6 +25,7 @@ import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
+import com.axios.ccdp.resources.CcdpServerlessResource;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
@@ -59,7 +61,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * at the end of each test
    */
   private List<CcdpVMResource> running_vms = null;
-
+  /*
+   * Stores all the serverless controllers started by the engine
+   */
+  private List<CcdpServerlessResource> serverless_controllers = null;
   /*
    * The main engine object to be tested
    */
@@ -89,6 +94,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   {
     this.messages = new ArrayList<>();
     this.running_vms = new ArrayList<>();
+    this.serverless_controllers = new ArrayList<>();
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
     JsonNode db_cfg = CcdpUtils.getDatabaseIntfCfg();
@@ -1424,6 +1430,40 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     logger.debug("Tasks should be done now");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The VMs shoud've been stopped", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test checks with the database to ensure that the correct number of controllers
+   * is spawned for serverless tasks
+   */
+  @Test
+  public void checkServerlessControllers()
+  {
+    logger.debug("Starting checkServerlessControllers test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
   }
   
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/

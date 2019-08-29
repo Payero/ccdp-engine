@@ -12,13 +12,13 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.auth.profile.ProfilesConfigFile;
 import com.axios.ccdp.utils.CcdpUtils;
 
-public class AWSUtilities
+public class AWSUtils
 {
 
   /**
    * Generates debug print statements based on the verbosity level.
    */
-  private static Logger logger = Logger.getLogger(AWSUtilities.class.getName());
+  private static Logger logger = Logger.getLogger(AWSUtils.class.getName());
 
   /**
    * Sets the configuration object containing all the related information 
@@ -74,7 +74,7 @@ public class AWSUtilities
     else if( credsFile != null )
     {
       logger.info("Setting Credentials using JSON Configuration");
-      credentials = AWSUtilities.getCredentials(credsFile, profile);
+      credentials = AWSUtils.getCredentials(credsFile, profile);
     }
     else if( System.getenv("HOME") != null )
     {
@@ -83,7 +83,7 @@ public class AWSUtilities
       File file = new File(fname);
       if( file.isFile() )
       {
-        credentials = AWSUtilities.getCredentials(fname, profile);
+        credentials = AWSUtils.getCredentials(fname, profile);
       }
       else
       {

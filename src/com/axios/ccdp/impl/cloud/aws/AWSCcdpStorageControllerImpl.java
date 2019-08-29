@@ -81,7 +81,7 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
     try
     {
       JsonNode awsCreds = CcdpUtils.getCredentials().get("AWS");
-      AWSCredentials credentials = AWSUtilities.getAWSCredentials(
+      AWSCredentials credentials = AWSUtils.getAWSCredentials(
           awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(),
           awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
       

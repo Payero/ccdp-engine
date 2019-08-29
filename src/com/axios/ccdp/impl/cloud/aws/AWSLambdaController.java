@@ -21,7 +21,7 @@ import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.axios.ccdp.impl.cloud.aws.AWSUtilities;
+import com.axios.ccdp.impl.cloud.aws.AWSUtils;
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
@@ -140,7 +140,7 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
         this.logger.error("AWS Credentials were not found, aborting remote save");
         return;
       }
-      AWSCredentials creds = AWSUtilities.getAWSCredentials(
+      AWSCredentials creds = AWSUtils.getAWSCredentials(
           AWSCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(), 
           AWSCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
       

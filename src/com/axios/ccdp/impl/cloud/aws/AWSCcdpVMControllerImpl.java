@@ -136,7 +136,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     String fname = def.getCredentialsFile();
     String profile = def.getProfileName();
     AWSCredentials credentials = 
-        AWSUtilities.getAWSCredentials(fname, profile);
+        AWSUtils.getAWSCredentials(fname, profile);
     
     // get the proxy port if it was set
     ClientConfiguration cc = new ClientConfiguration();
@@ -250,7 +250,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     // Stuff I added
     JsonNode awsCreds = CcdpUtils.getCredentials().get("AWS");
-    AWSCredentials credentials = AWSUtilities.getAWSCredentials(
+    AWSCredentials credentials = AWSUtils.getAWSCredentials(
         awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(),
         awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
     ClientConfiguration cc = new ClientConfiguration();

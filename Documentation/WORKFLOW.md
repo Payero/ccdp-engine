@@ -25,37 +25,39 @@ After installing the dependencies, programs that are needed for development and 
 - Visual Studio Code, https://code.visualstudio.com/
 - Terminator, a better terminal, *yum install terminator*
 
-Now that dependencies and applications are install, it's time to configure the environment.
+Now that dependencies and applications are install, it's time to configure the environment. A workspace should be designated for Eclipse, so use the following commands to make a new directory for the workspace and finally clone the repo:
 
-- I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be active inside Eclipse. To ensure this also happens, add the line
+```shell
+# Go to home directory
+ps1:~$: cd ~
+
+# Make a new directory for the workspace
+ps1:~: mkdir workspace
+```
+
+I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be active inside Eclipse. To ensure this also happens, add the line
 *source /etc/environment*
 to your *.bashrc* file. This forces the variables to be sourced.
 
-- The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard shortcuts and environment variabes:
+The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard shortcuts and environment variabes:
 
 ```bash
-export JAVA_HOME="/usr/java/latest"
-export ANT_HOME="/projects/users/srbenne/apps/apache-ant"
+export JAVA_HOME="/usr/java/latest" 
+# Latest is a soft link to the latest version of JDK, 12 in my case
+
+export ANT_HOME="{Path to Ant Home}/apache-ant"
 
 export PATH="${JAVA_HOME}/bin:${ANT_HOME}/bin:$PATH"
-export CCDP_HOME=/nishome/srbenne/workspace/engine
+export CCDP_HOME=~/workspace
 
 # I installed eclipse at /opt
 alias ejava='{Path to Eclipse}/eclipse/eclipse & disown'
 ```
 
-The above code block can be copy and pasted into your *.bashrc* file. Next, a workspace should be designated for Eclipse, so use the following commands to make a new directory for the workspace and finally clone the repo:
+The above code block can be copy and pasted into your *.bashrc* file. You can then use the alias set above to open Eclipse.
 
-```bash
-# Go to home directory
-cd ~
-
-# Make a new directory for the workspace
-mkdir workspace
-cd workspace
-
-# Open Eclipse with the alias from earlier
-ejava
+```shell
+ps1:~$ ejava
 ```
 
 When Eclipse opens, it asks for your project workspace, at which time you can designate the workspace folder we just created.
@@ -66,4 +68,44 @@ At this point, you are ready to start using adding your own features to the CCDP
 
 An In Depth Look into CCDP
 --------------------------
+
+![alt text](./CcdpArchitecture.png "CCDP Engine Architecture")
+<p style="text-align:center">CCDP Engine Architecture</p>
+
+In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
+
+- When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section, I will refere to them as the resources, but the same concepts can be derived for whatever resoruce you are implementing CCDP Engine support.
+
+For reference, I used the following services to implement interfaces:
+
+- Active MQ for the Connection Interface
+- MongoDb for the Database Interface
+- AWS and Docker for the Resources *(Each resource needs a resource controller)*
+- AWS Lambda and Local Bash Session for Serverless Interfaces
+- Two different task allocation, used to determine how task are distrubuted to the engine's resources
+
+All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections, I'm going to define a few terms that I will use to explain system components:
+
+- Resource: An instance of a server-bound or server-free target that can execute tasks assigned by the Engine.
+- Agent: A server-bound resource that requires a host, local or remote, to run tasks
+- Serverless: A server-free resource that doesn't need a host to execute *(AWS Lambda for example)*
+
+Its important to note that agents are physical machine running tasks, while serverless operations don't require a host to execute code.
+
+####The Connection Interface
+
+The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers. This allows the engine to send tasks and receive updates from the agents and serverless controllers.
+
+The architecture for message sending, from the perspective of the Engine is simple:
+
+- incoming messages are a 'one to many' relationship
+- outgoing messages are a 'one to one' relationship.
+
+In other words, there is a single message queue that the Engine listens to for updates and messages from all agents and serverless controllers. When a new message is received, it is dealt with according to the message type. When the Engine wants to send a message, it sends the message to a message queue exclusive to the Engine and the desired target.
+
+**PICTURE HERE**
+
+#####Implementation Example:
+
+In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 

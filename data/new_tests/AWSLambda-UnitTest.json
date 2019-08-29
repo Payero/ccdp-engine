@@ -1,11 +1,11 @@
 {
-  "tasks":
+  "jobs":
     [
        { 
-         "session-id": "test-1",
+         "session-id": "AWS Lambda",
          "node-type": "None",
          "serverless": true,
-         "arguments":["1000000"],
+         "arguments":["3000000"],
          "serverless-config":
          {       
            "provider": "AWS Lambda",
@@ -18,14 +18,6 @@
 		   "remote_file": "s3://ccdp-results/pi.out",
 		   "local_file": "/nishome/srbenne/pi.out"
          }
-       },
-       {
-       	 "session-id": "test-1",
-       	 "node-type": "EC2",
-       	 "command": ["/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
-              "-a", "testRandomTime", 
-              "-p", "min=50,max=51"
-              ]
        }        
    ]  
 }

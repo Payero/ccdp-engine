@@ -15,7 +15,7 @@
 		   "mod_name": "simple_pi",
 		   "keep_files": "False",
 		   "verb_level": "debug",
-		   "res_file": "pi.out",
+		   "remote_file": "s3://ccdp-results/pi.txt",
 		   "local_file": "/nishome/srbenne/pi.out"
          }
        }        

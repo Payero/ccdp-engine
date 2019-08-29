@@ -3,6 +3,12 @@
     "config-file": "${CCDP_HOME}/config/log4j.properties", 
     "logs-dir": "${CCDP_HOME}/logs"
   },
+  "credentials": {
+  	"AWS":{
+  		"credentials-file": "/nishome/srbenne/.aws/credentials",
+  		"credentials-profile-name": "default"
+  	}
+  },
   "engine": {
     "resources-check-cycle": 5,
     "do-not-terminate": [

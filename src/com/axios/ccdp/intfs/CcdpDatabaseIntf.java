@@ -79,6 +79,13 @@ public interface CcdpDatabaseIntf
   public List<CcdpVMResource> getAllVMInformation();
   
   /**
+   * Gets a list of all the serverless resources stored in the database.
+   * 
+   * @return a list of the serverless resources stored in the database
+   */
+  public List<CcdpServerlessResource> getAllServerlessInformation();
+  
+  /**
    * Gets a list of all the resources stored in the database of the specified type.
    * 
    * @param node_type the type of node to filter the return list for

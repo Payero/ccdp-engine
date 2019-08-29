@@ -531,4 +531,29 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
     }
     return result;
   }
+
+  /**
+   * Gets the total number of serverless controllers stored in the database 
+   *  
+   * @return the total number of serverless controllers stored in the database
+   */
+  @Override
+  public List<CcdpServerlessResource> getAllServerlessInformation()
+  {
+    List<CcdpServerlessResource> result = new ArrayList<>();
+    FindIterable<Document> docs = this.statusColl.find( Filters.eq("isServerless", true) );
+    for( Document doc : docs )
+    {
+      try
+      {
+        result.add( this.getCcdpServerlessResource(doc) );
+      }
+      catch( JsonProcessingException jpe )
+      {
+        this.logger.error("Could not process VM " + jpe.getMessage() );
+        continue;
+      }
+    }
+    return result;
+  }
 }

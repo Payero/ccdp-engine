@@ -69,9 +69,7 @@ public class EC2ImageLoaderImpl implements CcdpImgLoaderIntf
       img.setProxyUrl( this.config.get("proxy-url").asText() );
     if( this.config.has("proxy-port") )
       img.setProxyPort( this.config.get("proxy-port").asInt() );
-    img.setCredentialsFile( this.config.get("credentials-file").asText() );
-    img.setProfileName( this.config.get("credentials-profile-name").asText() );
-    
+
     JsonNode node = this.config.get("startup-command");
     if( node != null && node.isArray() )
     {

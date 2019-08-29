@@ -117,11 +117,11 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     
     
     // need to make sure the default configuration is set properly
-    CcdpImageInfo def = 
-        CcdpUtils.getImageInfo( CcdpConfigParser.DEFAULT_IMG_NAME );
-    if( def.getImageId() == null || 
-        def.getSecGrp() == null || 
-        def.getSubnet() == null )
+    CcdpImageInfo img = 
+        CcdpUtils.getImageInfo( CcdpConfigParser.EC2_IMG_NAME );
+    if( img.getImageId() == null || 
+        img.getSecGrp() == null || 
+        img.getSubnet() == null )
     {
       String msg = "One of the required fields for the default VM configuraion "
           + "is missing.  Please make sure the system is configured propertly.";
@@ -133,14 +133,15 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
      * Need to provide basic credentials as well as a way to set the proxy if
      * required.
      */
-    String fname = def.getCredentialsFile();
-    String profile = def.getProfileName();
+    JsonNode credNode = CcdpUtils.getCredentials().get(CcdpConfigParser.AMAZON_WEB_SERVICES);
+    String fname = credNode.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText();
+    String profile = credNode.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText();
     AWSCredentials credentials = 
         AWSUtils.getAWSCredentials(fname, profile);
     
     // get the proxy port if it was set
     ClientConfiguration cc = new ClientConfiguration();
-    int port = def.getProxyPort();
+    int port = img.getProxyPort();
     if( port > 0 )
     {
       logger.info("Setting Proxy Port: " + port);
@@ -148,7 +149,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     // get the proxy url if it was provided
-    String proxy = def.getProxyUrl();
+    String proxy = img.getProxyUrl();
     if( proxy != null )
     {
       logger.info("Setting Proxy: " + proxy);
@@ -166,7 +167,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     }
     
     // set the region if available
-    String region = def.getRegion();
+    String region = img.getRegion();
     if( region != null )
     {
       logger.info("Setting the Region to " + region);

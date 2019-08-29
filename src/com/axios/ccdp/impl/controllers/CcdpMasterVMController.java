@@ -87,6 +87,7 @@ public class CcdpMasterVMController
       {
         this.logger.debug("Adding <" + nodeType + ", " + vm_controller.toString() + "> to map");
         controllerMap.put(nodeType, vm_controller);
+        //vm_controller.configure(ctl_config.get(nodeType));
       }
     }
     this.logger.debug("ControllerMap: \n" + controllerMap.toString());

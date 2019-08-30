@@ -3,11 +3,13 @@ Development Setup and Tips & Tricks
 
 Scott Bennett, scott.bennett@caci.com
 
-The purpose of this document is to make starting new on CCDP less of a pain-staking process, allowing a new developer to be up and running quickly with a good understanding of the program architecture.
+The purpose of this document is to make starting new on CCDP less of a pain-staking process, allowing a new developer to be up and running quickly with a good 
+understanding of the program architecture.
 
 The first section will take you through the set up process, preparing your system to work and develop in CCDP
 
-The second section will be a high level walk through of the program architecture, introducing components, their purpose, and how they interface with the rest of the system.
+The second section will be a high level walk through of the program architecture, introducing components, their purpose, and how they interface with the rest of
+the system.
 
 The third section will be a bunch of tips and tricks that I have compiled to hopefully help with debugging and development.
 
@@ -25,7 +27,8 @@ After installing the dependencies, programs that are needed for development and 
 - Visual Studio Code, https://code.visualstudio.com/
 - Terminator, a better terminal, *yum install terminator*
 
-Now that dependencies and applications are install, it's time to configure the environment. A workspace should be designated for Eclipse, so use the following commands to make a new directory for the workspace and finally clone the repo:
+Now that dependencies and applications are install, it's time to configure the environment. A workspace should be designated for Eclipse, so use the following
+commands to make a new directory for the workspace and finally clone the repo:
 
 ```shell
 # Go to home directory
@@ -35,11 +38,17 @@ ps1:~$: cd ~
 ps1:~: mkdir workspace
 ```
 
-I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be active inside Eclipse. To ensure this also happens, add the line
-*source /etc/environment*
+I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be active inside Eclipse.
+To ensure this also happens, add the line
+
+```bash
+source /etc/environment
+```
+
 to your *.bashrc* file. This forces the variables to be sourced.
 
-The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard shortcuts and environment variabes:
+The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard 
+shortcuts and environment variabes:
 
 ```bash
 export JAVA_HOME="/usr/java/latest" 
@@ -62,8 +71,11 @@ ps1:~$ ejava
 
 When Eclipse opens, it asks for your project workspace, at which time you can designate the workspace folder we just created.
 
-The final step to set up is to download the CCDP Client jar file. After you create your own Java project, you will be able to add the *ccdp-client.jar* file to your class path by:
+The final step to set up is to download the CCDP Client jar file. After you create your own Java project, you will be able to add the *ccdp-client.jar* file to
+your class path by:
+
 Select 'Project' from the top bar on Eclipse -> Properties -> Java Build Path -> Add External JARs -> Add *ccdp-client.jar* to ClassPath
+
 At this point, you are ready to start using adding your own features to the CCDP tool, allowing easy resource monitor and task allocation for large systems.
 
 An In Depth Look into CCDP
@@ -73,7 +85,8 @@ An In Depth Look into CCDP
 
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 
-- When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section, I will refere to them as the resources, but the same concepts can be derived for whatever resoruce you are implementing CCDP Engine support.
+- When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section,
+I will refere to them as the resources, but the same concepts can be derived for whatever resoruce you are implementing CCDP Engine support.
 
 For reference, I used the following services to implement interfaces:
 
@@ -83,7 +96,8 @@ For reference, I used the following services to implement interfaces:
 - AWS Lambda and Local Bash Session for Serverless Interfaces
 - Two different task allocation, used to determine how task are distrubuted to the engine's resources
 
-All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections, I'm going to define a few terms that I will use to explain system components:
+All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections, 
+I'm going to define a few terms that I will use to explain system components:
 
 - Resource: An instance of a server-bound or server-free target that can execute tasks assigned by the Engine.
 - Agent: A server-bound resource that requires a host, local or remote, to run tasks
@@ -93,24 +107,31 @@ Its important to note that agents are physical machine running tasks, while serv
 
 #### The Connection Interface
 
-The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers. This allows the engine to send tasks and receive updates from the agents and serverless controllers.
+The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers. 
+This allows the engine to send tasks and receive updates from the agents and serverless controllers.
 
 The architecture for message sending, from the perspective of the Engine is simple:
 
 - incoming messages are a 'one to many' relationship
 - outgoing messages are a 'one to one' relationship.
 
-In other words, there is a single message queue that the Engine listens to for updates and messages from all agents and serverless controllers. When a new message is received, it is dealt with according to the message type. When the Engine wants to send a message, it sends the message to a message queue exclusive to the Engine and the desired target.
+In other words, there is a single message queue that the Engine listens to for updates and messages from all agents and serverless controllers.
+When a new message is received, it is dealt with according to the message type.
+When the Engine wants to send a message, it sends the message to a message queue exclusive to the Engine and the desired target.
 
 **PICTURE HERE**
 
 ##### Implementation Example:
 
-In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
+In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. 
+When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 
 #### The Database Interface
 
-The purpose of the Database interface is to provide a persistent method of system status monitoring in case of unexpected crashes. It is also a powerful tool for debugging the system when resource tasking isn't behaving as expected. Every resource that is created by the Engine has an entry in the database as long as the resource is still active. If a resource is terminated by the Engine, its database entry is deleted. 
+The purpose of the Database interface is to provide a persistent method of system status monitoring in case of unexpected crashes.
+It is also a powerful tool for debugging the system when resource tasking isn't behaving as expected.
+Every resource that is created by the Engine has an entry in the database as long as the resource is still active.
+If a resource is terminated by the Engine, its database entry is deleted.
 
 The database fields and types for agents are:
 
@@ -146,5 +167,9 @@ The database field sand types for serverless resources are:
 - List\<CcdpTaskRequest> tasks: A list of task requests assinged to the resource
 - last-assignment: The last time the resource was assigned a tasked by the task allocator
 
+##### Implementation Example:
+
 As stated earlier, I used MongoDb to implement the Database interface with my database entries looking like the following:
 ![alt-text](./DatabaseSS.png)
+
+In this example, I have a single serverless resource (the AWS Lambda controller) and a single server-bound resource (the AWS EC2 instance).

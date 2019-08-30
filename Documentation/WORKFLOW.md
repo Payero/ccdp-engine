@@ -71,10 +71,6 @@ An In Depth Look into CCDP
 
 ![alt text](./CcdpArchitecture.png "CCDP Engine Architecture")
 
-<p align="center">
-    CCDP Engine Architecture
-</p>
-
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 
 - When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section, I will refere to them as the resources, but the same concepts can be derived for whatever resoruce you are implementing CCDP Engine support.
@@ -152,4 +148,3 @@ The database field sand types for serverless resources are:
 
 As stated earlier, I used MongoDb to implement the Database interface with my database entries looking like the following:
 ![alt-text](./DatabaseSS.png)
-<center>Database Interface Implementation</center>

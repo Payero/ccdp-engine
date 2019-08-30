@@ -113,6 +113,153 @@ by the interfaces to communicate.
 #### The Configuration File
 
 The configuration file is essential to CCDP. It dictates how every interface interacts and lets the engine know how to configure elements in the system.
+In this section, I'm going to cover all the necessary fields for the configuration file to get CCDP up and running.
+
+##### Logging
+
+This first section of the configuration file is logging, which gives the locations of the logs directory and the logging configuration file.
+For development, I used the Log4j logger, so I set the following in my configuration file.
+
+```json
+"logging": {
+    "config-file": "${CCDP_HOME}/config/log4j.properties",
+    "logs-dir": "${CCDP_HOME}/logs"
+}
+```
+
+##### Credentials
+
+The next section is a later addition to the configuration file: credentials. This section is used to hold the credentials for different service you wish
+to allow CCDP to communicate with. The example I will be using is AWS, which requires a credentials file and credentials profile. I added this to my
+configuration file like this:
+
+```json
+"credentials": {
+    "AWS":{
+        "credentials-file": "{My_HOME_PATH}/.aws/credentials",
+        "credentials-profile-name": "default"
+    }
+```
+
+Fun fact: This was added to the configuration after serverless support was implemented into CCDP and I said "Wait, it doesn't make sense to use an EC2
+class to pull credentials from for a AWS Lambda controller."
+
+##### Engine
+
+This section of the configuration file is used to configure the basic main application's parameters for operation. The fields that I
+used for this section are:
+
+```json
+"engine": {
+    "resources-check-cycle": 5,
+    "do-not-terminate": [
+      "i-0fa470f3da73d8ac0",
+      "i-0a1679a0cb4aba5dd"
+    ],
+    "skip-heartbeats": false,
+    "heartbeat-req-secs": 5
+```
+
+This set the frquency for which the Engine pings the resources for an update and sets a list of unique identifiers corresponding to resources
+(AWS EC2 instances in this case) that are to no be terminated by the Engine.
+
+##### Interface Implementations
+
+The next section of the file outlines how all of the required interfaces that **aren't** resource specific should be implemented.
+This list of interfaces includes: connection, task allocation and database. As stated previously, I used AMQ for my connection
+interface, MongoDb for my database interface, and wrote a task allocator that bases task allocation on the number of jobs a
+resource has been assigned while still taking specific hardware consumption into consideration (See "Task Allocator"). To add these to my
+configuration file, I used the following:
+
+```json
+"interface-impls": {
+    "connection": {
+      "classname": "com.axios.ccdp.impl.connections.amq.AmqCcdpConnectionImpl",
+      "broker": "failover://tcp://localhost.com:61616",
+      "main-queue": "CCDP-Engine"  
+    },
+    "task-allocator": {
+      "classname": "com.axios.ccdp.impl.controllers.NumberTasksControllerImpl",
+      "allocate": {
+        "avg-cpu-load": 80,
+        "avg-mem-load": 15,
+        "avg-time-load": 2,
+        "no-more-than":  5
+      },
+      "deallocate": {
+        "avg-cpu-load": 20,
+        "avg-mem-load": 20,
+        "avg-time-load": 2
+      }
+    },
+    "database": {
+      "classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl",
+      "db-host": "localhost",
+      "db-port": 27017,
+      "db-name": "CCDP",
+      "db-resources-table": "ResourceStatus"
+    }
+  }
+```
+
+It's important to note some of the fields seen under the various sections. My task allocator required CPU and memory load statistics to make
+resource allocation and deallocation decisions, so I added fields to the configuration file and wrote appropriate getters to fetch the
+information. For the database, I used a MongoDb collection named ResourceStatus inside of the CCDP container. In your implementation, you can
+add whatever fields you deem necessary.
+
+##### Resource Provisioning
+
+The final section of the configuration file is the resources provisioning section, which outline how the resource-specific interfaces will be
+implemented, like the resource controllers and monitors. I'll display how my AWS EC2 controller and AWS Lambda controller was added my the configuration file.
+
+```json
+"resource-provisioning": {
+    "resources": {
+      "EC2": {
+        "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
+        "image-id":"{AWS AMI HERE}",
+        "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
+        "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
+        "monitor-units": "MB",
+        "resource-storage": "com.axios.ccdp.impl.cloud.aws.AWSCcdpStorageControllerImpl",
+        "min-number-free-agents": 0,
+        "security-group": "sg-54410d2f",
+        "subnet-id": "subnet-d7008b8f",
+        "key-file-name": "aws_serv_server_key",
+        "tags": {
+            "session-id": "Service-Node", "Name": "SRB-Test-EC2"
+          },
+        "startup-command": [
+            "/data/ccdp/ccdp_install.py",
+            "-a", 
+            "download", 
+            "-d", 
+            "s3://ccdp-dist/ccdp-engine.tgz", 
+            "-w", 
+            "-t", 
+            "/data/ccdp/",
+            "-n",
+            "EC2"
+          ],
+        "assignment-command": "touch ~/hi.txt",
+        "region": "us-east-1",
+        "role-name": "EMR_EC2_DefaultRole",
+        "proxy-url": "",
+        "__proxy-url": "my-url-to-ge/to/the/proxy",
+        "proxy-port": -1
+      }
+    },
+   "serverless":{
+       "AWS Lambda":{
+            "name": "AWS Lambda",
+            "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController",
+            "credentials-file": "/nishome/srbenne/.aws/credentials"
+        }
+    }
+}
+```
+
+The only required fields for agents are: classname, resource-controller, resource-monitor, resource-units, resource-storage, and min-number-free-agents.
 
 #### The Supporting Classes
 
@@ -195,12 +342,17 @@ Each member has Json getters and setters to allow and the class itself has a pri
 
 ##### CCDP Serverless Resource
 
-A CcdpServerlessResource is a class used to represent serverless controllers spawned by the Engine. It is a extension of the CcdpResourceAbs class, which represents all resources that
-CCDP can monitor and control. Every instance of a serverless controller has its own CcdpServerlessResource member variable. The reason for why serverless controllers are represented rather than
-the running "resources" is simple: They don't actually exist. Serverless controllers are simply a means for the consumer to run a task where the execution of code is done without a host.
-The example of this in my development environment is AWS Lambda. There is a single AWS Lambda controller which handles every task assigned to AWS Lambda. Having every Runner (the element
-that actually runs the execution request/serverless action) communicate with the Engine and database would be unnecessarily stressful on the Engine's host machine.
-Whenever changes are made or tasks get assigned to a serverless controller, the member variable is updated. Think of the CcdpServerlessResource class as a container
+A CcdpServerlessResource is a class used to represent serverless controllers spawned by the Engine.
+It is a extension of the CcdpResourceAbs class, which represents all resources that
+CCDP can monitor and control. Every instance of a serverless controller has its own CcdpServerlessResource member variable.
+The reason for why serverless controllers are represented rather than the running "resources" is simple: They don't actually exist.
+Serverless controllers are simply a means for the consumer to run a task where the execution of code is done without a host.
+The example of this in my development environment is AWS Lambda.
+There is a single AWS Lambda controller which handles every task assigned to AWS Lambda.
+Having every Runner (the element that actually runs the execution request/serverless action) communicate with the Engine and 
+database would be unnecessarily stressful on the Engine's host machine.
+Whenever changes are made or tasks get assigned to a serverless controller, the member variable is updated.
+Think of the CcdpServerlessResource class as a container
 for information to be used in data processing. This class is the actual class that gets "jsonified" and placed into the database.
 The members of the CcdpServerlessResource class include:
 
@@ -228,6 +380,9 @@ in CCDP data processing. Task requests are the containers for holding tasks that
 a way that resources and the Engine can interpret and comprehend the information. The members of the CcdpTaskRequest class are as follows:
 
 ```java
+// Generates all the JSON objects for this class
+private ObjectMapper mapper = new ObjectMapper();
+
 // All the different states the job can be at any given time
 public enum CcdpTaskState { PENDING, ASSIGNED, STAGING, RUNNING, SUCCESSFUL,
                               FAILED, KILLED }
@@ -270,7 +425,6 @@ private double cpu;
 
 // The amount of memory this task requires to execute
 private double mem = 0.0;
-
 
 // A list of arguments used to generate the command to be executed by the agent
 private List<String> command;
@@ -350,7 +504,36 @@ private boolean runSingleNode = false;
 
 #### CCDP Messages and Message Types
 
+In order to integrate all the components of CCDP together, a communication connection in the form of the Connection Interface is used. But what
+gets sent over this comminication link? The answer is CcdpMessages. A CcdpMessage is a cloneable abstract class that is the most generic form of
+message. All specific message types extend this class and all message types have their own designated response to being received on either the
+resource side of the engine side. The specific message types are:
 
+- Assign Session: Used when changing the session of a resource
+- End Session: Used when a session is to be removed
+- Error: Used when an error in execution is encountered
+- Kill Task: Used to kill a task running on a resource
+- Pause Thread: Used to pause an execution thread within CCDP
+- Run Task: Used to initiate a new task on a resource
+- Shutdown: Used when the resource is to be shutdown
+- Start Session: Used when a new session is to be started
+- Start Thread: Used when a new thread is to be started
+- Stop Thread: Used when a threads execution is to be stopped
+- Task Update: Used to send task updates between a resource and the Engine
+- Thread Request: Used when a new thread request is created and needs to be processed by the Engine
+- Undefined: Used when the content of a message doesn't fit into one of the previously stated categories
+
+Classes that need to send and/or receive messages should implement the CcdpMessageConsumerIntf interface and add a private CcdpConnectionIntf member.
+The CcdpConnectionIntf member is an interface for configuring consumers and senders. This is explained in more depth in the next section.
+The CcdpMessageConsumerIntf interface will force a
+
+```java
+public void onCcdpMessage ( CcdpMessage message);
+```
+
+to be implemented, which will outline what the resource will do when a CcdpMessage is consumed. I recommend getting the type from the CcdpMessage and then
+using a switch case on the message type to dictate what happens for the types of messages you care about. All other received messages can run through a
+default case that can be used as a log.
 
 ### The Connection Interface
 

@@ -70,7 +70,7 @@ An In Depth Look into CCDP
 --------------------------
 
 ![alt text](./CcdpArchitecture.png "CCDP Engine Architecture")
-<p style="text-align:center">CCDP Engine Architecture</p>
+<center>CCDP Engine Architecture</center>
 
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 
@@ -149,4 +149,4 @@ The database field sand types for serverless resources are:
 
 As stated earlier, I used MongoDb to implement the Database interface with my database entries looking like the following:
 ![alt-text](./DatabaseSS.png)
-<p style="text-align:center">Database Interface Implementation</p>
+<center>Database Interface Implementation</center>

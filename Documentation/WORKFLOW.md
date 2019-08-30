@@ -137,56 +137,53 @@ String hostname;
 // Whether the resource is a serverless resource or not *(should be false for agents)*
 final boolean isServerless = false;
 
-// The type of node the resource is
-String node-type;
-
 // A list of task requests assinged to the resource
 List<CcdpTaskRequest> tasks;
 
 // A unique identifier applied to the resource
-String instance-id;
+String instanceId;
 
 // The session that the Engine assigned to the resource
-String session-id;
+String assignedSession;
 
 // The assigned CPU to the resource by the allocator
-int assigned-cpu;
+int assignedCPU;
 
 // The assigned memory (RAM) to the resource by the allocator
-int assigned-mem;
+int assignedMEM;
 
 // The assigned disk space to the resource by the allocator
-int assigned-disk;
+int assignedDisk;
 
 // The total CPU available to the resource
-int total-cpu;
+int totalCPU;
 
 // The total memory (RAM) available to the resource
-int total-mem;
+int totalMEM;
 
 // The total disk space available to the resource
-int total-disk-space;
+int totalDisk;
 
 // The current free memory (RAM) available to the resource
-int free-mem;
+int freeMem;
 
 // The current CPU load used by the resource
-int system-cpu-load;
+int cpuLoad;
 
 // The current free disk space available to the resource
-int free-disk-space;
+int freeDisk;
 
 // Whether the resource is single tasked*
-boolean is-single-tasked;
+boolean isSingleTasked;
 
 // The task that is causing the resource to be single tasked, null if not single tasked
-CcdpTaskRequest single-task;
+CcdpTaskRequest singleTask;
 
 // The last time the resource was updated by an Engine probe
-int last-updated;
+int lastUpdated;
 
 // The last time the resource was assigned a tasked by the task allocator
-int last-assignment;
+int lastAssignment;
 
 // Additional tags to add to the resource
 Map<String, String> tags;
@@ -211,14 +208,11 @@ The members of the CcdpServerlessResource class include:
 // Whether the resource is a serverless resource or not *(should be true for serverless resources)*
 final boolean isServerless = true;
 
-// The name of the service the controller corresponds to
-String node-type;
-
 // A list of task requests assinged to the resource
 List<CcdpTaskRequest> tasks;
 
 // The last time the resource was assigned a tasked by the task allocator
-int last-assignment;
+int lastAssignment;
 
 // Additional tags to add to the resource
 Map<String, String> tags;

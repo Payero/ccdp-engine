@@ -70,7 +70,10 @@ An In Depth Look into CCDP
 --------------------------
 
 ![alt text](./CcdpArchitecture.png "CCDP Engine Architecture")
-<center>CCDP Engine Architecture</center>
+
+<p align="center">
+    CCDP Engine Architecture
+</p>
 
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 

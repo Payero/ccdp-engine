@@ -141,7 +141,7 @@ final boolean isServerless = false;
 String node-type;
 
 // A list of task requests assinged to the resource
-List\<CcdpTaskRequest> tasks;
+List<CcdpTaskRequest> tasks;
 
 // A unique identifier applied to the resource
 String instance-id;
@@ -215,7 +215,7 @@ final boolean isServerless = true;
 String node-type;
 
 // A list of task requests assinged to the resource
-List\<CcdpTaskRequest> tasks;
+List<CcdpTaskRequest> tasks;
 
 // The last time the resource was assigned a tasked by the task allocator
 int last-assignment;

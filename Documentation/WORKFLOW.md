@@ -105,9 +105,128 @@ I'm going to define a few terms that I will use to explain system components:
 
 Its important to note that agents are physical machine running tasks, while serverless operations don't require a host to execute code.
 
-#### The Connection Interface
+### The Configuration File and Supporting Classes
 
-The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers. 
+Before I can effectively describe the Interfaces, I will need to introduce the configuration file and the supporting classes that are used
+by the interfaces to communicate.
+
+#### The Configuration File
+
+The configuration file is essential to CCDP. It dictates how every interface interacts and lets the engine know how to configure elements in the system.
+
+#### The Supporting Classes
+
+CCDP uses a couple different parent classes to standardize components of the system to allow them to be manipulated by the Engine.
+In this section, I will describe these classes so they can be used for the remainder of this document.
+
+##### CCDP VM Resource 
+
+A CcdpVMResource is a class used to represent server-bound resources spawned by the Engine. It is a extension of the CcdpResourceAbs class, which represents all resources that
+CCDP can monitor and control. Every instance of an agent has its own CcdpVMResource member variable.
+Whenever changes are made or tasks get assigned to an agent, the member variable is updated. Think of the CcdpVMResource class as a container
+for information to be used in data processing. This class is the actual class that gets "jsonified" and placed into the database.
+The members of the CcdpVMResource class include:
+
+```java
+// The status of the resource *("Launched", "Running", "Shutting Down", etc)*
+String status;
+
+// The hostname of the resource
+String hostname;
+
+// Whether the resource is a serverless resource or not *(should be false for agents)*
+final boolean isServerless = false;
+
+// The type of node the resource is
+String node-type;
+
+// A list of task requests assinged to the resource
+List\<CcdpTaskRequest> tasks;
+
+// A unique identifier applied to the resource
+String instance-id;
+
+// The session that the Engine assigned to the resource
+String session-id;
+
+// The assigned CPU to the resource by the allocator
+int assigned-cpu;
+
+// The assigned memory (RAM) to the resource by the allocator
+int assigned-mem;
+
+// The assigned disk space to the resource by the allocator
+int assigned-disk;
+
+// The total CPU available to the resource
+int total-cpu;
+
+// The total memory (RAM) available to the resource
+int total-mem;
+
+// The total disk space available to the resource
+int total-disk-space;
+
+// The current free memory (RAM) available to the resource
+int free-mem;
+
+// The current CPU load used by the resource
+int system-cpu-load;
+
+// The current free disk space available to the resource
+int free-disk-space;
+
+// Whether the resource is single tasked*
+boolean is-single-tasked;
+
+// The task that is causing the resource to be single tasked, null if not single tasked
+CcdpTaskRequest single-task;
+
+// The last time the resource was updated by an Engine probe
+int last-updated;
+
+// The last time the resource was assigned a tasked by the task allocator
+int last-assignment;
+
+// Additional tags to add to the resource
+Map<String, String> tags;
+```
+
+*\* Note: a task makes a resource "single tasked" if the task is given all of the agent's allocated CPU processing power*
+
+Each member has Json getters and setters to allow and the class itself has a private method for creating a JsonNode from the members.
+
+##### CCDP Serverless Resource
+
+A CcdpServerlessResource is a class used to represent serverless controllers spawned by the Engine. It is a extension of the CcdpResourceAbs class, which represents all resources that
+CCDP can monitor and control. Every instance of a serverless controller has its own CcdpServerlessResource member variable. The reason for why serverless controllers are represented rather than
+the running "resources" is simple: They don't actually exist. Serverless controllers are simply a means for the consumer to run a task where the execution of code is done without a host.
+The example of this in my development environment is AWS Lambda. There is a single AWS Lambda controller which handles every task assigned to AWS Lambda. Having every Runner (the element
+that actually runs the execution request/serverless action) communicate with the Engine and database would be unnecessarily stressful on the Engine's host machine.
+Whenever changes are made or tasks get assigned to a serverless controller, the member variable is updated. Think of the CcdpServerlessResource class as a container
+for information to be used in data processing. This class is the actual class that gets "jsonified" and placed into the database.
+The members of the CcdpServerlessResource class include:
+
+```java
+// Whether the resource is a serverless resource or not *(should be true for serverless resources)*
+final boolean isServerless = true;
+
+// The name of the service the controller corresponds to
+String node-type;
+
+// A list of task requests assinged to the resource
+List\<CcdpTaskRequest> tasks;
+
+// The last time the resource was assigned a tasked by the task allocator
+int last-assignment;
+
+// Additional tags to add to the resource
+Map<String, String> tags;
+```
+
+### The Connection Interface
+
+The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers.
 This allows the engine to send tasks and receive updates from the agents and serverless controllers.
 
 The architecture for message sending, from the perspective of the Engine is simple:
@@ -121,53 +240,20 @@ When the Engine wants to send a message, it sends the message to a message queue
 
 **PICTURE HERE**
 
-##### Implementation Example:
+#### Implementation Example:
 
 In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. 
 When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 
-#### The Database Interface
+### The Database Interface
 
 The purpose of the Database interface is to provide a persistent method of system status monitoring in case of unexpected crashes.
 It is also a powerful tool for debugging the system when resource tasking isn't behaving as expected.
 Every resource that is created by the Engine has an entry in the database as long as the resource is still active.
 If a resource is terminated by the Engine, its database entry is deleted.
+The Database interface is designed to hold CcdpResourceAbs objects, the abstract super class to all types of resources that can be spawned by CCDP.
 
-The database fields and types for agents are:
-
-- Map<String, String> tags: Additional tags to add to the resource
-- String status: The status of the resource *("Launched", "Running", "Shutting Down", etc)*
-- String hostname: The hostname of the resource
-- boolean isServerless: Whether the resource is a serverless resource or not *(should be false for agents)*
-- String node-type: The type of node the resource is
-- List\<CcdpTaskRequest> tasks: A list of task requests assinged to the resource
-- String instance-id: A unique identifier applied to the resource
-- String session-id: The session that the Engine assigned to the resource
-- int assigned-cpu: The assigned CPU to the resource by the allocator
-- int assigned-mem: The assigned memory (RAM) to the resource by the allocator
-- int assigned-disk: The assigned disk space to the resource by the allocator
-- int total-cpu: The total CPU available to the resource
-- int total-mem: The total memory (RAM) available to the resource
-- int total-disk-space: The total disk space available to the resource
-- int free-mem: The current free memory (RAM) available to the resource
-- int system-cpu-load: The current CPU load used by the resource
-- int free-disk-space: The current free disk space available to the resource
-- boolean is-single-tasked* Whether the resource is single tasked*
-- CcdpTaskRequest single-task: The task that is causing the resource to be single tasked, null if not single tasked
-- last-updated: The last time the resource was updated by an Engine probe
-- last-assignment: The last time the resource was assigned a tasked by the task allocator
-
-*\* Note: a task makes a resource "single tasked" if the task is given all of the agent's allocated CPU processing power*
-
-The database field sand types for serverless resources are:
-
-- Map<String, String> tags: Additional tags to add to the resource
-- boolean isServerless: Whether the resource is a serverless resource or not *(should be true for serverless resources)*
-- String node-type: The name of the service the controller corresponds to
-- List\<CcdpTaskRequest> tasks: A list of task requests assinged to the resource
-- last-assignment: The last time the resource was assigned a tasked by the task allocator
-
-##### Implementation Example:
+#### Implementation Example:
 
 As stated earlier, I used MongoDb to implement the Database interface with my database entries looking like the following:
 ![alt-text](./DatabaseSS.png)
@@ -181,7 +267,7 @@ It starts in the "LAUNCHED" state, and when the agent on EC2 is configured and r
 As either resource is allocated tasks, their respective entries will be updated to contain the tasks assigned.
 They will appear as another JSON level and contain information about the task (See "Tasking").
 
-#### Resource Controllers
+### Resource Controllers
 
 Resource controllers behave just as expected, they **control** the resource.
 These resources can be either serverless or server-bound, but I'll mainly focus on server-bound in this section.

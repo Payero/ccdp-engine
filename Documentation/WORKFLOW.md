@@ -94,7 +94,7 @@ For reference, I used the following services to implement interfaces:
 - MongoDb for the Database Interface
 - AWS and Docker for the Resources *(Each resource needs a resource controller)*
 - AWS Lambda and Local Bash Session for Serverless Interfaces
-- Two different task allocation, used to determine how task are distrubuted to the engine's resources
+- Two different task allocation controllers, used to determine how task are distrubuted to the engine's resources
 
 All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections, 
 I'm going to define a few terms that I will use to explain system components:
@@ -173,3 +173,75 @@ As stated earlier, I used MongoDb to implement the Database interface with my da
 ![alt-text](./DatabaseSS.png)
 
 In this example, I have a single serverless resource (the AWS Lambda controller) and a single server-bound resource (the AWS EC2 instance).
+Before running the Engine, my database was empty. Upon starting the Engine, the serverless controller was created and added to the database
+(Serverless controllers get logged in the database, but not server-bound controllers. This is discussed in detail later.
+See "Serverless" and "Resource controllers)
+Later in execution, the Engine spawns an Amazon EC2 instance and upon creation, the agent records its information into the database.
+It starts in the "LAUNCHED" state, and when the agent on EC2 is configured and ready to go, it changes this status to "RUNNING".
+As either resource is allocated tasks, their respective entries will be updated to contain the tasks assigned.
+They will appear as another JSON level and contain information about the task (See "Tasking").
+
+#### Resource Controllers
+
+Resource controllers behave just as expected, they **control** the resource.
+These resources can be either serverless or server-bound, but I'll mainly focus on server-bound in this section.
+There are two important "types" of controllers: The master controller and the controller interface.
+On Engine start up, the master controller is created and, using the resources designated in the ccdp-config.json configuration file,
+creates precisely **ONE** controller required by the different resource type.
+**If multiple resource types use the SAME controller, only ONE controller will be created, which will service both of those resource types.**
+After the master controller determines what kind of controllers are needed, a map is created to correlate resource types to controllers.
+In order for your controllers to be used, you **MUST** implement the CcdpVMControllerIntf interface.
+If you don't implement the interface, the Engine will not know how to interact with the controller, making CCDP ineffective.
+
+The methods that must be implemented by developed controllers are as follows:
+
+```java
+// Takes the configuration for the resource type from the ccdp-config.json file and uses it
+// to prepare the controller for use
+//
+// @param config The configuration for the controller in JsonNode form 
+public void configure ( JsonNode config );
+
+// Starts one or more instances of the resource using an image generated from the ccdp-config.json file
+//
+// @param imgCfg The CcdpImageInfo used to spawn instances
+// @return A list of the unique identifiers for resources spawned
+public List<String> startInstances ( CcdpImageInfo imgCfg );
+
+// Stops each of the instances included in the list of IDs
+//
+// @param instIDs A list of unique identifiers representing the VMs that are to be stopped
+// @return true if all the VMs in the list were stopped, flase otherwise
+public boolean stopInstances ( List<String> instIDs );
+
+// Terminates each of the instances included in the list of IDs
+//
+// @param instIDs A list of unique identifiers representing the VMs that are to be terminated
+// @return true if all the VMs in the list were termianted, flase otherwise
+public boolean terminateInstances ( List<String> instIDs );
+
+// Gets all the instances' statuses that are cuurently available
+//
+// @return A list of CcdpVMResources, each CcdpVMResources being one instance available
+public List<CcdpVMResource> getAllInstanceStatus ();
+
+// Gets the current instance state of the resource with the given ID
+//
+// @param id The unique identifer for the requested VM
+// @return the state of the resource, represented by an enumerator
+public ResourceStatus getInstanceState ( String id );
+
+// Returns a list of CcdpVMResources that match the provided filter
+//
+// @param filter A JsonNode containing the fields to match to resources
+// @return A list of resources that match the given filter
+public List<CcdpVMResource> getStatusFilteredByTags( JsonNode filter );
+
+// Returns information about the instance matching the unique ID given as the arguement
+//
+// @param uuid The unique identifier referring to the desired resource
+// @return the resource whose unique identifier matches the given parameter
+public CcdpVMResource getStatusFilteredById ( String uuid );
+```
+
+*\*Note: CcdpVMResource and CcdpImageInfo is discussed in the "Configuration File" section*

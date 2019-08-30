@@ -218,6 +218,140 @@ int lastAssignment;
 Map<String, String> tags;
 ```
 
+Each member has Json getters and setters to allow and the class itself has a private method for creating a JsonNode from the members.
+
+#### CCDP Task Requests
+
+A CcdpTaskRequest is a class used to represent all task request that are sent throughout the system. It is similar in concept to the
+previously discussed CcdpVMResource and CcdpServerlessResource classes in the sense that it is a container for hold information used
+in CCDP data processing. Task requests are the containers for holding tasks that are sent and assigned to VMs, and they are stored in
+a way that resources and the Engine can interpret and comprehend the information. The members of the CcdpTaskRequest class are as follows:
+
+```java
+// All the different states the job can be at any given time
+public enum CcdpTaskState { PENDING, ASSIGNED, STAGING, RUNNING, SUCCESSFUL,
+                              FAILED, KILLED }
+
+// Stores the unique identifier for this task
+private String taskId;
+
+// The human readable name of the Task
+private String name;
+
+// An optional description of this task 
+private String description;
+
+// Sets the current state of this task, required for controlling
+private CcdpTaskState state = CcdpTaskState.PENDING;
+
+// Stores the class name of a module to execute if needed
+private String className;
+
+// Indicates the node type where this task needs to run
+private String nodeType;
+
+// The destination or entity to notify this task has change state 
+private String replyTo = "";
+
+// The unique identifier of the Agent responsible for the task
+private String hostId;
+
+//The IP address or hostname of the node where this task is running
+private String hostname;
+
+// The number of times this task needs to be executed before set it as failed
+private int retries = 0;
+
+// Indicates whether or not this task has been submitted for processing
+private boolean submitted = false;
+
+// The amount of CPU this task requires to execute
+private double cpu;
+
+// The amount of memory this task requires to execute
+private double mem = 0.0;
+
+
+// A list of arguments used to generate the command to be executed by the agent
+private List<String> command;
+
+// A map of configuration to be used by the agent
+private Map<String, String> configuration;
+
+// A list of incoming data from the previous task
+private List<CcdpPort> inputPorts;
+
+// A list of ports to forward the data one is processed so they can be 
+// executed by the next task
+private List<CcdpPort> outputPorts;
+
+// The session this task belongs to
+private String sessionId;
+
+//A boolean to represent the serverless mode
+private boolean isServerless;
+
+// A map for the serverless configuration
+private Map<String, String> serverlessCfg;
+
+// A list for the serverless Args
+private List<String> serverlessArgs;
+
+// The time this task was launched
+private long launchedTime = 0;
+```
+
+#### CCDP Thread Request
+
+A CcdpThreadRequest is another container class who's main purpose is to serve as a way to store a list of associated tasks that will be
+ran sequentially. It helps with coordinating the launching of tasks and tracking execution. Thread requests are conceptualized as execution threads
+in the CCDP framework. A simple requirement placed on Thread requests is that **ALL** tasks that are to be apart of the same thread **MUST** be of
+the same session. If tasks with different session IDs are detected, then the first task dictates the thread request session, and every following
+task **MUST** have the **SAME** session. Note that only matching **SESSIONS**, not matching **RESOURCE TYPES**, are required. The CcdpThreadRequest
+class has the following members:
+
+```java
+// Determines whether to run all the tasks in this thread in parallel or in 
+// sequence mode.
+public enum TasksRunningMode { PARALLEL, SEQUENCE, SEQUENTIAL }
+
+// Generates all the JSON objects for this thread
+private ObjectMapper mapper = new ObjectMapper();
+
+// Unique identifier for this thread
+private String threadId;
+
+// The session this task belongs to
+private String sessionId = null;
+
+// A human readable name to identify this thread
+private String name;
+
+// A description to store any help users want to provide
+private String description;
+
+// A way to communicate back to the sender events about tasking status change
+private String replyTo = "";
+
+// A list of tasks to run in order to execute this processing job
+private List<CcdpTaskRequest> tasks;
+
+// Indicates how to run all the tasks, one at the time or all of them
+// Defaults to Parallel
+private TasksRunningMode runningMode = TasksRunningMode.PARALLEL;
+
+// Indicates whether or not all the tasks have been submitted for this thread
+// Defaults to false
+private boolean tasksSubmitted = false;
+
+// Determines whether or not all the tasks need to run on a single processing node
+private boolean runSingleNode = false;
+```
+
+#### CCDP Messages and Message Types
+
+
+
 ### The Connection Interface
 
 The purpose of the connection interface is to provide a method for the main controller, or engine, to communicate with the agents and serverless controllers.
@@ -236,7 +370,7 @@ When the Engine wants to send a message, it sends the message to a message queue
 
 #### Implementation Example:
 
-In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there. 
+In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there.
 When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 
 ### The Database Interface

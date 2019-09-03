@@ -1466,6 +1466,142 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
   }
   
+  /*
+   * This test sends a serverless task and checks that it gets allocated with the correct controller
+   */
+  @Test
+  public void OneTaskForLambda()
+  {
+    logger.debug("Starting checkServerlessControllers test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    
+    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/AWSLambda-UnitTest.json/";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(5);
+    
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+        assertEquals("The AWS Controller should have the task", cont.getTasks().size(), 1);
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    CcdpUtils.pause(40);
+    
+    logger.debug("Checking to see that the controller finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+  }
+    /*
+     * This test sends a serverless task and a server bound task checks that it gets allocated 
+     * with the correct controller
+     */
+    @Test
+    public void ServerlessAndServerboundJob()
+    {
+      logger.debug("Starting checkServerlessControllers test!");
+      
+      int numControllers = CcdpUtils.getServerlessTypes().size();
+      ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+      res_cfg.put("min-number-free-agents", 0);
+      CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+      res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+      res_cfg.put("min-number-free-agents", 0);
+      CcdpUtils.setResourceCfg("EC2", res_cfg);
+      res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+      res_cfg.put("min-number-free-agents", 0);
+      CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+        
+      // Start engine and give free agent time to spawn
+      logger.debug("Starting engine");
+      engine = new CcdpMainApplication(null);
+      CcdpUtils.pause(20);
+      
+      logger.debug("Check that there are still no VMs");
+      running_vms = engine.getAllCcdpVMResources();
+      assertTrue("There should only be no VMs", running_vms.size() == 0);
+      
+      logger.debug("Check that there are the corect number of controllers");
+      serverless_controllers = engine.getAllCcdpServerlessResources();
+      assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+      
+      String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/LambdaWithVMTask-UnitTest.json/";
+      this.sendJob(Filename);
+      
+      CcdpUtils.pause(15);
+      
+      running_vms = engine.getAllCcdpVMResources();
+      serverless_controllers = engine.getAllCcdpServerlessResources();
+      assertEquals("There should be 1 agents running.", running_vms.size(), 1);
+      CcdpVMResource vm = running_vms.get(0);
+      assertTrue("The VM should be Docker", vm.getNodeType().equals("DOCKER"));
+      assertEquals("The VM should have 1 task", vm.getTasks().size(), 1);
+      
+      assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+      logger.debug("Check the serverless controller has the task");
+      for (CcdpServerlessResource cont : serverless_controllers)
+      {
+        if ( cont.getNodeType().equals("AWS Lambda") )
+          assertEquals("The AWS Controller should have the task", cont.getTasks().size(), 1);
+        else
+          assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+      }
+      
+      CcdpUtils.pause(65);
+      
+      logger.debug("Checking to see that the controller and VM finished the task");
+      running_vms = engine.getAllCcdpVMResources();
+      serverless_controllers = engine.getAllCcdpServerlessResources();
+      
+      assertEquals("There should be no agents running.", running_vms.size(), 0);
+      assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+      logger.debug("Check the serverless controller has the task");
+      for (CcdpServerlessResource cont : serverless_controllers)
+      {
+        assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+      }
+    
+  }
+  
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/
   
   /**

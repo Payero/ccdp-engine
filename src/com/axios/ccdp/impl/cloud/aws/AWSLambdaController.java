@@ -48,8 +48,9 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
   /*
    * Beginning string for S3 uploads
    */
-  private String s3_proto = "s3://";
-  private String AWS = "AWS";
+  private final String s3_proto = "s3://";
+  private final String AWS = "AWS";
+  private final String controller_name = "AWS Lambda";
 
   public AWSLambdaController()
   {
@@ -115,8 +116,14 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     return curlData;
   }
 
-  @Override
-  public void remoteSave(JsonNode result, String location, String cont_name)
+  /*
+   * Saves the result of the task to Amazon S3 using credentials
+   * 
+   * @param result The result of the task in JsonNode format
+   * @param location The remote location to store the result
+   * @param cont_name The name of the controller that 
+   */
+  public void remoteSave(JsonNode result, String location)
   {
     this.logger.debug("Uploading AWS Lambda result to S3 at: " + location);
     
@@ -159,7 +166,7 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
       
       DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
       LocalDateTime now = LocalDateTime.now();
-      s3.putObject(bucket, location, existingObj + "\n" + cont_name + " Result from " + 
+      s3.putObject(bucket, location, existingObj + "\n" + controller_name + " Result from " + 
           dtf.format(now) +"\n" + result.toString() + "\n");
       
       this.logger.debug("File uploaded to S3."); 
@@ -170,5 +177,24 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
       e.printStackTrace();
     }
      
+  }
+
+  @Override
+  public void handleResult(JsonNode result, CcdpTaskRequest task)
+  {
+    
+    String localSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
+    String remoteSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_REMOTE_FILE);
+    
+    
+    if (localSaveLoc != null)
+      this.localSave(result, localSaveLoc, controller_name);
+    else
+      this.logger.debug("Opted out of local storage");
+    
+    if (remoteSaveLoc != null)
+      this.remoteSave(result, remoteSaveLoc);
+    else
+      this.logger.debug("Opted out of remote storage");
   }
 }

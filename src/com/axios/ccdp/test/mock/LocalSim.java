@@ -13,6 +13,7 @@ import org.apache.log4j.Logger;
 import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.axios.ccdp.utils.ServerlessTaskRunner;
 import com.fasterxml.jackson.databind.JsonNode;
 
@@ -23,6 +24,8 @@ public class LocalSim extends CcdpServerlessControllerAbs
    * Generates debug print statements based on the verbosity level.
    */
   private Logger logger = Logger.getLogger(LocalSim.class.getName());
+  
+  private final String controller_name = "LocalSim";
 
   public LocalSim()
   {
@@ -56,9 +59,14 @@ public class LocalSim extends CcdpServerlessControllerAbs
   }
 
   @Override
-  public void remoteSave(JsonNode result, String location, String cont_name)
+  public void handleResult(JsonNode result, CcdpTaskRequest task)
   {
-    this.logger.debug("Implement storage choice here");
+    String localSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
+
+    if (localSaveLoc != null)
+      this.localSave(result, localSaveLoc, controller_name);
+    else
+      this.logger.debug("Opted out of local storage");
   }
 }
 

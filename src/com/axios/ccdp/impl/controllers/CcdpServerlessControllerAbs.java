@@ -128,11 +128,12 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
   public abstract void runTask(CcdpTaskRequest task);
   
   /*
-   * Handles sending the result to a cloud/external location
+   * Handles the result of the serverless task, allowing developer-implemented method
    * 
    * @param result a JsonNode with the result of the task
+   * @param task The CcdpTaskRequest the was completed
    */
-  public abstract void remoteSave(JsonNode result, String location, String cont_name);
+  public abstract void handleResult(JsonNode result, CcdpTaskRequest task);
   
   /*
    * Called when the thread completes, returns to controller to send updates on status
@@ -145,29 +146,16 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
     this.controllerInfo.removeTask(task);
     this.logger.debug( "Task " + task.getTaskId() + " has status " + task.getState().toString() );
     this.connection.sendTaskUpdate(toMain, task);
-        
-    String localSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_LOCAL_FILE);
-    String remoteSaveLoc = task.getServerlessCfg().get(CcdpUtils.S_CFG_REMOTE_FILE);
-    String provider = task.getServerlessCfg().get(CcdpUtils.S_CFG_PROVIDER);
     
-    
-    if (localSaveLoc != null)
-      this.localSave(result, localSaveLoc, provider);
-    else
-      this.logger.debug("Opted out of local storage");
-    
-    if (remoteSaveLoc != null)
-      this.remoteSave(result, remoteSaveLoc, provider);
-    else
-      this.logger.debug("Opted out of remote storage");
+    this.handleResult(result, task);
   }
   
   /*
    * Processes the result and saves the result if dictated by the task request
    * 
    * @param result the string result of the lambda task
-   * 
    * @param localSaveLocation the local file location to save the result of the request
+   * @param cont_name The name of the controller that completed the task
    */
   protected void localSave(JsonNode result, String localSaveLocation, String cont_name)
   {

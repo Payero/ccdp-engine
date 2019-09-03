@@ -659,7 +659,8 @@ A major difference to take note of between Serverless and server-bound controlle
 communicate with the Engine while server-bound controllers just allow reference to the agent itself, which appears in the database and talks to the Engine.
 
 In order for your controllers to be used, you **MUST** extend the CcdpServerlessControllerAbs abstract class.
-If you don't extend the class, the Engine will not know how to interact with the controller, making CCDP ineffective. The methods that need extended are:
+If you don't extend the class, the Engine will not know how to interact with the controller, making CCDP ineffective. 
+The methods that need extended are:
 
 ```java
 // Uses the information in the task parameter and processes it, sending the processed information 
@@ -674,4 +675,27 @@ public void runTask ( CcdpTaskRequest task );
 // @param task The CcdpTaskRequest that ran
 // @param controller_name The string representation of the controller that ran the task
 public void handleResult( JsonNode result, CcdpTaskRequest task, String controller_name );
+```
+
+The methods that are implemented in the abstract class CcdpServerlessControllerAbs are:
+
+```java
+//This method configures the abstract class and prepares it for use.
+//
+// @param config the JsonNode config to use to configure the class
+public void configure(JsonNode config);
+
+// Updates the task status in CCDP and allows developer to implement handling result
+//
+// @param task The CcdpTaskRequest that was completed
+// @param result The task result in JsonNode format
+public void completeTask(CcdpTaskRequest task, JsonNode result);
+
+// An implementation of saving the result of the serverless task locally
+//
+// @param result The result of the task
+// @param localSaveLocation The location to save the result on disk
+// @param cont_name The name of the controller that completed the task
+protected void localSave(JsonNode result, String localSaveLocation, String cont_name)
+
 ```

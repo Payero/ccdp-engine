@@ -85,9 +85,9 @@ For reference, I used the following services to implement interfaces:
 
 - Active MQ for the Connection Interface
 - MongoDb for the Database Interface
-- AWS and Docker for the Resources *(Each resource needs a resource controller)*
+- AWS EC2 and Docker for the Resources *(Each resource needs a resource controller)*
 - AWS Lambda and Local Bash Session for Serverless Interfaces
-- Two different task allocation controllers, used to determine how task are distributed to the engine's resources
+- Two different task allocation controllers, used to determine how tasks are distributed to the engine's resources
 
 All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections,
 I'm going to define a few terms that I will use to explain system components:

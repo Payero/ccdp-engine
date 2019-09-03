@@ -715,7 +715,7 @@ The methods that need to be implemented for the CcdpTaskingControllerIntf interf
 // allocation and deallocation.
 //
 // @param config the object containing all the configuration parameters
-public  void configure ( JsonNode config );
+public void configure ( JsonNode config );
 
 // Assigns all the tasks in the given list to the target VM based on
 // resources availability and other conditions
@@ -727,7 +727,7 @@ public  void configure ( JsonNode config );
 //
 // @return a list of tasks that could be assigned to the target resource
 //
-public  List<CcdpTaskRequest> assignTasks ( List<CcdpTaskRequest> tasks,
+public List<CcdpTaskRequest> assignTasks ( List<CcdpTaskRequest> tasks,
                                             CcdpVMResource target,
                                             List<CcdpVMResource> considering );
 
@@ -739,7 +739,7 @@ public  List<CcdpTaskRequest> assignTasks ( List<CcdpTaskRequest> tasks,
 //        resources
 //
 // @return true if more resources need to be allocated or false otherwise
-public  boolean needResourceAllocation ( List<CcdpVMResource> resources );
+public boolean needResourceAllocation ( List<CcdpVMResource> resources );
 
 // Determines whether or not VM resources need to be terminated due to
 // low utilization or need.  If one or more of the current RUNNING resources
@@ -748,7 +748,7 @@ public  boolean needResourceAllocation ( List<CcdpVMResource> resources );
 // @param resources the list of resources to test for need to deallocate
 //
 // @return a list of resources that need to be terminated
-public  List<CcdpVMResource> deallocateResource ( List<CcdpVMResource> resources );
+public List<CcdpVMResource> deallocateResource ( List<CcdpVMResource> resources );
 ```
 
 ### Resource Monitor

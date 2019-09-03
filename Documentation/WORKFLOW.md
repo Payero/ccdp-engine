@@ -3,13 +3,13 @@ Development Setup and Tips & Tricks
 
 Scott Bennett, scott.bennett@caci.com
 
-The purpose of this document is to make starting new on CCDP less of a pain-staking process, allowing a new developer to be up and running quickly with a good 
+The purpose of this document is to make starting new on CCDP less of a pain-staking process, allowing a new developer to be up and running quickly with a good
 understanding of the program architecture.
 
-The first section will take you through the set up process, preparing your system to work and develop in CCDP
+The first section ("System Setup") will take you through the set up process, preparing your system to work and develop in CCDP
 
-The second section will be a high level walk through of the program architecture, introducing components, their purpose, and how they interface with the rest of
-the system.
+The second section ("An In Depth Look into CCDP") will be a high level walk through of the program architecture, introducing components,
+their purpose, and how they interface with the rest of the system.
 
 The third section will be a bunch of tips and tricks that I have compiled to hopefully help with debugging and development.
 
@@ -28,7 +28,7 @@ After installing the dependencies, programs that are needed for development and 
 - Terminator, a better terminal, *yum install terminator*
 
 Now that dependencies and applications are install, it's time to configure the environment. A workspace should be designated for Eclipse, so use the following
-commands to make a new directory for the workspace and finally clone the repo:
+commands to make a new directory for the workspace:
 
 ```shell
 # Go to home directory
@@ -38,16 +38,9 @@ ps1:~$: cd ~
 ps1:~: mkdir workspace
 ```
 
-I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be active inside Eclipse.
-To ensure this also happens, add the line
+I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be actived inside Eclipse.
 
-```bash
-source /etc/environment
-```
-
-to your *.bashrc* file. This forces the variables to be sourced.
-
-The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard 
+The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard
 shortcuts and environment variabes:
 
 ```bash
@@ -86,7 +79,7 @@ An In Depth Look into CCDP
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 
 - When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section,
-I will refere to them as the resources, but the same concepts can be derived for whatever resoruce you are implementing CCDP Engine support.
+I will refere to them as the resources, but the same concepts can be derived for whatever resource you are implementing CCDP Engine support.
 
 For reference, I used the following services to implement interfaces:
 
@@ -94,9 +87,9 @@ For reference, I used the following services to implement interfaces:
 - MongoDb for the Database Interface
 - AWS and Docker for the Resources *(Each resource needs a resource controller)*
 - AWS Lambda and Local Bash Session for Serverless Interfaces
-- Two different task allocation controllers, used to determine how task are distrubuted to the engine's resources
+- Two different task allocation controllers, used to determine how task are distributed to the engine's resources
 
-All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections, 
+All interfaces are required to be implemented in at least one way or the engine will work unexpectedly. Before defining the connections,
 I'm going to define a few terms that I will use to explain system components:
 
 - Resource: An instance of a server-bound or server-free target that can execute tasks assigned by the Engine.
@@ -160,8 +153,8 @@ used for this section are:
     "heartbeat-req-secs": 5
 ```
 
-This set the frquency for which the Engine pings the resources for an update and sets a list of unique identifiers corresponding to resources
-(AWS EC2 instances in this case) that are to no be terminated by the Engine.
+This set the frequency for which the Engine queries that database for an update and sets a list of unique identifiers corresponding to resources
+(AWS EC2 instances in this case) that are to not be terminated by the Engine.
 
 ##### Interface Implementations
 
@@ -204,8 +197,8 @@ configuration file, I used the following:
 
 It's important to note some of the fields seen under the various sections. My task allocator required CPU and memory load statistics to make
 resource allocation and deallocation decisions, so I added fields to the configuration file and wrote appropriate getters to fetch the
-information. For the database, I used a MongoDb collection named ResourceStatus inside of the CCDP container. In your implementation, you can
-add whatever fields you deem necessary.
+information. For the database, I used a MongoDb collection named ResourceStatus inside of the CCDP container. **ALL** information
+needed for configuring the resource-agnostic interfaces (Connection, Task Allocator, and Database) is placed in this section.
 
 ##### Resource Provisioning
 
@@ -231,12 +224,12 @@ implemented, like the resource controllers and monitors. I'll display how my AWS
           },
         "startup-command": [
             "/data/ccdp/ccdp_install.py",
-            "-a", 
-            "download", 
-            "-d", 
-            "s3://ccdp-dist/ccdp-engine.tgz", 
-            "-w", 
-            "-t", 
+            "-a",
+            "download",
+            "-d",
+            "s3://ccdp-dist/ccdp-engine.tgz",
+            "-w",
+            "-t",
             "/data/ccdp/",
             "-n",
             "EC2"
@@ -284,7 +277,7 @@ String hostname;
 // Whether the resource is a serverless resource or not *(should be false for agents)*
 final boolean isServerless = false;
 
-// A list of task requests assinged to the resource
+// A list of task requests assigned to the resource
 List<CcdpTaskRequest> tasks;
 
 // A unique identifier applied to the resource
@@ -349,7 +342,7 @@ The reason for why serverless controllers are represented rather than the runnin
 Serverless controllers are simply a means for the consumer to run a task where the execution of code is done without a host.
 The example of this in my development environment is AWS Lambda.
 There is a single AWS Lambda controller which handles every task assigned to AWS Lambda.
-Having every Runner (the element that actually runs the execution request/serverless action) communicate with the Engine and 
+Having every Runner (the element that actually runs the execution request/serverless action) communicate with the Engine and
 database would be unnecessarily stressful on the Engine's host machine.
 Whenever changes are made or tasks get assigned to a serverless controller, the member variable is updated.
 Think of the CcdpServerlessResource class as a container
@@ -360,7 +353,7 @@ The members of the CcdpServerlessResource class include:
 // Whether the resource is a serverless resource or not *(should be true for serverless resources)*
 final boolean isServerless = true;
 
-// A list of task requests assinged to the resource
+// A list of task requests assigned to the resource
 List<CcdpTaskRequest> tasks;
 
 // The last time the resource was assigned a tasked by the task allocator
@@ -465,7 +458,7 @@ task **MUST** have the **SAME** session. Note that only matching **SESSIONS**, n
 class has the following members:
 
 ```java
-// Determines whether to run all the tasks in this thread in parallel or in 
+// Determines whether to run all the tasks in this thread in parallel or in
 // sequence mode.
 public enum TasksRunningMode { PARALLEL, SEQUENCE, SEQUENTIAL }
 
@@ -505,7 +498,7 @@ private boolean runSingleNode = false;
 #### CCDP Messages and Message Types
 
 In order to integrate all the components of CCDP together, a communication connection in the form of the Connection Interface is used. But what
-gets sent over this comminication link? The answer is CcdpMessages. A CcdpMessage is a cloneable abstract class that is the most generic form of
+gets sent over this communication link? The answer is CcdpMessages. A CcdpMessage is a cloneable abstract class that is the most generic form of
 message. All specific message types extend this class and all message types have their own designated response to being received on either the
 resource side of the engine side. The specific message types are:
 
@@ -553,8 +546,10 @@ When the Engine wants to send a message, it sends the message to a message queue
 
 #### Implementation Example:
 
-In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers were configured to send their messages there.
-When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
+In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers
+were configured to send their messages there.
+When a resource or serverless controller allocated a new resource, a unique identifier was given to it, the Engine was configured to
+produce message to the channel, and the newly created resource would be configured, on creation, to consume on that channel.
 
 ### The Database Interface
 
@@ -590,13 +585,17 @@ After the master controller determines what kind of controllers are needed, a ma
 In order for your controllers to be used, you **MUST** implement the CcdpVMControllerIntf interface.
 If you don't implement the interface, the Engine will not know how to interact with the controller, making CCDP ineffective.
 
+When a request for an agent is received, the master controller uses a locally stored map, which maps node types to controllers. Then, the correct controller
+decided, comparing the request node type to the map. After determining the controller, the correct resource controller can talk to the program running on the
+agent using the Connection interface.
+
 The methods that must be implemented by developed controllers are as follows:
 
 ```java
 // Takes the configuration for the resource type from the ccdp-config.json file and uses it
 // to prepare the controller for use
 //
-// @param config The configuration for the controller in JsonNode form 
+// @param config The configuration for the controller in JsonNode form
 public void configure ( JsonNode config );
 
 // Starts one or more instances of the resource using an image generated from the ccdp-config.json file
@@ -608,16 +607,16 @@ public List<String> startInstances ( CcdpImageInfo imgCfg );
 // Stops each of the instances included in the list of IDs
 //
 // @param instIDs A list of unique identifiers representing the VMs that are to be stopped
-// @return true if all the VMs in the list were stopped, flase otherwise
+// @return true if all the VMs in the list were stopped, false otherwise
 public boolean stopInstances ( List<String> instIDs );
 
 // Terminates each of the instances included in the list of IDs
 //
 // @param instIDs A list of unique identifiers representing the VMs that are to be terminated
-// @return true if all the VMs in the list were termianted, flase otherwise
+// @return true if all the VMs in the list were terminated, false otherwise
 public boolean terminateInstances ( List<String> instIDs );
 
-// Gets all the instances' statuses that are cuurently available
+// Gets all the instances' statuses that are currently available
 //
 // @return A list of CcdpVMResources, each CcdpVMResources being one instance available
 public List<CcdpVMResource> getAllInstanceStatus ();
@@ -634,7 +633,7 @@ public ResourceStatus getInstanceState ( String id );
 // @return A list of resources that match the given filter
 public List<CcdpVMResource> getStatusFilteredByTags( JsonNode filter );
 
-// Returns information about the instance matching the unique ID given as the arguement
+// Returns information about the instance matching the unique ID given as the argument
 //
 // @param uuid The unique identifier referring to the desired resource
 // @return the resource whose unique identifier matches the given parameter
@@ -642,3 +641,37 @@ public CcdpVMResource getStatusFilteredById ( String uuid );
 ```
 
 *\*Note: CcdpVMResource and CcdpImageInfo is discussed in the "Configuration File" section*
+
+### Serverless Controllers
+
+Serverless controllers, similarly to resource controllers, behave the way that you would expect. In the same manner as the serverless controllers,
+the serverless controllers are allocated by a master controller on Engine start up, allocating exactly **one** controller per service. Where these
+serverless controller differentiate from their server-bound counterparts is how they handle requests.
+
+When Serverless controllers receive requests, the master controller maps the node type to the correct serverless controller, just like in server-bound
+resource controller. The difference is in the next step: the serverless controller processes the information in the request and prepares it to be executed.
+When the request is prepared, a Task Runner is used to actually perform the serverless operation and get the result back. To explain this better, I'll use
+an example that I implemented in testing, AWS Lambda. To complete a Lambda request, I use the *curl* command to POST to a webhook with data included in the
+POST request. My AWS Lambda function listens to that webhook and when it receives a POST, it will take the request and process it,
+allowing me to use the arguments provided by the Engine from the task request to execute code remotely and without allocating a host.
+
+A major difference to take note of between Serverless and server-bound controllers is that Serverless controllers themselves appear in the database and
+communicate with the Engine while server-bound controllers just allow reference to the agent itself, which appears in the database and talks to the Engine.
+
+In order for your controllers to be used, you **MUST** extend the CcdpServerlessControllerAbs abstract class.
+If you don't extend the class, the Engine will not know how to interact with the controller, making CCDP ineffective. The methods that need extended are:
+
+```java
+// Uses the information in the task parameter and processes it, sending the processed information 
+// to a task runner on its own thread
+//
+// @param task A CcdpTaskRequest to run
+public void runTask ( CcdpTaskRequest task );
+
+// Handles the result of the task by allowing an abstract implementation
+//
+// @param result The task result in JsonNode format
+// @param task The CcdpTaskRequest that ran
+// @param controller_name The string representation of the controller that ran the task
+public void handleResult( JsonNode result, CcdpTaskRequest task, String controller_name );
+```

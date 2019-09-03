@@ -41,7 +41,7 @@ ps1:~: mkdir workspace
 I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be actived inside Eclipse.
 
 The following is a list of aliases located in my *.bash_aliases* file, that gets run at a point in my *.bashrc* file. This sets a bunch of keyboard
-shortcuts and environment variabes:
+shortcuts and environment variables:
 
 ```bash
 export JAVA_HOME="/usr/java/latest" 
@@ -79,7 +79,7 @@ An In Depth Look into CCDP
 In order to give reference and have a concrete example to refer back to, I'm going to give the following information:
 
 - When developing the Engine, the types of resources (VMs) that I used for testing were Docker and AWS EC2. For the majority of this section,
-I will refere to them as the resources, but the same concepts can be derived for whatever resource you are implementing CCDP Engine support.
+I will refer to them as the resources, but the same concepts can be derived for whatever resource you are implementing CCDP Engine support.
 
 For reference, I used the following services to implement interfaces:
 
@@ -622,7 +622,7 @@ public List<CcdpVMResource> getAllInstanceStatus ();
 
 // Gets the current instance state of the resource with the given ID
 //
-// @param id The unique identifer for the requested VM
+// @param id The unique identifier for the requested VM
 // @return the state of the resource, represented by an enumerator
 public ResourceStatus getInstanceState ( String id );
 

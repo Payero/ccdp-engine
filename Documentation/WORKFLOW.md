@@ -674,7 +674,7 @@ public void runTask ( CcdpTaskRequest task );
 // @param result The task result in JsonNode format
 // @param task The CcdpTaskRequest that ran
 // @param controller_name The string representation of the controller that ran the task
-public void handleResult( JsonNode result, CcdpTaskRequest task, String controller_name );
+public void handleResult ( JsonNode result, CcdpTaskRequest task, String controller_name );
 ```
 
 The methods that are implemented in the abstract class CcdpServerlessControllerAbs are:
@@ -683,19 +683,143 @@ The methods that are implemented in the abstract class CcdpServerlessControllerA
 //This method configures the abstract class and prepares it for use.
 //
 // @param config the JsonNode config to use to configure the class
-public void configure(JsonNode config);
+public void configure ( JsonNode config );
 
 // Updates the task status in CCDP and allows developer to implement handling result
 //
 // @param task The CcdpTaskRequest that was completed
 // @param result The task result in JsonNode format
-public void completeTask(CcdpTaskRequest task, JsonNode result);
+public void completeTask ( CcdpTaskRequest task, JsonNode result );
 
 // An implementation of saving the result of the serverless task locally
 //
 // @param result The result of the task
 // @param localSaveLocation The location to save the result on disk
 // @param cont_name The name of the controller that completed the task
-protected void localSave(JsonNode result, String localSaveLocation, String cont_name)
-
+protected void localSave ( JsonNode result, String localSaveLocation, String cont_name );
 ```
+
+### Task Allocator
+
+The task allocator is essential to agent performance in CCDP. The main purpose of the ask allocator is to determine which agents get
+assigned tasks, when agents and get spawned and de-spawned, and much more. Task allocators are implementations of the CcdpTaskingControllerIntf
+interface. Using the abstract class allows for multiple Task Allocators to be interchanged seamlessly. For my implementation,
+I extended the abstract class and wrote a task allocator which bases the allocation of tasks on the number of tasks agents currently have.
+I would never allow agents go above a number of tasks dictated in my configuration file.
+I also used system statistics to determine if the current tasks were too much for a single VM, allowing to allocate more resources
+for tasks as VM resources were consumed.
+
+The methods that need to be implemented for the CcdpTaskingControllerIntf interface are:
+
+```java
+// Sets all the parameters required for this object to determine resource
+// allocation and deallocation.
+//
+// @param config the object containing all the configuration parameters
+public  void configure ( JsonNode config );
+
+// Assigns all the tasks in the given list to the target VM based on
+// resources availability and other conditions
+//
+// @param tasks a list of tasks to consider running in the intended VM
+// @param target the VM candidate to run the tasks
+// @param considering all available resources that could be potentially
+//        used to run this tasks
+//
+// @return a list of tasks that could be assigned to the target resource
+//
+public  List<CcdpTaskRequest> assignTasks ( List<CcdpTaskRequest> tasks,
+                                            CcdpVMResource target,
+                                            List<CcdpVMResource> considering );
+
+// Determines whether or not additional resources are needed based on
+// the utilization level of the given resources.  If the resources combined
+// reaches the threshold then it returns true otherwise it returns false.
+//
+// @param resources the list of resources to test for need of additional
+//        resources
+//
+// @return true if more resources need to be allocated or false otherwise
+public  boolean needResourceAllocation ( List<CcdpVMResource> resources );
+
+// Determines whether or not VM resources need to be terminated due to
+// low utilization or need.  If one or more of the current RUNNING resources
+// falls below the threshold then is added to the list.
+//
+// @param resources the list of resources to test for need to deallocate
+//
+// @return a list of resources that need to be terminated
+public  List<CcdpVMResource> deallocateResource ( List<CcdpVMResource> resources );
+```
+
+### Resource Monitor
+
+The final interface to be discussed is the SystemResourceMonitorAbs interface. This is a per-resource interface used to obtain
+VM resource usage statistics. The Engine does not use this interface, but rather it is implemented in each agent. The usage
+information provided by the monitor can be used for many different purposes, including debugging and task allocation (as previously
+mentioned). Resource monitors must extend the SystemResourceMonitorAbs abstract class or CCDP won't be able to report usage.
+
+In my production implementation, I created a Linux resource monitor for my AWS EC2 instances. This is because the agent was installed on
+an EC2 image whose base was Ubuntu Linux. Essentially, my EC2 agents were Ubuntu machines that downloaded and ran my CCDP Agent program.
+
+The methods that need to be implemented for the SystemResourceMonitorAbs are:
+
+```java
+// Configures the running environment and/or connections required to perform
+// the operations.  The JSON Object contains all the different fields
+// necessary to operate.  These fields might change on each actual
+// implementation
+//
+// @param config a JSON Object containing all the necessary fields required
+//        to operate
+public abstract void configure( JsonNode config );
+  
+// Gets all the different file system storage names such as ext3, ext4, NTFS,
+// etc.
+//
+// @return all the different file system storage names such as ext3, ext4,
+//         NTFS, etc
+protected abstract List<String> getFileSystemTypes();
+```
+
+In addition, there a number of getters and setters for the following fields pertaining to resource monitors:
+
+```java
+// Retrieves all the information possible for this node
+private SystemInfo system_info = new SystemInfo();
+
+// Handles all the OS information queries to the node
+private OperatingSystem os = null;
+  
+// Handles all the hardware information queries to the node
+private HardwareAbstractionLayer hardware = null;
+  
+// Handles all CPU related information
+private CentralProcessor processor = null;
+  
+// Handles all the memory related information
+private GlobalMemory memory = null;
+
+// Stores the default units base to use
+protected long units = 1L;
+  
+// Stores previous ticks to calculate CPU load
+private long[] prevTicks;
+
+// Stores previous ticks to calculate CPU load for each one of the cores
+private long[][] prevProcTicks;
+  
+// Stores all the different file system types to include
+private List<String> fileSystemTypes = null;
+```
+
+By default in the abstract SystemResourceMonitorAbs class, these set using the operating system that the agent is being run on. For example, getting the
+system memory is done in the following code.
+
+```java
+this.hardware = this.system_info.getHardware();
+this.memory = this.hardware.getMemory();
+```
+
+From there, the *memory* class member can be used to get the physical and virtual memory statistics of the machine that the agent is run on. A similar
+process can be followed to do this for all system components.

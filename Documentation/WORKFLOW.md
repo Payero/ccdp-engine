@@ -542,8 +542,7 @@ In other words, there is a single message queue that the Engine listens to for u
 When a new message is received, it is dealt with according to the message type.
 When the Engine wants to send a message, it sends the message to a message queue exclusive to the Engine and the desired target.
 
-**PICTURE HERE**
-
+![alt-text](./ConnectionIntf.png)
 #### Implementation Example:
 
 In my development, I used Active MQ. The Engine's queue to consume from was named 'ccdp-engine' and all agents and serverless controllers

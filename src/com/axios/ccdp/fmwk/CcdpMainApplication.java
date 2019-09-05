@@ -423,7 +423,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //      if ( this.dbClient.getVMInformationCount(sid) == 0 )
 //        toRemove.add(sid);
       
-      if( !(this.nodeTypes.contains(sid) || sid.equals(CcdpUtils.FREE_AGENT_SID)) )
+      //if ( !(this.nodeTypes.contains(sid) || sid.equals(CcdpUtils.FREE_AGENT_SID)) )
+      if( !sid.equals(CcdpUtils.FREE_AGENT_SID) )
       {
         if ( this.dbClient.getVMInformationCount(sid) == 0 )
           toRemove.add(sid);

@@ -83,7 +83,7 @@ public class CcdpServerlessResource extends CcdpResourceAbs
     
      this.nodeType = type; 
    }
-    
+   
    /*
     * Sets all the tags assigned to the resource
     *

@@ -5,7 +5,7 @@
          "session-id": "AWS Lambda",
          "node-type": "None",
          "serverless": true,
-         "arguments":["5000000"],
+         "arguments":["2000000"],
          "serverless-config":
          {       
            "provider": "AWS Lambda",

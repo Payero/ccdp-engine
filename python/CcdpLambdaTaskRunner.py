@@ -400,7 +400,7 @@ def handler(event, context):
     args = ast.literal_eval(json.dumps(event))
 
     runner = TaskRunner(args['verb_level'])
-    return "{\"result\": \"%s\"}" % runner.runTask(args)
+    return "%s" % runner.runTask(args)
 
 
 

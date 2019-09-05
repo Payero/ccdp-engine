@@ -42,24 +42,24 @@ public abstract class CcdpResourceAbs
    */
   protected ObjectMapper mapper = new ObjectMapper();
   /*
-   * Store what type of serverless controller it is
+   * Store what type of resource it is
    */
   protected String nodeType = null;
   /*
-   * Stores all the tasks serverless tasks assigned to the service
+   * Stores all the tasks resource tasks assigned to the service
    */
   protected List<CcdpTaskRequest> tasks = new ArrayList<>();
   /*
-   * Stores the last time this serverless controller was tasked
+   * Stores the last time this resource controller was tasked
    */
   protected long last_assignment = System.currentTimeMillis();
   /*
-   * Map that stores the tags associated with the serverless controller
+   * Map that stores the tags associated with the resource controller
    */
   protected Map<String, String> tags = new HashMap<>();
 
   /*
-   * Use to distinguish between VMs and serverless controllers during querying
+   * Use to distinguish between VMs and resource controllers during querying
    */
   public CcdpResourceAbs()
   {

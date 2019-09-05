@@ -32,10 +32,10 @@ commands to make a new directory for the workspace:
 
 ```shell
 # Go to home directory
-ps1:~$: cd ~
+[ps1:~]$ cd ~
 
 # Make a new directory for the workspace
-ps1:~: mkdir workspace
+[ps1:~]$ mkdir workspace
 ```
 
 I recommend always launching Eclipse from terminal. This allows Eclipse to use your environment variables set in your *.bashrc* file to be actived inside Eclipse.
@@ -59,7 +59,7 @@ alias ejava='{Path to Eclipse}/eclipse/eclipse & disown'
 The above code block can be copy and pasted into your *.bashrc* file. You can then use the alias set above to open Eclipse.
 
 ```shell
-ps1:~$ ejava
+[ps1:~]$ ejava
 ```
 
 When Eclipse opens, it asks for your project workspace, at which time you can designate the workspace folder we just created.

@@ -104,7 +104,7 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     dataMap.put("arguments", String.join(" ", taskArgs));
     for ( String key : serverCfg.keySet() )
     {
-      if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) || key.equals(CcdpUtils.S_CFG_REMOTE_FILE) )
+      if ( key.equals(CcdpUtils.S_CFG_PROVIDER) || key.equals(CcdpUtils.S_CFG_GATEWAY) || key.equals(CcdpUtils.S_CFG_REMOTE_FILE) || key.equals(CcdpUtils.S_CFG_LOCAL_FILE) )
         continue;
       dataMap.put(key, serverCfg.get(key));
     }

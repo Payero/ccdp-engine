@@ -1,0 +1,71 @@
+{
+  "jobs": 
+    [
+      {
+        "session-id":"test-1", 
+        "node-type": "EC2",
+        "cpu": 110,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=70,max=71"
+            ]
+       },
+       {
+        "session-id":"test-2", 
+        "node-type": "EC2",
+        "cpu": 110,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "EC2",
+        "cpu": 0,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-2", 
+        "node-type": "EC2",
+        "cpu": 0,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-1", 
+        "node-type": "EC2",
+        "cpu": 0,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       },
+       {
+        "session-id":"test-2", 
+        "node-type": "EC2",
+        "cpu": 0,
+        "command":
+            [
+              "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 
+              "-a", "testRandomTime", 
+              "-p", "min=50,max=51"
+            ]
+       }
+    ]
+}

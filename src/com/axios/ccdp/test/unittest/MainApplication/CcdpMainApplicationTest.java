@@ -1525,7 +1525,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/AWSLambda-UnitTest.json/";
     this.sendJob(Filename);
     
-    CcdpUtils.pause(5);
+    CcdpUtils.pause(10);
     
     running_vms = engine.getAllCcdpVMResources();
     serverless_controllers = engine.getAllCcdpServerlessResources();
@@ -1541,7 +1541,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
     }
     
-    CcdpUtils.pause(40);
+    CcdpUtils.pause(30);
     
     logger.debug("Checking to see that the controller finished the task");
     running_vms = engine.getAllCcdpVMResources();
@@ -1987,7 +1987,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-Serverless.json";
     this.sendJob(Filename);
     
-    CcdpUtils.pause(15);
+    CcdpUtils.pause(13);
     
     logger.debug("Getting all resources");
     running_vms = engine.getAllCcdpVMResources();

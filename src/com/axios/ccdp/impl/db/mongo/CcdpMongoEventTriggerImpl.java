@@ -30,11 +30,13 @@ public class CcdpMongoEventTriggerImpl implements CcdpDatabaseEventTriggerIntf
   
   /*
    * The block for watching Mongo
+   * 
+   * THIS IS WHERE CODE GOES TO EXECUTE ON DOCUMENT CHANGES
    */
   private Block<ChangeStreamDocument<Document>> printBlock = new Block<>() {
     @Override
     public void apply(final ChangeStreamDocument<Document> changeStreamDocument) {
-      System.out.println(changeStreamDocument.getFullDocument());
+      logger.debug(changeStreamDocument.getFullDocument());
     }
   };
   

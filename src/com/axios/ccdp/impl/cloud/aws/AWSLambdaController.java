@@ -77,12 +77,6 @@ public class AWSLambdaController extends CcdpServerlessControllerAbs
     t.start();
   }
   
-  @Override
-  public void onEvent()
-  {
-    this.dbClient.storeServerlessInformation(this.controllerInfo);  
-  }
-  
   /*
    * Generates the curl data parameter of the curl command that will be used in
    * the post request

@@ -81,7 +81,6 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
 
   }
 
-
   /**
    * Gets all the settings required to connect from the given parameter
    * 

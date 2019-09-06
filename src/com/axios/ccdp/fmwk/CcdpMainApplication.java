@@ -121,10 +121,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    *  Stores the object responsible for storing data in the database
    */
   private CcdpDatabaseIntf dbClient = null;
-//  /**
-//   * Stores all the VMs allocated to different sessions
-//   */
-//  private Map<String, List<CcdpVMResource>> resources = new HashMap<>();
   /**
    * Stores all the different sessions currently being handled
    */
@@ -145,6 +141,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
    * Continuously monitors the state of the system
    */
   private ThreadedTimerTask timer = null;
+  /*
+   * A Database event trigger
+   */
+  private Thread eventTriggerThread = null;
   /**
    * How many milliseconds before an agent is considered missing or no longer
    * reachable
@@ -208,7 +208,10 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.dbClient = factory.getCcdpDatabaseIntf(db_node);
     this.dbClient.configure(db_node);
     this.dbClient.connect();
-
+    
+    this.eventTriggerThread = new Thread( factory.getDatabaseTrigger(db_node) );
+    this.eventTriggerThread.start();
+    
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
 

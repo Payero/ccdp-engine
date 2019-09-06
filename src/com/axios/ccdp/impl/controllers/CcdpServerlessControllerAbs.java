@@ -61,6 +61,11 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
   @SuppressWarnings("unused")
   private ThreadedTimerTask timer = null;
   
+  /*
+   * Whether heartbeats are skipped or not
+   */
+  private boolean skip_hb = false;
+  
   public CcdpServerlessControllerAbs()
   {
     this.logger.debug("New CcdpServerlessControllerAbs created");
@@ -96,21 +101,20 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
     this.dbClient.storeServerlessInformation(this.controllerInfo);
     
     JsonNode eng = CcdpUtils.getEngineCfg();
-    long hb = 3000;
+    long cycle = 5000;
     try
     {
-      hb = eng.get(CcdpUtils.CFG_KEY_HB_FREQ).asInt() * 1000;
+      cycle = eng.get(CcdpUtils.CFG_KEY_CHECK_CYCLE).asInt() * 1000;
     }
     catch( Exception e )
     {
-      this.logger.warn("The heartbeat frequency was not set using 3 seconds");
+      this.logger.warn("The heartbeat frequency was not set using 5 seconds");
     }
     
-    boolean skip_hb = eng.get(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
+    this.skip_hb = eng.get(CcdpUtils.CFG_KEY_SKIP_HEARTBEATS).asBoolean();
     if( !skip_hb )
-    {
-      // sends the heartbeat 
-      this.timer = new ThreadedTimerTask(this, hb, hb);
+    { 
+      this.timer = new ThreadedTimerTask(this, 2*cycle, cycle);
     }
     else
     {
@@ -118,6 +122,12 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
       //this.connection.sendHeartbeat(this.toMain, this.vmInfo);
       this.dbClient.storeServerlessInformation(this.controllerInfo);
     }
+  }
+  
+  @Override
+  public void onEvent()
+  {
+    this.dbClient.storeServerlessInformation(this.controllerInfo);  
   }
     
   /*

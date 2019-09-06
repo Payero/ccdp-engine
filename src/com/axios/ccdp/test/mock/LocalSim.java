@@ -51,12 +51,6 @@ public class LocalSim extends CcdpServerlessControllerAbs
     this.connection.sendTaskUpdate(toMain, task);
     t.start();
   }
-  
-  @Override
-  public void onEvent() 
-  {
-    this.dbClient.storeServerlessInformation(this.controllerInfo);
-  }
 
   @Override
   public void handleResult(JsonNode result, CcdpTaskRequest task)

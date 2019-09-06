@@ -33,6 +33,7 @@ public class CcdpConfigParser
   public static final String KEY_STORAGE = "storage";
   public static final String KEY_RESOURCE_MON = "resource-monitor";
   public static final String KEY_DATABASE = "database";
+  public static final String KEY_DATABASE_TRIGGER = "trigger-classname";
 //  public static final String KEY_TASKING = "tasking";
   public static final String KEY_RES_PROV = "resource-provisioning";
   public static final String KEY_RESOURCES = "resources";

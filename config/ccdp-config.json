@@ -44,7 +44,8 @@
       "db-host": "ax-ccdp.com",
       "db-port": 27017,
       "db-name": "CCDP",
-      "db-resources-table": "ResourceStatus"
+      "db-resources-table": "ResourceStatus",
+      "trigger-classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoEventTriggerImpl"
     }
   },
   "resource-provisioning": {
@@ -173,8 +174,7 @@
    "serverless":{
      "AWS Lambda":{
        "name": "AWS Lambda",
-       "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController",
-       "credentials-file": "/nishome/srbenne/.aws/credentials"
+       "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController"
      },
      "Local Echo":{
      	"name": "Local Echo",

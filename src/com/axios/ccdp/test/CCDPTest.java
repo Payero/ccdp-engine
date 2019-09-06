@@ -1,9 +1,23 @@
 package com.axios.ccdp.test;
 
+import java.util.Arrays;
+
 import org.apache.log4j.Logger;
+import org.bson.Document;
 
 import com.axios.ccdp.utils.CcdpUtils;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoClient;
+import com.mongodb.Block;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
 
 public class CCDPTest 
 {
@@ -12,36 +26,40 @@ public class CCDPTest
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
   
-
-
+  private String last = "";
+  
+  ObjectMapper mapper = new ObjectMapper();
+  
   public CCDPTest() throws Exception
-  {
-    /*JsonNode svr_cfg = CcdpUtils.getServerlessCfg();
-    System.out.println(svr_cfg);
-    CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
+  {    
+    this.logger.debug("Start Test");
     
-    Multimap<String,String> controllerTypes = ArrayListMultimap.create();
-    for ( String svrlessType : CcdpUtils.getServerlessTypes())
-    {
-      //For some reason, the quotes are preserved, so get rid of them with replace
-      controllerTypes.put(svr_cfg.get(svrlessType).get(CcdpConfigParser.KEY_SERVERLESS_CONTROLLER).toString().replace("\"", ""), svrlessType);
-    }
-    System.out.println(controllerTypes);
+    ServerAddress sa = new ServerAddress("ax-ccdp.com", 27017);
+    MongoClient client = MongoClients.create(
+        MongoClientSettings.builder()
+        .applyToClusterSettings(builder ->
+                builder.hosts(Arrays.asList(sa)))
+        .build());
     
-    for (String key : controllerTypes.keySet())
-    {
-      serverless_cont = factory.getCcdpServerlessResourceController( svr_cfg, key);
-      for (String serverlessType : controllerTypes.get(key))
-      {
-        this.logger.debug("Adding <" + serverlessType + ", " + serverless_cont.toString() + "> to map");
-        controllerMap.put(serverlessType, serverless_cont);
+    MongoDatabase db = client.getDatabase("CCDP");
+    MongoCollection<Document> statusColl = db.getCollection("srb-test");
+    this.logger.debug("Set up collection");
+    Block<ChangeStreamDocument<Document>> printBlock = new Block<>() {
+      @Override
+      public void apply(final ChangeStreamDocument<Document> changeStreamDocument) {
+          String id = changeStreamDocument.getFullDocument().get("_id").toString();
+          if ( last.equals(id) )
+            System.out.println("Duplicate");
+          else
+          {
+            System.out.println(id);
+            last = id;
+          }
       }
-    }
-    this.logger.debug("ControllerMap: \n" + controllerMap.toString());*/
-    
-    System.out.println(CcdpUtils.getCredentials());
-    JsonNode aws = CcdpUtils.getCredentials().get("AWS");
-    this.logger.debug(aws);
+    };
+    statusColl.watch(Arrays.asList(Aggregates.match(Filters.in("operationType", Arrays.asList("insert", "update", "replace")))))
+    .fullDocument(FullDocument.UPDATE_LOOKUP).forEach(printBlock);
+        
   }
   
   public static void main( String[] args ) throws Exception

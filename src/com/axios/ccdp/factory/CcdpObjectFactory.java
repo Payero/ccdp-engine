@@ -8,6 +8,7 @@ import com.axios.ccdp.impl.controllers.CcdpServerlessControllerAbs;
 import com.axios.ccdp.impl.controllers.CcdpVMControllerAbs;
 import com.axios.ccdp.impl.monitors.SystemResourceMonitorAbs;
 import com.axios.ccdp.intfs.CcdpConnectionIntf;
+import com.axios.ccdp.intfs.CcdpDatabaseEventTriggerIntf;
 import com.axios.ccdp.intfs.CcdpDatabaseIntf;
 import com.axios.ccdp.intfs.CcdpImgLoaderIntf;
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
@@ -299,6 +300,23 @@ public class CcdpObjectFactory
   {
     Object obj = this.getNewInstance(classname, CcdpServerlessControllerAbs.class);
     CcdpServerlessControllerAbs impl = (CcdpServerlessControllerAbs)obj;
+    return impl;
+  }
+  
+  /*
+   * Gets a new database trigger, an event listener for database changes
+   * 
+   * @param config a JSON Object containing required configuration parameters
+   * @param classname the name of the resource controller class
+   * 
+   * @return an actual implementation of the object that allows the scheduler
+   *         to manipulate the resources
+   */
+  public CcdpDatabaseEventTriggerIntf getDatabaseTrigger(JsonNode config)
+  {
+    Object obj = this.getNewInstance(config.get(CcdpConfigParser.KEY_DATABASE_TRIGGER).asText(), CcdpDatabaseEventTriggerIntf.class);
+    CcdpDatabaseEventTriggerIntf impl = (CcdpDatabaseEventTriggerIntf) obj;
+    impl.configure(config);
     return impl;
   }
 }

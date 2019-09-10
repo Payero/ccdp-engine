@@ -209,8 +209,8 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.dbClient.configure(db_node);
     this.dbClient.connect();
     
-    this.eventTriggerThread = new Thread( factory.getDatabaseTrigger(db_node) );
-    this.eventTriggerThread.start();
+    //this.eventTriggerThread = new Thread( factory.getDatabaseTrigger(db_node) );
+    //this.eventTriggerThread.start();
     
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
@@ -463,9 +463,29 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
 //    }
 
     this.allocateTasks();
+    this.removeHangingVMs();
     //this.showSystemChange();
   }
 
+  /*
+   * Remove VMs that get left hanging for some reason...
+   */
+  private void removeHangingVMs()
+  {
+    List<CcdpVMResource> allVMs = this.getAllCcdpVMResources();
+    List<String> toDelete = new ArrayList<>();
+    for ( CcdpVMResource vm : allVMs )
+    {
+      if ( vm.getNumberTasks() == 0 && (!vm.getAssignedSession().equals(CcdpUtils.FREE_AGENT_SID)) )
+        toDelete.add(vm.getInstanceId());
+    }
+    
+    if ( toDelete.size() > 0 )
+    {
+      this.terminateInstances(toDelete);
+      this.logger.debug("Removed hanging vms: " + String.join(", ", toDelete));
+    }
+  }
   /**
    * Removes all the resources that have not been updated for a while.
    *
@@ -879,7 +899,7 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     CcdpTaskState state = task.getState();
     boolean delTask = false;
     CcdpThreadRequest delThread = null;
-    this.logger.info("Updating Task: " + tid + " Current State: " + state);
+    this.logger.info("Updating Task: " + tid + ", Current State: " + state);
     synchronized( this.requests )
     {
       boolean found = false;

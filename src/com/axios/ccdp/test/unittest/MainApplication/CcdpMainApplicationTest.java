@@ -2225,7 +2225,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
 
     assertTrue("Not all serverless accounted for", serverless1Count == 2 && serverless2Count == 2);
         
-    CcdpUtils.pause(130);
+    CcdpUtils.pause(140);
 
     logger.debug("Checking to see that the controller and VM finished the task");
     running_vms = engine.getAllCcdpVMResources();
@@ -2233,7 +2233,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     boolean finalDockerVM, finalEC2VM;
     finalDockerVM = finalEC2VM = false;
     
-    assertEquals("There should be 2 free agents running.", running_vms.size(), 2);
+    assertEquals("There should be 2 free agents running.", 2, running_vms.size());
     assertEquals("There should only be " + numControllers  +" controllers", serverless_controllers.size(), numControllers); 
     logger.debug("Check the serverless controller has the task");
     for ( CcdpServerlessResource cont : serverless_controllers )

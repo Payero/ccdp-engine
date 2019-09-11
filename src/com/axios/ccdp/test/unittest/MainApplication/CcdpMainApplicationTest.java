@@ -104,6 +104,11 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     dbClient = factory.getCcdpDatabaseIntf(db_cfg);
     dbClient.configure(db_cfg);
     dbClient.connect();
+    
+    if ( System.getenv("CCDP_HOME") == null )
+    {
+      fail("Please set the environment variable \"CCDP_HOME\" before running unit tests");
+    }
   }
   
   /*
@@ -465,7 +470,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json");
     CcdpUtils.pause(25);
    
     logger.debug("Checking for 1 VM w/ Task");
@@ -503,7 +508,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json");
     CcdpUtils.pause(50);
     
     logger.debug("Checking Size and Node-type");
@@ -514,7 +519,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     
     // Let task complete, should despawn VM 
-    CcdpUtils.pause(65);
+    CcdpUtils.pause(75);
     logger.debug("Checking Despawn");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
@@ -540,7 +545,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json");
     CcdpUtils.pause(50);
    
     logger.debug("Checking node count and type");
@@ -589,7 +594,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String original = running_vms.get(0).getInstanceId();
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -645,7 +650,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String original = running_vms.get(0).getInstanceId();
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -706,7 +711,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -775,7 +780,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -843,7 +848,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -905,7 +910,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";       
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/numTasksUnitTest_docker.json";       
     this.sendJob(task_filename);
     
     CcdpUtils.pause(25);
@@ -919,7 +924,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String originalID = vm.getInstanceId();
     
     // Send one more task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
 
     this.sendJob(task_filename);
     CcdpUtils.pause(20);
@@ -979,11 +984,11 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 110 CPU task
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/singleTasked_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/singleTasked_docker.json";
     this.sendJob(task_filename);
     
     // Assign 2 regular CPU task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     int sentTasks = 0;
     final int maxNumTasks = 2;
     while (sentTasks < maxNumTasks)
@@ -1040,7 +1045,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/numTasksUnitTest_docker.json";
     int sentTasks = 0;
     
     while (sentTasks < NumTasksToLaunch)
@@ -1059,7 +1064,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     //String originalID = vm.getInstanceId();
     
     // Send one more task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(10);
     
@@ -1115,9 +1120,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
     this.sendJob(task_filename);
     CcdpUtils.pause(35);
@@ -1173,9 +1178,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
     this.sendJob(task_filename);
     CcdpUtils.pause(35);
@@ -1231,9 +1236,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(50);
     
@@ -1289,7 +1294,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/docker_and_ec2_jobs.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/docker_and_ec2_jobs.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1348,7 +1353,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/two_job_docker_test.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1405,7 +1410,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/two_job_docker_test.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1424,7 +1429,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         test1 = true;
       }   
     }
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     CcdpUtils.pause(10);
@@ -1440,7 +1445,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         
     }
     
-    CcdpUtils.pause(35);
+    CcdpUtils.pause(30);
     logger.debug("Checking 1 VM was terminated post task");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("Session test-2 VM should have despawned", running_vms.size() == 1);
@@ -1448,7 +1453,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should be of session test-1", vm.getAssignedSession().equals("test-1"));
     
     //Wait for task to complete
-    CcdpUtils.pause(45);
+    CcdpUtils.pause(55);
     logger.debug("Tasks should be done now");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The VMs shoud've been stopped", running_vms.size() == 0);
@@ -1522,7 +1527,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     serverless_controllers = engine.getAllCcdpServerlessResources();
     assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
     
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/AWSLambda-UnitTest.json/";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/AWSLambda-UnitTest.json/";
     this.sendJob(Filename);
     
     CcdpUtils.pause(10);
@@ -1589,7 +1594,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     serverless_controllers = engine.getAllCcdpServerlessResources();
     assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
     
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/LambdaWithVMTask-UnitTest.json";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/LambdaWithVMTask-UnitTest.json";
     this.sendJob(Filename);
     
     CcdpUtils.pause(15);
@@ -1658,10 +1663,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     logger.debug("Check that there are the corect number of controllers");
     serverless_controllers = engine.getAllCcdpServerlessResources();
-    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    assertEquals("There was an incorect number of controllers", serverless_controllers.size(), numControllers); 
     
     int numJobs = 3;
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/AWSLambda-UnitTest.json";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/AWSLambda-UnitTest.json";
     for (int i = 0; i < numJobs; i++)
       this.sendJob(Filename);
     
@@ -1675,9 +1680,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     for (CcdpServerlessResource cont : serverless_controllers)
     {
       if ( cont.getNodeType().equals("AWS Lambda") )
-        assertEquals("The AWS Controller should have the task", cont.getTasks().size(), 3);
+        assertEquals("The AWS Controller should have the task", 3, cont.getTasks().size());
       else
-        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+        assertEquals("Non-AWS Lambda controllers should have no tasks", 0, cont.getTasks().size());
     }
     
     CcdpUtils.pause(25);
@@ -1729,7 +1734,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     serverless_controllers = engine.getAllCcdpServerlessResources();
     assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
     
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/TwoLambdaDiffSession.json";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/TwoLambdaDiffSession.json";
     this.sendJob(Filename);
     
     CcdpUtils.pause(10);
@@ -1808,7 +1813,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should be 1 VM running right now", running_vms.size() == 1);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-Docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Docker.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(45);
     
@@ -1893,7 +1898,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There should be 1 VM running right now", running_vms.size() == 1);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-EC2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-EC2.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(45);
     
@@ -1984,7 +1989,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertEquals("There should be " + numControllers +" controllers", numControllers, serverless_controllers.size()); 
     
     logger.debug("Sending Serverless");
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-Serverless.json";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Serverless.json";
     this.sendJob(Filename);
     
     CcdpUtils.pause(13);
@@ -2072,17 +2077,17 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertEquals("There should be " + numControllers +" controllers", numControllers, serverless_controllers.size()); 
     
     logger.debug("Sending EC2");
-    String Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-EC2.json";
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-EC2.json";
     this.sendJob(Filename);
     CcdpUtils.pause(15);
     
     logger.debug("Sending Docker");
-    Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-Docker.json";
+    Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Docker.json";
     this.sendJob(Filename);
     CcdpUtils.pause(10);
     
     logger.debug("Sending Serverless");
-    Filename = "/projects/users/srbenne/workspace/engine/data/new_tests/sanityCheck-UnitTest-Serverless.json";
+    Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Serverless.json";
     this.sendJob(Filename);
     
     CcdpUtils.pause(15);

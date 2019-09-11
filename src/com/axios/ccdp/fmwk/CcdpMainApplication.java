@@ -473,18 +473,21 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
   private void removeHangingVMs()
   {
     List<CcdpVMResource> allVMs = this.getAllCcdpVMResources();
-    List<String> toDelete = new ArrayList<>();
+    //List<String> toDelete = new ArrayList<>();
     for ( CcdpVMResource vm : allVMs )
     {
       if ( vm.getNumberTasks() == 0 && (!vm.getAssignedSession().equals(CcdpUtils.FREE_AGENT_SID)) )
-        toDelete.add(vm.getInstanceId());
+      {
+        this.logger.debug("Changing " + vm.getInstanceId() + " to session " + CcdpUtils.FREE_AGENT_SID);
+        this.changeSession(vm, CcdpUtils.FREE_AGENT_SID);        
+      }
     }
     
-    if ( toDelete.size() > 0 )
+    /*if ( toDelete.size() > 0 )
     {
       this.terminateInstances(toDelete);
       this.logger.debug("Removed hanging vms: " + String.join(", ", toDelete));
-    }
+    }*/
   }
   /**
    * Removes all the resources that have not been updated for a while.

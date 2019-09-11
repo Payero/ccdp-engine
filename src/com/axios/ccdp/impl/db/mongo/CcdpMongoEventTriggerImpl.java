@@ -36,7 +36,7 @@ public class CcdpMongoEventTriggerImpl implements CcdpDatabaseEventTriggerIntf
   private Block<ChangeStreamDocument<Document>> printBlock = new Block<>() {
     @Override
     public void apply(final ChangeStreamDocument<Document> changeStreamDocument) {
-      logger.debug(changeStreamDocument.getFullDocument());
+      logger.info(changeStreamDocument.getFullDocument());
     }
   };
   

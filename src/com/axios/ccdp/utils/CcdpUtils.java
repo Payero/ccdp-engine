@@ -105,6 +105,8 @@ public class CcdpUtils
   public static final String S_CFG_VERB_LEVEL = "verb_level";
   public static final String S_CFG_REMOTE_FILE = "remote_file";
   public static final String S_CFG_LOCAL_FILE = "local_file";
+  
+  public static final String S_CFG_USE_DB_TRIGGER = "use-trigger";
  
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";

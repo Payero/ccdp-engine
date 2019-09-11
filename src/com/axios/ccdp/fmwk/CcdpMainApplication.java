@@ -209,8 +209,11 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
     this.dbClient.configure(db_node);
     this.dbClient.connect();
     
-    //this.eventTriggerThread = new Thread( factory.getDatabaseTrigger(db_node) );
-    //this.eventTriggerThread.start();
+    if ( db_node.get(CcdpUtils.S_CFG_USE_DB_TRIGGER).asBoolean() )
+    {
+      this.eventTriggerThread = new Thread( factory.getDatabaseTrigger(db_node) );
+      this.eventTriggerThread.start();
+    }
     
     this.connection.configure(task_msg_node);
     this.connection.setConsumer(this);
@@ -482,12 +485,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         this.changeSession(vm, CcdpUtils.FREE_AGENT_SID);        
       }
     }
-    
-    /*if ( toDelete.size() > 0 )
-    {
-      this.terminateInstances(toDelete);
-      this.logger.debug("Removed hanging vms: " + String.join(", ", toDelete));
-    }*/
   }
   /**
    * Removes all the resources that have not been updated for a while.
@@ -508,8 +505,6 @@ public class CcdpMainApplication implements CcdpMessageConsumerIntf, TaskEventIn
         // we only care for those running
         if( !ResourceStatus.RUNNING.equals(vm.getStatus()) )
         {
-          //String st = vm.getStatus().toString();
-          //this.logger.debug("Ignoring unresponsive VM " + id + ", Status: " + st);
           continue;
         }
         long now = System.currentTimeMillis();

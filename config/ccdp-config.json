@@ -45,7 +45,8 @@
       "db-port": 27017,
       "db-name": "CCDP",
       "db-resources-table": "ResourceStatus",
-      "trigger-classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoEventTriggerImpl"
+      "trigger-classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoEventTriggerImpl",
+      "use-trigger": false
     }
   },
   "resource-provisioning": {

@@ -101,11 +101,6 @@ public class CcdpVMResource extends CcdpResourceAbs implements Serializable
    * Whether or not this resource was allocated to run a single task
    */
   private boolean isSingleTasked = false;
-  /**
-   * The last time this resource was updated either by allocating a task or
-   * by a heartbeat.
-   */
-  private long lastUpdated = System.currentTimeMillis();
   /*
    * Use to distinguish between VMs and serverless controller
    * during querying

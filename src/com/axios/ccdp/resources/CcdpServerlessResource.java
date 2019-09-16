@@ -237,6 +237,32 @@ public class CcdpServerlessResource extends CcdpResourceAbs
   @JsonSetter("last-assignment")
   public void setLastAssignmentTime (long assignmentTime) { this.last_assignment = assignmentTime; }
     
+  /**
+   * Gets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @return the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonGetter("last-updated")
+  public long getLastUpdatedTime()
+  {
+    return this.lastUpdated;
+  }
+  
+  /**
+   * Sets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @param time the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonSetter("last-updated")
+  public void setLastUpdatedTime(long time)
+  {
+    this.lastUpdated = time;
+  }
+  
   /*  
    * Returns a Json representation of the serverless resource
    * 

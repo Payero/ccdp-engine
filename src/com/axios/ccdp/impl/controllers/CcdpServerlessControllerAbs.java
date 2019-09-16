@@ -127,6 +127,7 @@ public abstract class CcdpServerlessControllerAbs implements TaskEventIntf
   @Override
   public void onEvent()
   {
+	this.controllerInfo.setLastUpdatedTime(System.currentTimeMillis());
     this.dbClient.storeServerlessInformation(this.controllerInfo);  
   }
     

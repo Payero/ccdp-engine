@@ -54,6 +54,10 @@ public abstract class CcdpResourceAbs
    */
   protected long last_assignment = System.currentTimeMillis();
   /*
+   * The last time this resource was updated by allocating a task or by a heartbeat
+   */
+  protected long lastUpdated = System.currentTimeMillis();
+  /*
    * Map that stores the tags associated with the resource controller
    */
   protected Map<String, String> tags = new HashMap<>();
@@ -240,6 +244,32 @@ public abstract class CcdpResourceAbs
   public void setLastAssignmentTime(long assignmentTime)
   {
     this.last_assignment = assignmentTime;
+  }
+  
+  /**
+   * Gets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @return the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonGetter("last-updated")
+  public long getLastUpdatedTime()
+  {
+    return this.lastUpdated;
+  }
+  
+  /**
+   * Sets the last time this resource was updated either by allocating a task
+   * or by a heartbeat.
+   * 
+   * @param time the last time this resource was updated either by allocating a
+   *         task or by a heartbeat.
+   */
+  @JsonSetter("last-updated")
+  public void setLastUpdatedTime(long time)
+  {
+    this.lastUpdated = time;
   }
 
   /*

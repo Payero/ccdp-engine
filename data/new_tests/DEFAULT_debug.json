@@ -2,7 +2,8 @@
   "jobs": 
     [
       {
-        "session-id":"test-1", 
+        "session-id":"DEFAULT",
+        "node-type": "DEFAULT",
         "command":
             [
               "/data/ccdp/ccdp-engine/python/ccdp_mod_test.py", 

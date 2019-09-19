@@ -137,10 +137,15 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
         assignTasks(List<CcdpTaskRequest> tasks, List<CcdpVMResource> resources)
   {
     Map<CcdpVMResource, List<CcdpTaskRequest>> tasked = new HashMap<>();
+    logger.debug("Tasks: " + tasks);
+    logger.debug("Resources: " + resources);
+    
     
     if( resources == null || resources.isEmpty() )
+    {
+      logger.debug("Tasked Map is empty");
       return tasked;
-    
+    }
     for( CcdpTaskRequest task: tasks )
     {
       double cpu = task.getCPU();
@@ -202,7 +207,7 @@ public abstract class CcdpVMControllerAbs implements CcdpTaskingControllerIntf
         }
       }
     }
-    
+    logger.debug("Map: " + tasked);
     return tasked;
   }
 

@@ -1,5 +1,6 @@
 package com.axios.ccdp.test.unittest.MainApplication;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -16,6 +17,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.core.annotation.Order;
 
 import com.axios.ccdp.factory.CcdpObjectFactory;
 import com.axios.ccdp.fmwk.CcdpMainApplication;
@@ -24,6 +26,8 @@ import com.axios.ccdp.intfs.CcdpMessageConsumerIntf;
 import com.axios.ccdp.messages.CcdpMessage;
 import com.axios.ccdp.messages.ErrorMessage;
 import com.axios.ccdp.messages.TaskUpdateMessage;
+import com.axios.ccdp.resources.CcdpResourceAbs;
+import com.axios.ccdp.resources.CcdpServerlessResource;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.messages.CcdpMessage.CcdpMessageType;
@@ -31,6 +35,7 @@ import com.axios.ccdp.tasking.CcdpTaskRequest;
 import com.axios.ccdp.test.CcdpMsgSender;
 import com.axios.ccdp.test.unittest.JUnitTestHelper;
 import com.axios.ccdp.utils.AmqCleaner;
+import com.axios.ccdp.utils.CcdpConfigParser;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -59,7 +64,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * at the end of each test
    */
   private List<CcdpVMResource> running_vms = null;
-
+  /*
+   * Stores all the serverless controllers started by the engine
+   */
+  private List<CcdpServerlessResource> serverless_controllers = null;
   /*
    * The main engine object to be tested
    */
@@ -89,12 +97,18 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   {
     this.messages = new ArrayList<>();
     this.running_vms = new ArrayList<>();
+    this.serverless_controllers = new ArrayList<>();
     CcdpObjectFactory factory = CcdpObjectFactory.newInstance();
     
     JsonNode db_cfg = CcdpUtils.getDatabaseIntfCfg();
     dbClient = factory.getCcdpDatabaseIntf(db_cfg);
     dbClient.configure(db_cfg);
     dbClient.connect();
+    
+    if ( System.getenv("CCDP_HOME") == null )
+    {
+      fail("Please set the environment variable \"CCDP_HOME\" before running unit tests");
+    }
   }
   
   /*
@@ -119,32 +133,34 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     this.messages = null;
     this.running_vms = null;
+    this.serverless_controllers = null;
     
     // Pause so AWS based VMs have time to terminate before cleaning
     logger.debug("Waiting 15 seconds for VMs to terminate");
     CcdpUtils.pause(15);
     
     // Clean Mongo and AMQ for next test
-    List<CcdpVMResource> vms = dbClient.getAllVMInformation();
+    List<CcdpResourceAbs> vms = dbClient.getAllInformation();
     if (vms.size() == 0)
     {
       logger.info("There are no VMs in MongoDB");
     }
     else
     {
-      for( CcdpVMResource vm :vms )
+      for( CcdpResourceAbs vm :vms )
       {
-        String vmID = vm.getInstanceId();
-        logger.debug("Deleting VM " + vmID);
-        try
+        if ( vm.getIsServerless() )
         {
-          dbClient.deleteVMInformation(vmID);
-      
+          String cont_type = vm.getNodeType();
+          logger.debug("Deleting controller " + cont_type);
+          dbClient.deleteServerlessInformation(cont_type);
         }
-        catch ( Exception e )
+        else
         {
-          logger.warn("Exception caught in teardown:\n");
-          e.printStackTrace();
+          CcdpVMResource vmID = (CcdpVMResource) vm;
+          String iid = vmID.getInstanceId();
+          logger.debug("Deleting VM " + iid);
+          dbClient.deleteVMInformation(iid);
         }
       }
     }
@@ -174,6 +190,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * A test to make sure that the main app doesn't start any unwanted session
    */
   @Test
+  @Order(1)
   public void NoFreeVms()
   {
     logger.info("Starting NoFreeVms Test!");
@@ -208,6 +225,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * A test to make sure that the main app doesn't start an unwanted docker session
    */
   @Test
+  @Order(2)
   public void NoFreeVms_Docker()
   {
     logger.info("Starting NoFreeVms_Docker Test!");
@@ -242,6 +260,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * A test to make sure that the main app doesn't start an unwanted EC2 session
    */
   @Test
+  @Order(3)
   public void NoFreeVms_EC2()
   {
     logger.info("Starting NoFreeVms_EC2 Test!");
@@ -313,6 +332,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * The Docker CFG must be linked to ccdp-config.json for this to be meaningful
    */
   @Test
+  @Order(4)
   public void OneFreeVm_Docker()
   {
     logger.info("Starting OneFreeVm_Docker Test!");
@@ -351,6 +371,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * A test to create 1 free EC2 VM for use
    */
   @Test
+  @Order(5)
   public void OneFreeVm_EC2()
   {
     logger.info("Starting OneFreeVm_EC2 Test!");
@@ -390,6 +411,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * A test to create 1 free Default VM for use
    */
   //@Test
+  //@Order(6)
   public void OneFreeVm_Default()
   {
     logger.info("Starting OneFreeVm_Default Test!");
@@ -431,6 +453,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * This test shows that the MainApp can launch a docker VM that executes a task on creation
    */
   @Test
+  @Order(6)
   public void DockerStartupTask() 
   {
     logger.info("Starting DockerStartupTask Test!");
@@ -447,7 +470,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json");
     CcdpUtils.pause(25);
    
     logger.debug("Checking for 1 VM w/ Task");
@@ -468,6 +491,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * This test shows that the MainApp can launch a AWS VM that executes a task on creation
    */
   @Test
+  @Order(7)
   public void EC2StartupTask() 
   {
     logger.info("Starting EC2StartupTask Test!");
@@ -484,7 +508,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json");
     CcdpUtils.pause(50);
     
     logger.debug("Checking Size and Node-type");
@@ -495,7 +519,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should have a task", vm.getNumberTasks() > 0);
     
     // Let task complete, should despawn VM 
-    CcdpUtils.pause(65);
+    CcdpUtils.pause(75);
     logger.debug("Checking Despawn");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The tasked VM should've despawned by now", running_vms.size() == 0);
@@ -521,7 +545,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     
     // start application with rand_time task
     // YOU WILL NEED TO CHANGE THE PATH FOR THIS TO WORK FOR YOU
-    engine = new CcdpMainApplication("/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json");
+    engine = new CcdpMainApplication(System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json");
     CcdpUtils.pause(50);
    
     logger.debug("Checking node count and type");
@@ -544,6 +568,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * number of free agents correctly
    */
   @Test
+  @Order(8)
   public void SpawnAndDespawnDocker()
   {
     logger.info("Starting DockerSpawnAndDespawn Test!");
@@ -569,7 +594,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String original = running_vms.get(0).getInstanceId();
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -599,6 +624,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * number of free agents correctly
    */
   @Test
+  @Order(9)
   public void SpawnAndDespawnEC2()
   {
     logger.info("Starting DockerSpawnAndDespawn Test!");
@@ -624,7 +650,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String original = running_vms.get(0).getInstanceId();
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -654,6 +680,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * is already running
    */
   @Test
+  @Order(10)
   public void spawnDockerForTask()
   {
     logger.info("Starting DockerSpawnAndDespawn Test!");
@@ -684,7 +711,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -722,6 +749,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * is already running
    */
   @Test
+  @Order(11)
   public void spawnEC2ForTask()
   {
     logger.info("Starting EC2SpawnAndDespawn Test!");
@@ -752,7 +780,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -820,7 +848,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     }
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -858,10 +886,10 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * ENSURE THAT NUMBERTASKSCONTROLLERIMPL IS SET IN CCDP-CONFIG
    */
   @Test
+  @Order(12)
   public void NumberTasksControllerTest()
   {
     logger.info("Starting NumberTasksController Test!");
-    final int NumTasksToLaunch = 5;
         
     // Set no free agents
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
@@ -882,14 +910,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
-    int sentTasks = 0;
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/numTasksUnitTest_docker.json";       
+    this.sendJob(task_filename);
     
-    while (sentTasks < NumTasksToLaunch)
-    {
-      this.sendJob(task_filename);
-      sentTasks++;
-    }
     CcdpUtils.pause(25);
     // Check there is one VM with five tasks
     logger.debug("Checking for 1 VM with 5 Tasks");
@@ -901,7 +924,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     String originalID = vm.getInstanceId();
     
     // Send one more task
-    //task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
 
     this.sendJob(task_filename);
     CcdpUtils.pause(20);
@@ -937,6 +960,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * be spawned for this
    */
   @Test
+  @Order(13)
   public void singleTaskedTest()
   {
     logger.info("Starting singleTasked Test!");
@@ -960,11 +984,11 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 110 CPU task
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/singleTasked_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/singleTasked_docker.json";
     this.sendJob(task_filename);
     
     // Assign 2 regular CPU task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     int sentTasks = 0;
     final int maxNumTasks = 2;
     while (sentTasks < maxNumTasks)
@@ -1021,7 +1045,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
     // Assign 5 tasks
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/numTasksUnitTest_docker.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/numTasksUnitTest_docker.json";
     int sentTasks = 0;
     
     while (sentTasks < NumTasksToLaunch)
@@ -1040,7 +1064,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     //String originalID = vm.getInstanceId();
     
     // Send one more task
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(10);
     
@@ -1071,9 +1095,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
   /*
    * This test spawns assigns a task to both Docker and EC2 agents to be sure that the proper
    * VMs are given the tasks
-   */
-  
+   */ 
   @Test
+  @Order(14)
   public void DockerAndEC2Task()
   {
     logger.info("Starting DockerAndEC2Task Test!");
@@ -1096,9 +1120,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
     this.sendJob(task_filename);
     CcdpUtils.pause(35);
@@ -1154,9 +1178,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     CcdpUtils.pause(35);
     this.sendJob(task_filename);
     CcdpUtils.pause(35);
@@ -1212,9 +1236,9 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("There shouldn't be any VMs running right now", running_vms.size() == 0);
     
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_default.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_default.json";
     this.sendJob(task_filename);
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_ec2.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_ec2.json";
     this.sendJob(task_filename);
     CcdpUtils.pause(50);
     
@@ -1245,6 +1269,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * This test spawns a docker and an ec2 instance for jobs contained in a single file
    */
   @Test
+  @Order(15)
   public void combinedJobFileTest()
   {
     logger.info("Starting combinedJobFile Test!");
@@ -1269,7 +1294,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/docker_and_ec2_jobs.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/docker_and_ec2_jobs.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1303,6 +1328,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * This test spawns two docker instances for jobs of different session contained in a single file
    */
   @Test
+  @Order(16)
   public void differentSessionJobFileTest()
   {
     logger.info("Starting differentSessionJobFile Test!");
@@ -1327,7 +1353,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/two_job_docker_test.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1359,6 +1385,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
    * to one of the sessions, ensuring that there are still 2 VMs, 1 with 2 tasks
    */
   @Test
+  @Order(17)
   public void addTaskToExisitingSessionTest()
   {
     logger.info("Starting differentSessionJobFile Test!");
@@ -1383,7 +1410,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("There should only be no VMs", running_vms.size() == 0);
     
     // Send task, it should spawn a new vm and give the task to the old vm
-    String task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/two_job_docker_test.json";
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/two_job_docker_test.json";
     this.sendJob(task_filename);
     
     // Wait for new VM to spawn up
@@ -1402,7 +1429,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         test1 = true;
       }   
     }
-    task_filename = "/projects/users/srbenne/workspace/engine/data/new_tests/startupUnitTest_docker.json";
+    task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/startupUnitTest_docker.json";
     this.sendJob(task_filename);
     
     CcdpUtils.pause(10);
@@ -1418,7 +1445,7 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
         
     }
     
-    CcdpUtils.pause(35);
+    CcdpUtils.pause(30);
     logger.debug("Checking 1 VM was terminated post task");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("Session test-2 VM should have despawned", running_vms.size() == 1);
@@ -1426,10 +1453,812 @@ public class CcdpMainApplicationTest implements CcdpMessageConsumerIntf
     assertTrue("The VM should be of session test-1", vm.getAssignedSession().equals("test-1"));
     
     //Wait for task to complete
-    CcdpUtils.pause(45);
+    CcdpUtils.pause(55);
     logger.debug("Tasks should be done now");
     running_vms = engine.getAllCcdpVMResources();
     assertTrue("The VMs shoud've been stopped", running_vms.size() == 0);
+  }
+  
+  /*
+   * This test checks with the database to ensure that the correct number of controllers
+   * is spawned for serverless tasks
+   */
+  @Test
+  @Order(18)
+  public void checkServerlessControllers()
+  {
+    logger.debug("Starting checkServerlessControllers test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+  }
+  
+  /*
+   * This test sends a serverless task and checks that it gets allocated with the correct controller
+   */
+  @Test
+  @Order(19)
+  public void OneTaskForLambda()
+  {
+    logger.debug("Starting checkServerlessControllers test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/AWSLambda-UnitTest.json/";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(10);
+    
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+        assertEquals("The AWS Controller should have the task", cont.getTasks().size(), 1);
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    CcdpUtils.pause(30);
+    
+    logger.debug("Checking to see that the controller finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+  }
+  /*
+   * This test sends a serverless task and a server bound task checks that it gets allocated 
+   * with the correct controller
+   */
+  @Test
+  @Order(20)
+  public void ServerlessAndServerboundJob()
+  {
+    logger.debug("Starting ServerlessAndServerboundJob test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(20);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/LambdaWithVMTask-UnitTest.json";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(15);
+    
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should be 1 agents running.", running_vms.size(), 1);
+    CcdpVMResource vm = running_vms.get(0);
+    assertTrue("The VM should be Docker", vm.getNodeType().equals("DOCKER"));
+    assertEquals("The VM should have 1 task", vm.getTasks().size(), 1);
+    
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+        assertEquals("The AWS Controller should have the task", cont.getTasks().size(), 1);
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    CcdpUtils.pause(65);
+    
+    logger.debug("Checking to see that the controller and VM finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should be " + numControllers + " controllers", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+  }
+  
+  /*
+   * This tests multiple jobs being sent to the serverless controller at the same time
+   */
+  @Test
+  @Order(21)
+  public void MultipleServerlessJobs()
+  {
+    logger.debug("Starting MultipleServerlessJobs test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(20);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There was an incorect number of controllers", serverless_controllers.size(), numControllers); 
+    
+    int numJobs = 3;
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/AWSLambda-UnitTest.json";
+    for (int i = 0; i < numJobs; i++)
+      this.sendJob(Filename);
+    
+    CcdpUtils.pause(10);
+    
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+        assertEquals("The AWS Controller should have the task", 3, cont.getTasks().size());
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", 0, cont.getTasks().size());
+    }
+    
+    CcdpUtils.pause(25);
+    
+    logger.debug("Checking to see that the controller and VM finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+  }
+  
+  /*
+   * This tests multiple jobs being sent to the serverless controller at the same time
+   */
+  @Test
+  @Order(22)
+  public void MultipleServerlessOfDifferentSession()
+  {
+    logger.debug("Starting MultipleServerlessJobs test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(20);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be no VMs", running_vms.size() == 0);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/TwoLambdaDiffSession.json";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(10);
+    
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    
+    boolean test1Found = false;
+    boolean test2Found = false;
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+      {
+        assertEquals("AWS Lambda controller should have no tasks", cont.getTasks().size(), 2);
+        for (CcdpTaskRequest task : cont.getTasks())
+        {
+          if ( task.getSessionId().equals("test-1") )
+            test1Found = true;
+          else if ( task.getSessionId().equals("test-2") )
+            test2Found = true;
+          else
+            fail("A session that isn't test-1 or test-2 was found");
+        }
+      }
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    assertTrue("Test-1 was not found.", test1Found);
+    assertTrue("Test-2 was not found.", test2Found);
+
+    CcdpUtils.pause(30);
+    
+    logger.debug("Checking to see that the controller and VM finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be no agents running.", running_vms.size(), 0);
+    assertEquals("There should only be no VMs", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+  }
+  
+  /*
+   * A sanity check for Docker, providing multi-session, single and multi-tasked VMs
+   * with free agents
+   */ 
+  @Test
+  @Order(23)
+  public void DockerSanityCheck()
+  {
+    logger.info("Starting EC2SanityCheck Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(40);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 1 VM running right now", running_vms.size() == 1);
+    
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Docker.json";
+    this.sendJob(task_filename);
+    CcdpUtils.pause(45);
+    
+    logger.debug("Checking VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 5 VMs running", running_vms.size() == 5);
+    
+    boolean st1, st2, FA, reg1, reg2;
+    st1 = st2 = FA = reg1 = reg2 = false;
+    
+    for (CcdpVMResource res : running_vms)
+    {
+      String sid = res.getAssignedSession();
+      if ( res.getNodeType().equals("EC2") )
+      {
+        fail("There should be no EC2 VMs");
+      }
+      else if ( res.getNodeType().equals("DOCKER") )
+      {
+        if ( res.isSingleTasked() )
+        {
+          assertEquals("VM should only have 1 task", 1, res.getNumberTasks());
+          if ( sid.equals("test-1") ) 
+            st1 = true;
+          else if ( sid.equals("test-2") )
+            st2 = true;
+          else
+            fail("Single Tasked session unknown");            
+        }
+        else if ( sid.equals(CcdpUtils.FREE_AGENT_SID) )
+          FA = true;
+        
+        else if ( sid.equals("test-1") )
+        {
+          assertEquals("The VM should have 2 tasks", 2, res.getNumberTasks());
+          reg1 = true;
+        }
+        else if ( sid.equals("test-2") )
+        {
+          assertEquals("The VM should have 2 tasks", 2, res.getNumberTasks());
+          reg2 = true;
+        }
+        else
+          fail("What went wrong??");        
+      }
+      else
+        fail("Node type unrecognized.");
+    }
+    
+    assertTrue("A VM type was missing", st1 && st2 && FA && reg1 && reg2);
+    
+    CcdpUtils.pause(110);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 Free Agent", running_vms.size() == 1);
+  }
+  
+  /*
+   * A sanity check for EC2, providing multi-session, single and multi-tasked VMs
+   * with free agents
+   */ 
+  @Test
+  @Order(24)
+  public void EC2SanityCheck()
+  {
+    logger.info("Starting EC2SanityCheck Test!");
+        
+    // Set no free agents
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+    
+    // Start the engine and let it configure
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(40);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 1 VM running right now", running_vms.size() == 1);
+    
+    String task_filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-EC2.json";
+    this.sendJob(task_filename);
+    CcdpUtils.pause(45);
+    
+    logger.debug("Checking VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should be 5 VMs running", running_vms.size() == 5);
+    
+    boolean st1, st2, FA, reg1, reg2;
+    st1 = st2 = FA = reg1 = reg2 = false;
+    
+    for (CcdpVMResource res : running_vms)
+    {
+      String sid = res.getAssignedSession();
+      if ( res.getNodeType().equals("DOCKER") )
+      {
+        fail("There should be no Docker VMs");
+      }
+      else if ( res.getNodeType().equals("EC2") )
+      {
+        if ( res.isSingleTasked() )
+        {
+          assertEquals("VM should only have 1 task", 1, res.getNumberTasks());
+          if ( sid.equals("test-1") ) 
+            st1 = true;
+          else if ( sid.equals("test-2") )
+            st2 = true;
+          else
+            fail("Single Tasked session unknown");            
+        }
+        else if ( sid.equals(CcdpUtils.FREE_AGENT_SID) )
+          FA = true;
+        
+        else if ( sid.equals("test-1") )
+        {
+          assertEquals("The VM should have 2 tasks", 2, res.getNumberTasks());
+          reg1 = true;
+        }
+        else if ( sid.equals("test-2") )
+        {
+          assertEquals("The VM should have 2 tasks", 2, res.getNumberTasks());
+          reg2 = true;
+        }
+        else
+          fail("What went wrong??");        
+      }
+      else
+        fail("Node type unrecognized.");
+    }
+    
+    assertTrue("A VM type was missing", st1 && st2 && FA && reg1 && reg2);
+    
+    CcdpUtils.pause(110);
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 1 Free Agent", running_vms.size() == 1);
+  }
+  
+  /*
+   * Serverless Sanity check for allocating multiple serverless tasks in multiple sessions
+   */
+  @Test
+  @Order(25)
+  public void ServerlessSanityCheck()
+  {
+    logger.debug("Starting ServerlessSanityCheck test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(50);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 2 FA VMs", running_vms.size() == 2);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should be " + numControllers +" controllers", numControllers, serverless_controllers.size()); 
+    
+    logger.debug("Sending Serverless");
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Serverless.json";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(13);
+    
+    logger.debug("Getting all resources");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    int serverless1Count, serverless2Count;
+    serverless1Count = serverless2Count = 0;
+    String test1SID = "test-1";
+    String test2SID = "test-2";
+    
+    assertEquals("There should be 2 agents running.", running_vms.size(), 2);
+    assertEquals("There should only be " + numControllers + " controllers", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+      {
+        assertTrue("There should be 4 task for AWS Lambda.", cont.getTasks().size() == 4);
+        for ( CcdpTaskRequest task : cont.getTasks() )
+        {
+          if ( task.getSessionId().equals(test1SID) )
+            serverless1Count++;
+          else if ( task.getSessionId().equals(test2SID) )
+            serverless2Count++;
+          else
+            fail("Serverless task session not recognized");
+        }
+      }
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    assertTrue("Not all serverless accounted for", serverless1Count == 2 && serverless2Count == 2);
+        
+    CcdpUtils.pause(20);
+
+    logger.debug("Checking to see that the controller finished the tasks");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    assertEquals("There should be 2 free agents running.", running_vms.size(), 2);
+    assertEquals("There should only be " + numControllers  +" controllers", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for ( CcdpServerlessResource cont : serverless_controllers )
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }    
+  }
+  
+  /*
+   * Sanity check for all resource types, single tasked, multiple sessions
+   */
+  @Test
+  @Order(26)
+  public void SanityCheck()
+  {
+    logger.debug("Starting SanityCheck test!");
+    
+    int numControllers = CcdpUtils.getServerlessTypes().size();
+    ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("DOCKER", res_cfg); 
+    res_cfg = CcdpUtils.getResourceCfg("EC2").deepCopy();
+    res_cfg.put("min-number-free-agents", 1);
+    CcdpUtils.setResourceCfg("EC2", res_cfg);
+    res_cfg = CcdpUtils.getResourceCfg("DEFAULT").deepCopy();
+    res_cfg.put("min-number-free-agents", 0);
+    CcdpUtils.setResourceCfg("DEFAULT", res_cfg);
+      
+    // Start engine and give free agent time to spawn
+    logger.debug("Starting engine");
+    engine = new CcdpMainApplication(null);
+    CcdpUtils.pause(50);
+    
+    logger.debug("Check that there are still no VMs");
+    running_vms = engine.getAllCcdpVMResources();
+    assertTrue("There should only be 2 FA VMs", running_vms.size() == 2);
+    
+    logger.debug("Check that there are the corect number of controllers");
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    assertEquals("There should be " + numControllers +" controllers", numControllers, serverless_controllers.size()); 
+    
+    logger.debug("Sending EC2");
+    String Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-EC2.json";
+    this.sendJob(Filename);
+    CcdpUtils.pause(15);
+    
+    logger.debug("Sending Docker");
+    Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Docker.json";
+    this.sendJob(Filename);
+    CcdpUtils.pause(10);
+    
+    logger.debug("Sending Serverless");
+    Filename = System.getenv("CCDP_HOME") + "/data/new_tests/sanityCheck-UnitTest-Serverless.json";
+    this.sendJob(Filename);
+    
+    CcdpUtils.pause(15);
+    
+    logger.debug("Getting all resources");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    
+    boolean stDocker1, stDocker2, stEC21, stEC22, docker1, docker2, ec21, ec22, dockerFA, ec2FA;
+    int docker1Count, docker2Count, ec21Count, ec22Count, serverless1Count, 
+    serverless2Count, dockerFACount, ec2FACount;
+    stDocker1 = stDocker2 = stEC21 = stEC22 = docker1 = docker2 = ec21 = ec22 = dockerFA = ec2FA = false;
+    docker1Count = docker2Count = ec21Count = ec22Count = serverless1Count = serverless2Count = dockerFACount = ec2FACount = 0;
+    String test1SID = "test-1";
+    String test2SID = "test-2";
+    
+    assertEquals("There should be 10 agents running.", running_vms.size(), 10);
+    assertEquals("There should only be " + numControllers + " controllers", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+
+    for (CcdpServerlessResource cont : serverless_controllers)
+    {
+      if ( cont.getNodeType().equals("AWS Lambda") )
+      {
+        assertTrue("There should be 4 task for AWS Lambda.", cont.getTasks().size() == 4);
+        for ( CcdpTaskRequest task : cont.getTasks() )
+        {
+          if ( task.getSessionId().equals(test1SID) )
+            serverless1Count++;
+          else if ( task.getSessionId().equals(test2SID) )
+            serverless2Count++;
+          else
+            fail("Serverless task session not recognized");
+        }
+      }
+      else
+        assertEquals("Non-AWS Lambda controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    
+    for (CcdpVMResource agent : running_vms )
+    {
+      String sid = agent.getAssignedSession();
+      String type = agent.getNodeType();
+      
+      if ( agent.isSingleTasked() )
+      {
+        if ( agent.getTasks().size() > 1 )
+          fail("A single tasked VM has more than 1 task, failing");
+        if ( sid.equals(test1SID))
+        {
+          if ( type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+          {
+            stDocker1 = true;
+            docker1Count++;
+          }
+          else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+          {
+            stEC21 = true;
+            ec21Count++;
+          }
+          else
+            fail("Single Task VM type not recognized");
+        }
+        else if ( sid.equals(test2SID))
+        {
+          if ( type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+          {
+            stDocker2 = true;
+            docker2Count++;
+          }
+          else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+          {
+            stEC22 = true;
+            ec22Count++;
+          }
+          else
+            fail("Single Task VM type not recognized");
+        }
+        else
+          fail("Single task VM session not recognized");    
+      }
+      else if ( sid.equals(CcdpUtils.FREE_AGENT_SID))
+      {
+        if ( type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+          dockerFACount++;
+        else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+          ec2FACount++;
+        else
+          fail("FA Node Type no recognized");
+      }
+      else if ( sid.equals(test1SID) )
+      {
+        if ( agent.getTasks().size() != 2 )
+          fail("Incorrect number of tasks on normal VM");
+        if (type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+        {
+          docker1Count++;
+        }
+        else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+        {
+          ec21Count++;
+        }
+        else
+          fail("Session test-1 node type not found");
+      }
+      else if ( sid.equals(test2SID) )
+      {
+        if ( agent.getTasks().size() != 2 )
+          fail("Incorrect number of tasks on normal VM");
+        if (type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+        {
+          docker2Count++;
+        }
+        else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+        {
+          ec22Count++;
+        }
+        else
+          fail("Session test-1 node type not found");
+      }
+      else
+        fail("Somehow you missed every condition possible, good job.");
+    }
+    
+    // Now do the math, there should be 4 serverless tasks, and 10 VMs
+    if (docker1Count == 2)
+      docker1 = true;
+    if (docker2Count == 2)
+      docker2 = true;
+    if (ec21Count == 2)
+      ec21 = true;
+    if (ec22Count == 2)
+      ec22 = true;
+    if (dockerFACount == 1)
+      dockerFA = true;
+    if ( ec2FACount == 1 )
+      ec2FA = true;
+    assertTrue("Not all agents accounted for", docker1 && docker2 && ec21 && ec22 && dockerFA && ec2FA && stDocker1
+        && stDocker2 && stEC21 && stEC22);
+
+    assertTrue("Not all serverless accounted for", serverless1Count == 2 && serverless2Count == 2);
+        
+    CcdpUtils.pause(140);
+
+    logger.debug("Checking to see that the controller and VM finished the task");
+    running_vms = engine.getAllCcdpVMResources();
+    serverless_controllers = engine.getAllCcdpServerlessResources();
+    boolean finalDockerVM, finalEC2VM;
+    finalDockerVM = finalEC2VM = false;
+    
+    assertEquals("There should be 2 free agents running.", 2, running_vms.size());
+    assertEquals("There should only be " + numControllers  +" controllers", serverless_controllers.size(), numControllers); 
+    logger.debug("Check the serverless controller has the task");
+    for ( CcdpServerlessResource cont : serverless_controllers )
+    {
+      assertEquals("All controllers should have no tasks", cont.getTasks().size(), 0);
+    }
+    for ( CcdpVMResource agent : running_vms )
+    {
+      String type = agent.getNodeType();
+      if ( !agent.getAssignedSession().equals(CcdpUtils.FREE_AGENT_SID) )
+        fail("Remaining agents are not free agents.");
+      if ( type.equals(CcdpConfigParser.DOCKER_IMG_NAME) )
+        finalDockerVM = true;
+      else if ( type.equals(CcdpConfigParser.EC2_IMG_NAME) )
+        finalEC2VM = true;
+      else
+        fail("Final VM type not recognized.");
+    }
+    assertTrue("Final VMs not correct", finalDockerVM && finalEC2VM );
+    
   }
   
   /******************** HELPER AND SUPER CLASS FUNCTIONS! *****************/

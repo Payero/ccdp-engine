@@ -21,6 +21,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.axios.ccdp.intfs.CcdpStorageControllerIntf;
+import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -79,7 +80,10 @@ public class AWSCcdpStorageControllerImpl implements CcdpStorageControllerIntf
     this.logger.debug("Configuring object using: " + config.toString());
     try
     {
-      AWSCredentials credentials = AWSCcdpVMControllerImpl.getAWSCredentials();
+      JsonNode awsCreds = CcdpUtils.getCredentials().get("AWS");
+      AWSCredentials credentials = AWSUtils.getAWSCredentials(
+          awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_FILE).asText(),
+          awsCreds.get(CcdpUtils.CFG_KEY_CREDENTIALS_PROFILE).asText());
       
       if( credentials != null )
       {

@@ -1,0 +1,21 @@
+{
+  "jobs":
+    [
+       { 
+         "session-id": "AWS Lambda",
+         "node-type": "None",
+         "serverless": true,
+         "arguments":["20"],
+         "serverless-config":
+         {       
+           "provider": "AWS Lambda",
+       	   "URL-Gateway": "https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager",		  
+		   "bkt_name": "ccdp-tasks",
+		   "zip_file": "timed_wait.zip",
+		   "mod_name": "timed_wait",
+		   "keep_files": "False",
+		   "verb_level": "debug"
+         }
+       }        
+   ]  
+}

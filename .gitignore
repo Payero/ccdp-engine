@@ -1,10 +1,18 @@
+# Eclipse 
 .classpath
 .settings
+
+# VS Code
 .vscode
+
+# IdeaJ
+*.iml
+.idea
 
 # SonarQube results, don't think I need it
 .scannerwork/
 
+# Compile Stuff
 logs
 build
 dist

@@ -3,6 +3,12 @@
     "config-file": "${CCDP_HOME}/config/log4j.properties", 
     "logs-dir": "${CCDP_HOME}/logs"
   },
+  "credentials": {
+  	"AWS":{
+  		"credentials-file": "/nishome/srbenne/.aws/credentials",
+  		"credentials-profile-name": "default"
+  	}
+  },
   "engine": {
     "resources-check-cycle": 5,
     "do-not-terminate": [
@@ -38,14 +44,16 @@
       "db-host": "ax-ccdp.com",
       "db-port": 27017,
       "db-name": "CCDP",
-      "db-resources-table": "ResourceStatus"
+      "db-resources-table": "ResourceStatus",
+      "trigger-classname": "com.axios.ccdp.impl.db.mongo.CcdpMongoEventTriggerImpl",
+      "use-trigger": false
     }
   },
   "resource-provisioning": {
     "resources": {
       "DEFAULT": {
         "classname": "com.axios.ccdp.impl.image.loader.DefaultImageLoaderImpl",
-        "image-id":"ami-0c82c390543920339",
+        "image-id":"ami-0d9b3553247aad7ca",
         "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
         "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
         "monitor-units": "MB",
@@ -73,13 +81,11 @@
         "region": "us-east-1",
         "role-name": "EMR_EC2_DefaultRole",
         "proxy-url": "",
-        "proxy-port": -1,
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "credentials-profile-name": "default"
+        "proxy-port": -1
       },
       "EC2": {
         "classname": "com.axios.ccdp.impl.image.loader.EC2ImageLoaderImpl",
-        "image-id":"ami-0c82c390543920339",
+        "image-id":"ami-0d9b3553247aad7ca",
         "resource-controller": "com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl",
         "resource-monitor":"com.axios.ccdp.impl.monitors.LinuxResourceMonitorImpl",
         "monitor-units": "MB",
@@ -108,10 +114,7 @@
         "role-name": "EMR_EC2_DefaultRole",
         "proxy-url": "",
         "__proxy-url": "my-url-to-ge/to/the/proxy",
-        "proxy-port": -1,
-        "_credentials-file": "",
-        "credentials-file": "/nishome/srbenne/.aws/credentials",        
-        "credentials-profile-name": "default"
+        "proxy-port": -1
       },
       "NIFI": {
         "classname": "com.axios.ccdp.impl.image.loader.NifiImageLoaderImpl",
@@ -132,7 +135,7 @@
             "-a", 
             "download", 
             "-d", 
-            "s3://ccdp-settings/ccdp-engine.tgz", 
+            "s3://ccdp-settings/ccdp-engine-test.tgz", 
             "-w", 
             "-t", 
             "/data/ccdp",
@@ -143,9 +146,7 @@
         "region": "us-east-1",
         "role-name": "my-Role",
         "proxy-url": "my-url-to-ge/to/the/proxy",
-        "proxy-port": 1234,
-        "credentials-file": "/nishome/srbenne/.aws/credentials",
-        "credentials-profile-name": "default"
+        "proxy-port": 1234
       },
       "DOCKER": {
         "classname": "com.axios.ccdp.impl.image.loader.DockerImageLoaderImpl",
@@ -168,10 +169,18 @@
           	"-D",
           	"-n",
             "DOCKER"
-          ],
-        "__dist-file":"/data/ccdp/ccdp-engine.tgz",
-        "credentials-file": "/nishome/srbenne/.aws/credentials"
+          ]
       }
-    }
+    },
+   "serverless":{
+     "AWS Lambda":{
+       "name": "AWS Lambda",
+       "serverless-controller":"com.axios.ccdp.impl.cloud.aws.AWSLambdaController"
+     },
+     "Local Echo":{
+     	"name": "Local Echo",
+     	"serverless-controller": "com.axios.ccdp.test.mock.LocalSim"
+     }
+   } 
   }
 }

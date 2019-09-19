@@ -171,11 +171,11 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
   public List<String> startInstances( CcdpImageInfo imgCfg )
   {
     List<String> launched = new ArrayList<>();;
-  
+    int numLaunched = 0;
     try
     {
       int min = imgCfg.getMinReq();
-      int numLaunched = 0;
+      //int numLaunched = 0;
       if( min == 0 )
         min = 1;
       

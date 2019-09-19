@@ -197,7 +197,7 @@ public class AWSCcdpVMControllerImpl implements CcdpVMControllerIntf
     int min = imgCfg.getMinReq();
     if( min == 0 )
       min = 1;
-
+    
     // if the session id is not assigned, then use the node type
     String session_id = imgCfg.getSessionId();
     if( session_id == null )

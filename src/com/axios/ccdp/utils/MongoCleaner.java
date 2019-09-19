@@ -40,7 +40,8 @@ public class MongoCleaner
   
   /**
    * Removes all MongoDB entries
-   * @throws InterruptedException throws exception if wait for heartbeat is interrupted
+   * @throws InterruptedException throws exception if wait for heartbeat is 
+   *         interrupted
    */
   
   public MongoCleaner() throws InterruptedException

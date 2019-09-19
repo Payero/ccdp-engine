@@ -118,7 +118,8 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       this.use_fs = true;
     }
     //Use environment vars
-    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && System.getenv(ACCESS_SECRET_ENV_VAR) != null)
+    else if(System.getenv(ACCESS_KEY_ID_ENV_VAR) != null && 
+            System.getenv(ACCESS_SECRET_ENV_VAR) != null)
     {
       logger.info("Getting Distribution File from AWS S3 using Env Vars");
       this.config.put("aws-access-id", System.getenv(ACCESS_KEY_ID_ENV_VAR));
@@ -187,7 +188,7 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         
         String type = imgCfg.getNodeType();
         
-        logger.info("Starting VM of type " + type + " for session " + session_id ) ;
+        logger.info("Starting VM of type " + type + " for SID " + session_id ) ;
         // Setting all the environment variables
         List<String> envs = new ArrayList<>();
         
@@ -203,9 +204,12 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
         // Add AWS specific ones if we are using AWS S3 Bucket
         if( !this.use_fs )
         {
-          envs.add("AWS_DEFAULT_REGION=" + this.config.get("aws-region").asText());
-          envs.add("AWS_SECRET_ACCESS_KEY=" + this.config.get("aws-secret-key").asText());
-          envs.add("AWS_ACCESS_KEY_ID=" + this.config.get("aws-access-id").asText());
+          envs.add("AWS_DEFAULT_REGION=" + 
+                    this.config.get("aws-region").asText());
+          envs.add("AWS_SECRET_ACCESS_KEY=" + 
+                    this.config.get("aws-secret-key").asText());
+          envs.add("AWS_ACCESS_KEY_ID=" + 
+                    this.config.get("aws-access-id").asText());
         }
         
         // Parsing the command to start the docker container

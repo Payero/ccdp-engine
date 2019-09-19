@@ -66,7 +66,6 @@ public class SimCcdpVMControllerImpl implements CcdpVMControllerIntf
   @Override
   public List<String> startInstances(CcdpImageInfo imgCfg)
   {
-    
     int min = imgCfg.getMinReq();
     
     String type = imgCfg.getNodeType();

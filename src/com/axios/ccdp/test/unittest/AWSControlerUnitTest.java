@@ -12,7 +12,9 @@ import org.apache.log4j.Logger;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.internal.runners.statements.Fail;
 
+import com.amazonaws.services.ec2.model.AmazonEC2Exception;
 import com.axios.ccdp.impl.cloud.aws.AWSCcdpVMControllerImpl;
 import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
@@ -38,7 +40,7 @@ public class AWSControlerUnitTest
   @BeforeClass
   public static void initialize()
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
   }
   
   @Before
@@ -49,6 +51,10 @@ public class AWSControlerUnitTest
     this.aws = new AWSCcdpVMControllerImpl();
     this.jsonCfg = this.mapper.createObjectNode();
     String cfg_file = System.getProperty("ccdp.config.file");
+    if( cfg_file == null )
+    {
+      cfg_file = System.getenv("CCDP_HOME") + "/config/ccdp-config.json";
+    }
     this.logger.debug("The config file: " + cfg_file);
     if( cfg_file != null )
     {
@@ -64,7 +70,7 @@ public class AWSControlerUnitTest
       }
     }
     
-    this.logger.debug("Running");
+    this.logger.debug("Running, using config file " + cfg_file);
   }
   /*public AWSControlerUnitTest()
   {
@@ -167,8 +173,16 @@ public class AWSControlerUnitTest
     this.logger.debug("Running Test Stop Instance");
     this.aws.configure(this.jsonCfg);
     List<String> ids = new ArrayList<>();
-    ids.add("i-0252e383ba4f98e01");
-    this.aws.terminateInstances(ids);
+    ids.add("i-0252e383ba4f98e01-MOCK");
+    try
+    {
+      this.aws.terminateInstances(ids);
+      fail("The made up instance Id should have failed when terminating");
+    }
+    catch( AmazonEC2Exception e )
+    {
+      this.logger.debug("Got an exception, good");
+    }
   }
   
   @Test

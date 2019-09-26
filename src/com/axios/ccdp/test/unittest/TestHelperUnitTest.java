@@ -5,12 +5,13 @@ import java.io.File;
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Logger;
 import org.apache.log4j.PropertyConfigurator;
+import org.junit.Test;
 
 import com.axios.ccdp.utils.CcdpUtils;
 
 import static org.junit.Assert.*;
 
-public class JUnitTestHelper
+public class TestHelperUnitTest
 {
 //  public static final String CFG_FILE_KEY = "config.file";
 //  
@@ -20,13 +21,13 @@ public class JUnitTestHelper
   
   public static Logger getLogger()
   {
-    return JUnitTestHelper.getLogger(JUnitTestHelper.class);
+    return TestHelperUnitTest.getLogger(TestHelperUnitTest.class);
   }
   
   @SuppressWarnings("rawtypes")
   public static Logger getLogger(Class clazz)
   {
-    return JUnitTestHelper.getLogger(clazz.getName());
+    return TestHelperUnitTest.getLogger(clazz.getName());
   }
   
   public static Logger getLogger(String name)
@@ -93,8 +94,16 @@ public class JUnitTestHelper
     }
     catch( Exception e )
     {
+      e.printStackTrace();
       fail();
     }
+  }
+  
+  @Test
+  public void helloHelper()
+  {
+    assert("Hello Helper!!".equals("Hello Helper!!"));
+    assert("Hello Helper!!" == "Hello Helper!!" );
   }
   
   

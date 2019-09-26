@@ -13,7 +13,7 @@
        It relies on having a link pointing to the rt.jar as follow:
        /usr/java/jdk-${tgt.jdk}/jre/lib/rt.jar
   -->
-  <property name="tgt.jdk" value="12" />
+  <property name="tgt.jdk" value="1.8" />
 
 	<!-- Java sources -->
 	<property name="src.dir" location="src" />
@@ -81,90 +81,41 @@
     </javac>
   </target>
 
-	
+
   <!-- Shows a message with the names of all the unitests available -->
-<target name="test.names" 
-        description="Displays the unittest files or tests to execute">
-  <exec executable="${basedir}/python/find_unittest.py" >
-  </exec>
-</target>
-	
-
-  <!-- Runs ALL Unit Tests -->
-  <target name="test" depends="test-compile"
-          description="Runs a single test if a name is provided or all otherwise">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="**/**UnitTest" />
-    </antcall>
-   </target>
-
-
-	<!-- Runs all the unit tests generating Thread Requests -->
-	<target name="ThreadRequestsGenerator" depends="test-compile">
-		<antcall target="junit.testing">
-			<param name="test.pattern" value="ThreadRequestsGeneratorUnitTest" />
-		</antcall>
-	</target>
-	
-	<!-- Runs all the unit tests to the AWS tasking controller interface -->
-	<target name="AWSController" depends="test-compile">
-	  <antcall target="junit.testing">
-	    <param name="test.pattern" value="AWSControllerUnitTest" />
-	  </antcall>
-	</target>
-
-  <!-- Runs all the unit tests to the AWS tasking controller interface -->
-  <target name="AmqConnections" depends="test-compile">
-	  <antcall target="junit.testing">
-	    <param name="test.pattern" value="AmqConnectionsUnitTest" />
-	  </antcall>
-	 </target>
-	
-  <!-- Runs all the unit tests to manipulate MongoDB -->
-  <target name="MongoDb" depends="test-compile">
-	  <antcall target="junit.testing">
-	    <param name="test.pattern" value="MongoDbUnitTest" />
-	  </antcall>
-	 </target>
-
-  <!-- Runs all the unit tests to the Sim Virtual Machine-->
-  <target name="SimVirtualMachine" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="SimVirtualMachineUnitTest" />
-    </antcall>
-   </target>
-
-  <!-- Runs all the unit tests to the Sim Controller-->
-  <target name="SimVMController" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="SimVMControllerUnitTest" />
-    </antcall>
-   </target>
-	
-  <!-- Runs all the unit tests to test Engine with Sim-->
-  <target name="TestEngineWithSim" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="TestEngineWithSimUnitTest" />
-    </antcall>
-  </target>
-	
-  	<!-- Runs all the unit tests to test Engine with Docker-->
-	<target name="TestEngineWithDocker" depends="test-compile">
-	  <antcall target="junit.testing">
-	    <param name="test.pattern" value="TestEngineWithDockerUnitTest" />
-	  </antcall>
-    </target>
-
-  <!-- Runs all the unit tests to test Engine with AWS-->
-  <target name="TestEngineWithAWS" depends="test-compile">
-    <antcall target="junit.testing">
-      <param name="test.pattern" value="TestEngineWithAWSUnitTest" />
-    </antcall>
+  <target name="test.names" 
+          description="Displays the unittest files or tests to execute">
+    <exec executable="${basedir}/python/find_unittest.py" >
+    </exec>
   </target>
 
-  	
-	<!-- Runs all the unit tests based on the file name pattern to include -->
-  <target name="junit.testing" depends="test-compile">
+  <!-- Runs ALL Unit Tests by default, but the name of the test can be
+       passed by using "test.name" property -->
+  <target name="test">
+    <condition property="test.name" else="**/**">
+      <isset property="test.name" />
+    </condition>
+  
+    <echo message="---------------------------------------------------------" />
+    <echo message="The Unittest Pattern: ${test.name}" />
+    <echo message="---------------------------------------------------------" />
+    <echo message="" />
+    <echo message="NOTICE:" />
+    <echo message="" />
+    <echo message="To run a single test run:" />
+    <echo message="     ant test.names followed by: " />
+    <echo message="     ant -Dtest.name=&lt;The name of the test&gt;" />
+    <echo message="" />
+    <echo message="---------------------------------------------------------" />
+    <sleep seconds="3" />
+    
+    <antcall target="unit-testing" />
+
+  </target>
+
+  <!-- Runs all the unit tests based on the file name pattern to include -->
+  <target name="unit-testing" depends="test-compile">
+    <echo message="Running Test: ${test.name}UnitTest" />
     <junit printsummary="yes" haltonfailure="no" fork="true">
 
     	<sysproperty key="ccdp.config.file" value="${ccdp.config.file}" />
@@ -175,12 +126,11 @@
         </classpath>
         <formatter type="brief" usefile="false" />
         <batchtest todir="${report.dir}">
-        	<fileset dir="${src.dir}" includes="**/${test.pattern}.java" />
+        	<fileset dir="${src.dir}" includes="**/${test.name}UnitTest.java" />
             <!-- <fileset dir="${src.dir}" includes="**/*UnitTest.java" /> -->
         </batchtest>
     </junit>
   </target>
-	
 	
 	
 	<!-- ******************  End  Testing Targets (JUnit) ***************** -->

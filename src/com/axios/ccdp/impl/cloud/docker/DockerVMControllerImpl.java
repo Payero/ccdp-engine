@@ -57,6 +57,11 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
    * Whether or not we are using the file system for the distribution file
    */
   private boolean use_fs = true;
+  /**
+   * Stores all the different images it has started for a more accurate 
+   * handling of containers
+   */
+  private List<String> images_id = new ArrayList<String>();
   
   /**
    * Instantiates a new object, but it does not do anything
@@ -178,6 +183,9 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       //int numLaunched = 0;
       if( min == 0 )
         min = 1;
+      
+      // need to know which containers we actually started
+      this.images_id.add( imgCfg.getImageId() );
       
       while (numLaunched < min) 
       {
@@ -358,7 +366,10 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       for( Container container : containers )
       {
         String cid = container.id().substring(0,  12);
+        if( !this.isOurContainer( container.image() ) )
+            continue;
         
+        this.logger.debug("The Container image: " + container.image() );
         String state = container.state();
         logger.debug("Setting the state " + state + " to " + cid);
         CcdpVMResource res = new CcdpVMResource(cid);
@@ -388,6 +399,23 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
     return new ArrayList<CcdpVMResource>( resources.values() );
   }
   
+  /**
+   * Checks if the imageId is one of the images we used to launch containers.
+   * If the image id is found in the list then it returns true otherwise it
+   * returns false
+   * 
+   * @param imageId the image we are trying to determine if is one of ours
+   * @return true if is one of the images we have launched or false otherwise
+   */
+  private boolean isOurContainer( String imageId )
+  {
+    for( String id : this.images_id )
+    {
+      if(id.equals(imageId) )
+        return true;
+    }
+    return false;
+  }
   
   /**
    * Gets the current instance state of the resource with the given id
@@ -406,6 +434,9 @@ public class DockerVMControllerImpl implements CcdpVMControllerIntf
       
       for( Container container : containers )
       {
+        if( !this.isOurContainer( container.image() ) )
+          continue;
+        
         String cid = container.id().substring(0,  12);
         if( cid != null && cid.equals(id) )
         {

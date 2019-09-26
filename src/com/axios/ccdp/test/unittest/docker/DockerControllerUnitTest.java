@@ -33,7 +33,7 @@ import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.resources.CcdpVMResource.ResourceStatus;
 import com.axios.ccdp.tasking.CcdpTaskRequest;
-import com.axios.ccdp.test.unittest.JUnitTestHelper;
+import com.axios.ccdp.test.unittest.TestHelperUnitTest;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -112,7 +112,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
   @BeforeClass
   public static void initialize()
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
     Logger.getRootLogger().setLevel(Level.WARN);
     String url = CcdpUtils.getConfigValue("res.mon.intf.docker.url");
     if( url == null )
@@ -423,10 +423,15 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertNotNull("Could not find Image information", image);
     image.setMinReq(1);
     assertTrue("The minimum should be ", image.getMinReq() == 1);
+    String img_id = image.getImageId();
+    assertNotNull("The Image Id cannot me null", img_id);
     
     this.running_vms = this.docker.startInstances(image);
+    logger.debug("Running " + this.running_vms.size() + " Containers");
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
+    
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
+    
     logger.debug("Running VMs " + this.running_vms.size() + " and instances " + vms.size());
     assertTrue("getAllInstanceStatus() does not match launched VMs", 
                 vms.size() == this.running_vms.size() );
@@ -508,8 +513,8 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     assertTrue("Wrong number of instances", this.running_vms.size() == 1);
     List<CcdpVMResource> vms = this.docker.getAllInstanceStatus();
     
-    logger.debug("Waiting 45 seconds for VMs to spool up");  
-    CcdpUtils.pause(45);
+    logger.debug("Waiting 15 seconds for VMs to spool up");  
+    CcdpUtils.pause(15);
     
     CcdpVMResource vm = vms.get(0);
     String testId = vm.getInstanceId();
@@ -531,6 +536,7 @@ public class DockerControllerUnitTest implements CcdpMessageConsumerIntf
     {
       String iid = res.getInstanceId();
       ResourceStatus status = this.docker.getInstanceState(iid);
+      logger.debug("The Status " + status);
       assertNotNull("Could not find Resource " + iid, status);
       logger.debug("VM Status " + status + " with IID " + iid);
       assertTrue("The VM is not running", status.equals(ResourceStatus.RUNNING));

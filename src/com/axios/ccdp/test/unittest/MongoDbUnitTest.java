@@ -25,7 +25,7 @@ public class MongoDbUnitTest
   @BeforeClass
   public static void initialize() 
   {
-    JUnitTestHelper.initialize();
+    TestHelperUnitTest.initialize();
   }
   
   @Before
@@ -45,7 +45,9 @@ public class MongoDbUnitTest
     boolean connected = false;
     try
     {
+      this.logger.debug("Attempting to connect");
       connected = db.connect();
+      this.logger.debug("Connected!!");
     }
     catch ( Exception e)
     {
@@ -64,7 +66,9 @@ public class MongoDbUnitTest
     {
       try
       {
+        this.logger.info("Disconnecting");
         db.disconnect();
+        this.logger.debug("Disconnected");
       }
       catch ( Exception e)
       {

@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 public class CcdpConfigParser
 {
   public static final String KEY_LOGGING = "logging";
+  public static final String KEY_CREDENTIALS = "credentials";
   public static final String KEY_ENGINE = "engine";
   public static final String KEY_NODE_TYPES = "node-types";
   public static final String KEY_INTF_IMPLS = "interface-impls";
@@ -32,10 +33,13 @@ public class CcdpConfigParser
   public static final String KEY_STORAGE = "storage";
   public static final String KEY_RESOURCE_MON = "resource-monitor";
   public static final String KEY_DATABASE = "database";
+  public static final String KEY_DATABASE_TRIGGER = "trigger-classname";
 //  public static final String KEY_TASKING = "tasking";
   public static final String KEY_RES_PROV = "resource-provisioning";
   public static final String KEY_RESOURCES = "resources";
+  public static final String KEY_SERVERLESS = "serverless";
   
+  public static final String KEY_SERVERLESS_CONTROLLER = "serverless-controller";
   public static final String KEY_VM_CONTROLLER = "resource-controller";
   public static final String KEY_VM_RESOURCE_MONITOR = "resource-monitor";
   public static final String KEY_VM_RESOURCE_UNITS = "resource-units";
@@ -49,12 +53,13 @@ public class CcdpConfigParser
   /** The JSON key used to store the resource's instance id **/
   public static final String KEY_INSTANCE_ID = "instance-id";
   
-
   /**  The name of the default resource type  */
   public static final String DEFAULT_IMG_NAME = "DEFAULT";
   /**  The name of the AWS EC2 resource type  */
   public static final String EC2_IMG_NAME = "EC2";
- 
+  /** The name of the Docker resource type */
+  public static final String DOCKER_IMG_NAME = "DOCKER";
+  public static final String AMAZON_WEB_SERVICES = "AWS";
   
   /**
    * Generates debug print statements based on the verbosity level.
@@ -188,6 +193,16 @@ public class CcdpConfigParser
   {
     return this.config.get( CcdpConfigParser.KEY_LOGGING );
   }
+  
+  /*
+   * Gets the credentials from the config file in JsonNode format
+   * 
+   * @return a JsonNode with the credentials
+   */
+  public JsonNode getCredentialNode()
+  {
+    return this.config.get( CcdpConfigParser.KEY_CREDENTIALS);
+  }
   /**
    * Sets all the configuration parameters used by the logging object
    * 
@@ -236,6 +251,26 @@ public class CcdpConfigParser
     }
     
     return nodeTypes;
+  }
+  
+  /**
+   * Gets all the serverless types under the resource provisioning tag
+   * 
+   * @return a list containing all the serverless types under the resource 
+   *         provisioning tag
+   */
+  public List<String> getServerlessTypes()
+  {
+    List<String> serverlessTypes = new ArrayList<>();
+    JsonNode nodes = this.getServerlessCfg();
+    if( nodes != null && nodes.isContainerNode() )
+    {
+      Iterator<String> names = nodes.fieldNames();
+      while( names.hasNext() )
+        serverlessTypes.add( names.next() );
+    }
+    
+    return serverlessTypes;
   }
   
   /**
@@ -375,6 +410,17 @@ public class CcdpConfigParser
   {
     JsonNode prov = this.config.get( CcdpConfigParser.KEY_RES_PROV );
     return prov.get( CcdpConfigParser.KEY_RESOURCES );
+  }
+  
+  /**
+   * Gets all the serverless configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different resources
+   */
+  public JsonNode getServerlessCfg()
+  {
+    JsonNode prov = this.config.get( CcdpConfigParser.KEY_RES_PROV );
+    return prov.get( CcdpConfigParser.KEY_SERVERLESS );
   }
 
   /**

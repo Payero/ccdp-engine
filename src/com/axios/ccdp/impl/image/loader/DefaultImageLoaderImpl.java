@@ -69,6 +69,7 @@ public class DefaultImageLoaderImpl implements CcdpImgLoaderIntf
       img.setProxyUrl( this.config.get("proxy-url").asText() );
     if( this.config.has("proxy-port") )
       img.setProxyPort( this.config.get("proxy-port").asInt() );
+
     if( this.config.has("credentials-file") )
       img.setCredentialsFile( this.config.get("credentials-file").asText() );
     if( this.config.has("credentials-profile-name") )

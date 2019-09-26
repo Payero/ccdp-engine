@@ -181,10 +181,10 @@ class TaskRunner:
     --resource-id 3jpl8x \
     --http-method POST \
     --path-with-query-string "" \
-    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}"
+    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"zip_file\": \"simple_pi.zip\"}"
 
     or I can also use
-    curl -X POST -d "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}" https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager
+    curl -X POST -d "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"zip_file\": \"simple_pi.zip\"}" https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager
 
 
 
@@ -383,9 +383,6 @@ def handler(event, context):
                           The name of the zip file containing the module
     -m MOD_NAME, --module=MOD_NAME
                           The name of the module to run
-    -r RES_FILE, --results=RES_FILE
-                          The name of the file to store resutls from the runTask
-                          call
     -o OUT_FILE, --output=OUT_FILE
                           The name of the file to store the stdout and stderr
     -k, --keep-files      It does not delete any file after execution
@@ -393,15 +390,13 @@ def handler(event, context):
                           The arguments to provide to the runTask method
 
     '''
-    #print("Received event: " + json.dumps(event, indent=2))
     #print("Context: %s" % str(type(context)))
     #pprint(dir(context))
-    #args = urllib.base64.standard_b64decode( event )
+    # args = urllib.base64.standard_b64decode( event )
     args = ast.literal_eval(json.dumps(event))
 
     runner = TaskRunner(args['verb_level'])
     return "%s" % runner.runTask(args)
-
 
 
 """
@@ -437,10 +432,6 @@ if __name__ == '__main__':
   parser.add_option("-m", "--module",
             dest="mod_name",
             help="The name of the module to run")
-
-  parser.add_option("-r", "--results",
-            dest="res_file",
-            help="The name of the file to store resutls from the runTask call")
 
   parser.add_option("-o", "--output",
             dest="out_file",

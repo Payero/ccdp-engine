@@ -1,0 +1,16 @@
+{
+  "jobs":
+    [
+       { 
+         "session-id": "Local Echo",
+         "node-type": "None",
+         "serverless": true,
+         "arguments":["Hello"],
+         "serverless-config":
+         {       
+           "provider": "Local Echo",
+		   "local_file": "/nishome/srbenne/local.out"
+         }
+       }        
+   ]  
+}

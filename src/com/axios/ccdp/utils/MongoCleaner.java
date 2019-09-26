@@ -16,6 +16,7 @@ import org.apache.commons.cli.ParseException;
 
 import com.axios.ccdp.fmwk.CcdpAgent;
 import com.axios.ccdp.impl.db.mongo.CcdpMongoDbImpl;
+import com.axios.ccdp.resources.CcdpResourceAbs;
 import com.axios.ccdp.resources.CcdpVMResource;
 import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -64,35 +65,53 @@ public class MongoCleaner
       System.exit(1);
     }
     
-    // Now that we are connected, get all VM entries, iterate through, and 
-    // delete
-    List<CcdpVMResource> vms = dbConnection.getAllVMInformation();
+    // Now that we are connected, get all VM entries, iterate through, and delete
+    List<CcdpResourceAbs> vms = dbConnection.getAllInformation();
     if (vms.size() == 0)
     {
       this.logger.info("There are no VMs in MongoDB");
       System.exit(0);
     }
-    for( CcdpVMResource vm :vms )
+    for( CcdpResourceAbs vm :vms )
     {
-      String vmID = vm.getInstanceId();
-      this.logger.debug("Deleting VM " + vmID);
-      dbConnection.deleteVMInformation(vmID);
+      if ( vm.getIsServerless() )
+      {
+        String cont_type = vm.getNodeType();
+        this.logger.debug("Deleting controller " + cont_type);
+        dbConnection.deleteServerlessInformation(cont_type);
+      }
+      else
+      {
+        CcdpVMResource vmID = (CcdpVMResource) vm;
+        String iid = vmID.getInstanceId();
+        this.logger.debug("Deleting VM " + iid);
+        dbConnection.deleteVMInformation(iid);
+      }
     }
  
     // Wait for a potential heartbeat
     
     TimeUnit.MILLISECONDS.sleep(5000);
     // Check for remaining vms
-    vms = dbConnection.getAllVMInformation();
+    vms = dbConnection.getAllInformation();
     if (vms.size() == 0)
       this.logger.info("All VMs were successfully removed from MongoDB");
     else
     {
       this.logger.info("Not all VMs could be deleted. The following may still be running:");
-      for (CcdpVMResource vm : vms)
+      for (CcdpResourceAbs vm : vms)
       {
-        String vmID = vm.getInstanceId();
-        this.logger.info("VM " + vmID + " wasn't deleted");
+        if ( vm.getIsServerless() )
+        {
+          String cont_type = vm.getNodeType();
+          this.logger.debug("Controller: " + cont_type);
+        }
+        else
+        {
+          CcdpVMResource vmID = (CcdpVMResource) vm;
+          String iid = vmID.getInstanceId();
+          this.logger.debug("VM: " + iid);
+        }
       }
     }
     

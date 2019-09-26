@@ -62,6 +62,7 @@ public class CcdpUtils
   
   /** The string for CCDP free agents' session id */
   public static final String FREE_AGENT_SID = "FREE_AGENT";
+  public static final String SERVERLESS_NODETYPE = "NONE";
   
   /** Stores the property to determine if an agent should send HB or not **/
   public static final String CFG_KEY_SKIP_HEARTBEATS ="skip-heartbeats";  
@@ -78,6 +79,34 @@ public class CcdpUtils
   
   /**  The key name of the property used to send events to other entities  */
   public static final String CFG_KEY_RESPONSE_CHANNEL = "from.scheduler.channel";  
+  
+  public static final String CFG_KEY_CREDENTIALS_FILE = "credentials-file";
+  public static final String CFG_KEY_CREDENTIALS_PROFILE = "credentials-profile-name";
+  /** Stores the name of the ACCESS KEY Environment Variable **/
+  public static final String ACCESS_KEY_ID_ENV_VAR = "AWS_ACCESS_KEY_ID";
+  /** Stores the name of the ACCESS SECRET Environment Variable **/
+  public static final String ACCESS_SECRET_ENV_VAR = "AWS_SECRET_ACCESS_KEY";
+  /** Stores the name of the ACCESS KEY System Property **/
+  public static final String ACCESS_KEY_ID_PROPERTY = "aws.accessKeyId";
+  /** Stores the name of the ACCESS SECRET System Property **/
+  public static final String ACCESS_SECRET_PROPERTY = "aws.secretKey";
+  
+  /**  The key names for Lambda Task fields  */
+  public static final String CFG_SERVERLESS = "serverless";
+  public static final String CFG_SERVERLESS_ARGS = "arguments";
+  public static final String CFG_SERVERLESS_CONFIG = "serverless-config";
+  /**  The key names for Lambda Server Configuration fields  **/
+  public static final String S_CFG_PROVIDER = "provider";
+  public static final String S_CFG_GATEWAY = "URL-Gateway";
+  public static final String S_CFG_BUCKET_NAME = "bkt_name";
+  public static final String S_CFG_ZIP_FILE = "zip_file";
+  public static final String S_CFG_MOD_NAME = "mod_name";
+  public static final String S_CFG_KEEP_FILES = "keep_files";
+  public static final String S_CFG_VERB_LEVEL = "verb_level";
+  public static final String S_CFG_REMOTE_FILE = "remote_file";
+  public static final String S_CFG_LOCAL_FILE = "local_file";
+  
+  public static final String S_CFG_USE_DB_TRIGGER = "use-trigger";
  
   //  /**  The key name of the property storing the configuration filename  */
 //  public static final String CFG_KEY_CFG_FILE = "ccdp.config.file";
@@ -533,7 +562,7 @@ public class CcdpUtils
         // Making sure each task has a command
         for( CcdpTaskRequest task : req.getTasks() )
         {
-          if( task.getCommand().isEmpty() )
+          if( task.getCommand().isEmpty() && task.getServerless() == false)
             throw new RuntimeException("The command is required");
         }
         
@@ -555,13 +584,32 @@ public class CcdpUtils
       {
         CcdpTaskRequest task = 
             mapper.treeToValue(tasks.get(i), CcdpTaskRequest.class);
-        
+
+        // Don't allow tasks with no sid
+        if ( task.getSessionId() == null)
+        {
+          logger.debug("Ignoring a task without a session ID:");
+          logger.debug("Ignored task:\n" + task.toPrettyPrint());
+          continue;
+        }
         // if at least one of them has a session-id, then use is
-        if( task.getSessionId() != null )
+        else if( request.getSessionId() == null )
           request.setSessionId( task.getSessionId() );
-        
-        // making sure the task has a command
-        if( task.getCommand().isEmpty() )
+
+        // if the request already has a session and it does not match the task, discard the task
+        else if ( !task.getSessionId().equals(request.getSessionId()) )
+        {
+          logger.debug("Ignoring task with SID: " + task.getSessionId() +
+                  " because it doesn't match the request id: " + request.getSessionId());
+          logger.debug("Ignored task:\n" + task.toPrettyPrint());
+          continue;
+        }
+        // If task id and request id match
+        else
+          logger.debug("Task ID matched request ID");
+
+        // making sure the task has a command if it isn't serverless
+        if( !task.getServerless() && task.getCommand().isEmpty() )
           throw new RuntimeException("The command is required");
         
         request.getTasks().add(task);
@@ -590,7 +638,7 @@ public class CcdpUtils
         
         JsonNode job = jobs.get(i);
         
-        JsonNode cmd;
+        JsonNode cmd, cfg;
         
         if( job.has("cpu") )
           task.setCPU( job.get("cpu").asDouble() );
@@ -598,12 +646,10 @@ public class CcdpUtils
         {
           String type = job.get("node-type").asText();
           task.setNodeType( type.toUpperCase() );
-          request.setNodeType(type);
         }
         else
         {
           task.setNodeType("DEFAULT");
-          request.setNodeType("DEFAULT");
         }
         
         if( job.has("mem") )
@@ -615,7 +661,7 @@ public class CcdpUtils
           request.setSessionId(sid);
         }
         
-        if( job.has("command") )
+        if( (!job.has(CFG_SERVERLESS) || (job.has(CFG_SERVERLESS) && !job.get(CFG_SERVERLESS).asBoolean())) && job.has("command") )
         {
           cmd = job.get("command");
           List<String> args = new ArrayList<String>();
@@ -624,11 +670,45 @@ public class CcdpUtils
           
           task.setCommand(args);
         }
+        else if (job.has(CFG_SERVERLESS) && job.get(CFG_SERVERLESS).asBoolean())
+        {
+          logger.debug("Serverless Job, command not required");
+          Map<String, String> config = new HashMap<String, String>();
+          cfg = job.get(CFG_SERVERLESS_CONFIG);
+          try
+          {
+            task.setServeless(true);
+            
+            List<String> args = new ArrayList<String>();
+            for(int n = 0; n < job.get(CFG_SERVERLESS_ARGS).size(); n++ )
+              args.add( job.get(CFG_SERVERLESS_ARGS).get(n).asText() );
+            task.setServerArgs(args);
+            
+            config.put(S_CFG_PROVIDER, cfg.get(S_CFG_PROVIDER).asText());
+            config.put(S_CFG_GATEWAY, cfg.get(S_CFG_GATEWAY).asText());
+            config.put(S_CFG_BUCKET_NAME, cfg.get(S_CFG_BUCKET_NAME).asText());
+            config.put(S_CFG_ZIP_FILE, cfg.get(S_CFG_ZIP_FILE).asText());
+            config.put(S_CFG_MOD_NAME, cfg.get(S_CFG_MOD_NAME).asText());
+            config.put(S_CFG_KEEP_FILES, cfg.get(S_CFG_KEEP_FILES).asText());
+            config.put(S_CFG_VERB_LEVEL, cfg.get(S_CFG_VERB_LEVEL).asText());
+          }
+          catch (Exception e)
+          {
+            logger.debug("A necessary field was missing from the serverless task.");
+            e.printStackTrace();
+          }
+          // Add local and remote save locations if they are given
+          if ( cfg.has(S_CFG_LOCAL_FILE) && cfg.get(S_CFG_LOCAL_FILE) != null )
+            config.put(S_CFG_LOCAL_FILE, cfg.get(S_CFG_LOCAL_FILE).asText());
+          if ( cfg.has(S_CFG_REMOTE_FILE) && cfg.get(S_CFG_REMOTE_FILE) != null )
+            config.put( S_CFG_REMOTE_FILE, cfg.get(S_CFG_REMOTE_FILE).asText() );
+          task.setServelessCfg(config);
+        }
         else
         {
           throw new RuntimeException("The command is required");
         }
-        
+      
         request.getTasks().add(task);
         requests.add(request);
       }
@@ -934,6 +1014,16 @@ public class CcdpUtils
   }
   
   /**
+   * Get all the credentials in the config
+   * 
+   * @return a JsonNode object containing all the different credentials
+   */
+  public static JsonNode getCredentials()
+  {
+    return CcdpUtils.parser.getCredentialNode();
+  }
+  
+  /**
    * Gets all the configuration parameters used by the engine object
    * 
    * @return an object containing all the different configuration parameters
@@ -962,6 +1052,17 @@ public class CcdpUtils
   public static List<String> getNodeTypes()
   {
     return CcdpUtils.parser.getNodeTypes();
+  }
+  
+  /**
+   * Gets all the serverless types under the resource provisioning tag
+   * 
+   * @return a list containing all the serverless types under the resource 
+   *         provisioning tag
+   */
+  public static List<String> getServerlessTypes()
+  {
+    return CcdpUtils.parser.getServerlessTypes();
   }
   
   /**
@@ -1115,6 +1216,16 @@ public class CcdpUtils
   public static JsonNode getResourcesCfg()
   {
     return CcdpUtils.parser.getResourcesCfg();
+  }
+  
+  /**
+   * Gets all the serverless resources configured under the resource provisioning task
+   * 
+   * @return a map like object with all the different serverless resources
+   */
+  public static JsonNode getServerlessCfg()
+  {
+    return CcdpUtils.parser.getServerlessCfg();
   }
   
   /**

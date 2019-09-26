@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.UUID;
 
 import com.axios.ccdp.tasking.CcdpTaskRequest.CcdpTaskState;
-import com.axios.ccdp.utils.CcdpUtils;
 import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -64,7 +63,7 @@ public class CcdpThreadRequest implements Serializable
   /** 
    * Indicates the node type where this task needs to run such as EMR, EC2, etc 
    **/
-  private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
+  //private String nodeType = CcdpUtils.DEFAULT_RES_NAME;
   /**
    * A list of tasks to run in order to execute this processing job
    */
@@ -266,20 +265,20 @@ public class CcdpThreadRequest implements Serializable
   /**
    * @return the nodeType
    */
-  @JsonGetter("node-type")
+  /*@JsonGetter("node-type")
   public String getNodeType()
   {
     return this.nodeType;
-  }
+  }*/
   
   /**
    * @param nodeType the nodeType to set
    */
-  @JsonSetter("node-type")
+  /*@JsonSetter("node-type")
   public void setNodeType(String nodeType)
   {
     this.nodeType = nodeType;
-  }
+  }*/
   
   
   /**

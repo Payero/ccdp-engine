@@ -1,22 +1,23 @@
 package com.axios.ccdp.test;
 
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import org.apache.log4j.Logger;
+import org.bson.Document;
 
-import com.axios.ccdp.resources.CcdpImageInfo;
 import com.axios.ccdp.utils.CcdpUtils;
-import com.spotify.docker.client.DefaultDockerClient;
-import com.spotify.docker.client.DockerClient;
-import com.spotify.docker.client.messages.ContainerConfig;
-import com.spotify.docker.client.messages.ContainerCreation;
-import com.spotify.docker.client.messages.HostConfig;
-import com.spotify.docker.client.messages.Image;
-import com.spotify.docker.client.shaded.com.google.common.collect.ImmutableMap;
-import com.spotify.docker.client.shaded.com.google.common.collect.UnmodifiableIterator;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.mongodb.client.MongoClient;
+import com.mongodb.Block;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.ServerAddress;
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Aggregates;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.changestream.ChangeStreamDocument;
+import com.mongodb.client.model.changestream.FullDocument;
 
 public class CCDPTest 
 {
@@ -25,126 +26,48 @@ public class CCDPTest
    */
   private Logger logger = Logger.getLogger(CCDPTest.class.getName());
   
+  private String last = "";
   
-  public CCDPTest()
-  {
-    this.logger.debug("Running CCDP Test");
-    try
-    {
-      this.runTest();
-    }
-    catch( Exception e )
-    {
-      this.logger.error("Message: " + e.getMessage(), e);
-    }
+  ObjectMapper mapper = new ObjectMapper();
+  
+  public CCDPTest() throws Exception
+  {    
+    this.logger.debug("Start Test");
     
+    ServerAddress sa = new ServerAddress("ax-ccdp.com", 27017);
+    MongoClient client = MongoClients.create(
+        MongoClientSettings.builder()
+        .applyToClusterSettings(builder ->
+                builder.hosts(Arrays.asList(sa)))
+        .build());
+    
+    MongoDatabase db = client.getDatabase("CCDP");
+    MongoCollection<Document> statusColl = db.getCollection("srb-test");
+    this.logger.debug("Set up collection");
+    Block<ChangeStreamDocument<Document>> printBlock = new Block<>() {
+      @Override
+      public void apply(final ChangeStreamDocument<Document> changeStreamDocument) {
+          String id = changeStreamDocument.getFullDocument().get("_id").toString();
+          if ( last.equals(id) )
+            System.out.println("Duplicate");
+          else
+          {
+            System.out.println(id);
+            last = id;
+          }
+      }
+    };
+    statusColl.watch(Arrays.asList(Aggregates.match(Filters.in("operationType", Arrays.asList("insert", "update", "replace")))))
+    .fullDocument(FullDocument.UPDATE_LOOKUP).forEach(printBlock);
+        
   }
   
-  
-  
-    private void runTest() throws Exception
-    {
-      this.logger.debug("Running the Test");
-      String url = "http://172.17.0.1:2375";
-      DockerClient client = new DefaultDockerClient(url);
-      this.logger.debug("Connected");
-      List<String> envs = new ArrayList<>();
-      logger.info("Connecting to docker enging at: " + url);
-      //System.out.println(CcdpUtils.getNodeTypes().toString());
-      envs.add("DOCKER_HOST=" + url );
-      envs.add("CCDP_HOME=/data/ccdp/ccdp-engine");
-      envs.add("AWS_ACCESS_KEY_ID=" + System.getenv("AWS_ACCESS_KEY_ID"));
-      envs.add("AWS_SECRET_ACCESS_KEY=" + System.getenv("AWS_SECRET_ACCESS_KEY"));
-      
-      // Parsing the command to start the docker container
-      // It should look like:
-      //    AWS: /data/ccdp/ccdp_install.py -a download -d s3://ccdp-settings/ccdp-engine.tgz -t /data/ccdp -D -n DOCKER
-      //    FS:  /data/ccdp/ccdp_install.py -t /data/ccdp -D -n DOCKER
-      //
-      CcdpImageInfo imgCfg = CcdpUtils.getImageInfo("DOCKER");
-      List<String> cmd = new ArrayList<>();
-      cmd.add("/data/ccdp/ccdp_install.py");
-      //new 
-      cmd.add("-a");
-      cmd.add("download");
-      cmd.add("-d");
-      cmd.add("s3://ccdp-dist/ccdp-engine.tgz");
-      cmd.add("-w");
-      cmd.add("-t");
-      cmd.add("/data/ccdp");
-      cmd.add("-D");
-      //cmd.add("-n");
-      //cmd.add("DOCKER");
-//      String cmd_line = imgCfg.getStartupCommand();
-//      StringTokenizer st = new StringTokenizer(cmd_line,  " ");
-//      while( st.hasMoreTokens() )
-//        cmd.add(st.nextToken());
-
-      HostConfig hostCfg = HostConfig.builder()
-          .networkMode("host")
-          .build();
-      
-      ContainerConfig cfg = ContainerConfig.builder()
-          .env(envs)
-          .hostConfig(hostCfg)
-          .image(imgCfg.getImageId())
-          .entrypoint(cmd)
-          .build();
-      
-      logger.debug(cfg.toString());
-      
-      ContainerCreation cc = client.createContainer(cfg);
-      String cid = cc.id();
-      // Translating from Container id to a hostId
-      String hostId = cid.substring(0,  12);
-      logger.debug("Created Container " + hostId );
-      
-      client.startContainer( cc.id() );
-      client.close();
-      
-      
-    }
-    
-    public void imageInfo(DockerClient docker) throws Exception
-    {
-      this.logger.debug("Testing the Docker Client");
-      List<Image> quxImages =  docker.listImages();
-      for( Image img : quxImages )
-      {
-        try
-        {
-          this.logger.debug("Getting Image " + img.toString());
-          ImmutableMap<String, String> map = img.labels();
-          UnmodifiableIterator<String> keys = map.keySet().iterator();
-          while( keys.hasNext() )
-          {
-            String key = keys.next();
-            String val = map.get(key);
-            this.logger.debug("Label[" + key + "] = " + val);
-          }
-        }
-        catch(Exception e)
-        {
-          this.logger.info("Got an exception while working with image");
-          continue;
-        }
-        
-      }
-      
-      
-    }
-
   public static void main( String[] args ) throws Exception
   {
     String cfg_file = System.getProperty("ccdp.config.file");
-    
-    //System.out.println(cfg_file); ///projects/users/srbenne/workspace/engine/config/ccdp-config.json AS EXPECTED
-    
+        
     // Uses the cfg file to configure all CcdpUtils for use in the next service
-    System.out.println("Before loadProperties");
-    // Calling getNodeTypes() here give nullptr, THIS IS WHAT BREAKS THE AGENT.
     CcdpUtils.loadProperties(cfg_file);
-    System.out.println("After Load properties");
     CcdpUtils.configLogger();
     
     new CCDPTest();

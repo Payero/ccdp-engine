@@ -338,7 +338,7 @@ public class CcdpMsgSender implements CcdpMessageConsumerIntf
     
     if( filename == null && jobs == null  && task_filename == null)
       usage("Need to provide either a job file, a job, or a task as argument");
-    
+   
     CcdpUtils.loadProperties(cfg_file);
     CcdpUtils.configLogger();
     

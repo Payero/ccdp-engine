@@ -921,6 +921,7 @@ public class CcdpMainApplicationUnitTest implements CcdpMessageConsumerIntf
   public void NumberTasksControllerTest()
   {
     logger.info("Starting NumberTasksController Test!");
+    final int NumTasksToLaunch = 5;
         
     // Set no free agents
     ObjectNode res_cfg = CcdpUtils.getResourceCfg("DOCKER").deepCopy();

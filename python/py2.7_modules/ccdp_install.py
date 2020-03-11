@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
 
 from optparse import OptionParser
@@ -200,7 +200,7 @@ class CcdpInstaller:
 
         new_file.write("%s" % line)
       
-      os.chmod(agent_file, 0o777)
+      os.chmod(agent_file, 0777)
       
     except:
       traceback.print_exc()
@@ -244,7 +244,7 @@ class CcdpInstaller:
     
     if not os.path.isdir(tgt_dir):
       os.makedirs(tgt_dir)
-      os.chmod(tgt_dir, 0o750)
+      os.chmod(tgt_dir, 0750)
 
     filename = 'bogus_filename'
 
@@ -365,7 +365,7 @@ class CcdpInstaller:
     self.__logger.debug("Files: %s" % pformat(self.__files))
 
     # just in case using environment variables
-    if 'path' in self.__files['dist-file']:
+    if self.__files['dist-file'].has_key('path'):
       dist_file = self.__files['dist-file']['path']
 
       if os.path.isfile(dist_file):
@@ -460,22 +460,22 @@ class CcdpInstaller:
     cfg = os.path.join(inst_path, "config", "ccdp-config.json")
     log = os.path.join(inst_path, "config", "log4j.properties")
     bin_dir = os.path.join(inst_path, "bin")
-    os.chmod(bin_dir, 0o777)
+    os.chmod(bin_dir, 0777)
     for name in glob.glob("%s/*" % bin_dir):
       self.__logger.debug("Changing permission to %s" % name)
-      os.chmod(name, 0o777)
+      os.chmod(name, 0777)
 
     cfg_dir = os.path.join(inst_path, "config")
-    os.chmod(cfg_dir, 0o777)
+    os.chmod(cfg_dir, 0777)
     for name in glob.glob("%s/*" % cfg_dir):
       self.__logger.debug("Changing permission to %s" % name)
-      os.chmod(name, 0o666)
+      os.chmod(name, 0666)
 
     log_dir = os.path.join(inst_path, "logs")
-    os.chmod(log_dir, 0o777)
+    os.chmod(log_dir, 0777)
     for name in glob.glob("%s/*" % log_dir):
       self.__logger.debug("Changing permission to %s" % name)
-      os.chmod(name, 0o666)
+      os.chmod(name, 0666)
 
 
     self.__logger.info("Modifying the Configuration file")
@@ -553,7 +553,7 @@ class CcdpInstaller:
         out.write("export NICKNAME=%s" % name)
         out.write("\n")
         out.close()
-        os.chmod(src_file, 0o644)
+        os.chmod(src_file, 0644)
         
         self.__run_sudo_cmd( ["mv", src_file, fname] )
 

@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
-
+from __future__ import print_function
 
 import boto3, botocore
 import json
@@ -11,7 +11,7 @@ from pprint import pformat, pprint
 import os, sys, traceback
 import tarfile
 from subprocess import call
-import shutil, ast, urllib.request, urllib.parse, urllib.error
+import shutil, ast, urllib
 
 class TaskRunner:
   """
@@ -181,10 +181,10 @@ class TaskRunner:
     --resource-id 3jpl8x \
     --http-method POST \
     --path-with-query-string "" \
-    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"zip_file\": \"simple_pi.zip\"}"
+    --body "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}"
 
     or I can also use
-    curl -X POST -d "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"zip_file\": \"simple_pi.zip\"}" https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager
+    curl -X POST -d "{\"arguments\": \"1000000\",\"bkt_name\": \"ccdp-tasks\",\"keep_files\": \"False\",\"mod_name\": \"simple_pi\",\"verb_level\": \"debug\",\"res_file\": \"pi_out\",\"zip_file\": \"simple_pi.zip\"}" https://cx62aa0x70.execute-api.us-east-1.amazonaws.com/prod/TaskRunnerManager
 
 
 
@@ -260,12 +260,12 @@ class TaskRunner:
 
     res = None
     args = ""
-    if 'arguments' in params:
+    if params.has_key('arguments'):
       args = params['arguments']
     
     self.__logger.info("Using Arguments: %s" % args)
 
-    if 'out_file' in params and params['out_file'] != None:
+    if params.has_key('out_file') and params['out_file'] != None:
       out = os.path.join(_root, params['out_file'])
       print("Redirecting to %s" % out)
       with RedirectStdStreams(stdout=out, stderr=out):
@@ -290,7 +290,7 @@ class TaskRunner:
           res = runTask(args)
                 
     res_file = None
-    if 'res_file' in params and params['res_file'] != None:
+    if params.has_key('res_file') and params['res_file'] != None:
       res_file = os.path.join(_root, params['res_file'])
     
     
@@ -302,7 +302,7 @@ class TaskRunner:
       results.close()
       self.__load_file(bkt_name, res_file)
 
-    if 'keep_files' in params and not params['keep_files']:
+    if params.has_key('keep_files') and not params['keep_files']:
       self.__clean_files()
 
     # returning the results in case is from the lambda function
@@ -383,6 +383,9 @@ def handler(event, context):
                           The name of the zip file containing the module
     -m MOD_NAME, --module=MOD_NAME
                           The name of the module to run
+    -r RES_FILE, --results=RES_FILE
+                          The name of the file to store resutls from the runTask
+                          call
     -o OUT_FILE, --output=OUT_FILE
                           The name of the file to store the stdout and stderr
     -k, --keep-files      It does not delete any file after execution
@@ -390,13 +393,15 @@ def handler(event, context):
                           The arguments to provide to the runTask method
 
     '''
+    #print("Received event: " + json.dumps(event, indent=2))
     #print("Context: %s" % str(type(context)))
     #pprint(dir(context))
-    # args = urllib.base64.standard_b64decode( event )
+    #args = urllib.base64.standard_b64decode( event )
     args = ast.literal_eval(json.dumps(event))
 
     runner = TaskRunner(args['verb_level'])
     return "%s" % runner.runTask(args)
+
 
 
 """
@@ -432,6 +437,10 @@ if __name__ == '__main__':
   parser.add_option("-m", "--module",
             dest="mod_name",
             help="The name of the module to run")
+
+  parser.add_option("-r", "--results",
+            dest="res_file",
+            help="The name of the file to store resutls from the runTask call")
 
   parser.add_option("-o", "--output",
             dest="out_file",

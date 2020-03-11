@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # encoding: utf-8
 
 from optparse import OptionParser
@@ -9,7 +9,7 @@ import os, sys, traceback
 import tarfile, json
 from subprocess import call
 import boto3
-import urllib.request, urllib.parse, urllib.error
+import urllib
 import ast, socket
 
 

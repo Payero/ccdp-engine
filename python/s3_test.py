@@ -15,7 +15,7 @@ __S3_PROT = 's3://'
 def ListS3Dir():
     print("\nPrinting the contents of S3 Bucket 'ccdp-tasks':\n")
     for key in s3.list_objects(Bucket='ccdp-tasks')['Contents']:
-        print(key['Key'])
+        print((key['Key']))
 
 def DownloadS3File():
     print("\nDownloading S3 Item 'pi.out'\n ")
@@ -24,7 +24,7 @@ def DownloadS3File():
 def loadConfig():
     with open(config_fp) as file:
         config = json.load(file)
-    print(json.dumps(config, indent=2))
+    print((json.dumps(config, indent=2)))
 
 def uploadTest(src_file, tgt_loc):
       

@@ -107,6 +107,11 @@ public class CcdpVMResource extends CcdpResourceAbs implements Serializable
    */
   private final boolean isServerless = false;
   
+  /**
+   * Flag indicating whether or not this agent/node is serverless
+   */
+  private boolean isServerless = false;
+  
   public CcdpVMResource()
   {
   }
@@ -557,6 +562,27 @@ public class CcdpVMResource extends CcdpResourceAbs implements Serializable
     return this.isSingleTasked;
   }
   
+  /**
+   * Sets the flag indicating whether or not this node is serverless
+   * 
+   * @param isServerless flag indicating whether or not this node is serverless
+   */
+  @JsonSetter("is-serverless")
+  public void isServerless(boolean isServerless)
+  {
+    this.isServerless = isServerless;
+  }
+
+  /**
+   * Gets the flag indicating whether or not this node is serverless
+   * 
+   * @return a flag indicating whether or not this node is serverless
+   */
+  @JsonGetter("is-serverless")
+  public boolean isServerless()
+  {
+    return this.isServerless;
+  }
   
   /**
    * Returns true if there are no tasks running on this VM or false otherwise

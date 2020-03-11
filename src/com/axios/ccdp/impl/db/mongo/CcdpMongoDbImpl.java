@@ -331,6 +331,7 @@ public class CcdpMongoDbImpl implements CcdpDatabaseIntf
       String key = keys.next();
       map.put(key,  doc.get(key) );
     }
+    
     JsonNode node = this.mapper.valueToTree(map);
     return this.mapper.treeToValue(node, CcdpVMResource.class);
     
